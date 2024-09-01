@@ -1,0 +1,11 @@
+D:\app\vop\src-web-server\target\x86_64-pc-windows-msvc\debug\deps\libfutures_core-e6f8a9180151492c.rmeta: C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\lib.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\future.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\stream.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\mod.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\poll.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\__internal\mod.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\__internal\atomic_waker.rs
+
+D:\app\vop\src-web-server\target\x86_64-pc-windows-msvc\debug\deps\futures_core-e6f8a9180151492c.d: C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\lib.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\future.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\stream.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\mod.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\poll.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\__internal\mod.rs C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\__internal\atomic_waker.rs
+
+C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\lib.rs:
+C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\future.rs:
+C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\stream.rs:
+C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\mod.rs:
+C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\poll.rs:
+C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\__internal\mod.rs:
+C:\Users\76546\.cargo\registry\src\rsproxy.cn-8f6827c7555bfaf8\futures-core-0.3.30\src\task\__internal\atomic_waker.rs:

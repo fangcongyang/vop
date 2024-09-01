@@ -1,0 +1,21 @@
+$breakpoints: (
+  'phonePortrait': (420px, portrait),
+  'phoneLandscape': (800px, landscape),
+  'desktop': 1200px
+);
+
+@mixin responseTo($breakname) {
+  $bp: map-get($breakpoints, $breakname);
+
+  @if type-of($bp)=='list' {
+    @media (min-width: nth($bp, 1)) and (orientation : nth($bp, 2)) {
+      @content;
+    }
+  }
+
+  @else {
+    @media (min-width: $bp) {
+      @content;
+    }
+  }
+}

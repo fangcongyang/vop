@@ -1,0 +1,140 @@
+@import '../Base.scss';
+
+.play {
+    border-radius: 5px;
+    background-color: var(--l-bgc-1);
+    box-shadow: var(--l-bsc);
+    height: 100%;
+    overflow: auto;
+    padding: 0;
+
+    &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+
+    .box {
+        border-radius: 5px;
+        color: var(--l-fc-1);
+        height: 100%;
+
+        @include responseTo('phone') {
+            padding: 0;
+        }
+        
+        @include responseTo('desktop') {
+            padding: 0 10px;
+        }
+
+        .title {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            height: 40px;
+
+            span {
+                line-height: 40px;
+                display: inline-block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .right {
+                margin-left: auto;
+                font-size: 0;
+                float: right;
+
+                svg {
+                    stroke: var(--l-fc-1);
+                    stroke-width: 1;
+                    fill: none;
+                    display: inline-block;
+                    cursor: pointer;
+
+                    &:hover {
+                        stroke: var(--l-c-8);
+                        stroke-width: 1.5;
+                        fill: var(--l-c-2);
+                    }
+                }
+            }
+        }
+
+        .player {
+            width: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+
+            .dplayer, .iframePlayer {
+                height: 100%;
+                width: 100%;
+            }
+            
+
+            @include responseTo('phonePortrait') {
+                height: 40%;
+            }
+            
+            @include responseTo('phoneLandscape') {
+                height: 100%;
+            }
+
+            @include responseTo('desktop') {
+                height: calc(100% - 90px);
+            }
+        }
+
+        .more {
+            width: 100%;
+            line-height: 50px;
+            margin-right: 10px;
+
+            span {
+                cursor: pointer;
+
+                &.last-tip {
+                    color: var(--l-fc-1);
+                    font-size: 16px;
+                }
+            }
+        }
+
+        .list {
+            border-radius: 3px;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 10px;
+
+            .listTitle {
+                line-height: 50px;
+                font-size: 18px;
+                gap: 10px;
+            }
+
+            .episode-list {
+                display: flex;
+                flex-wrap: wrap;
+                justify-items: flex-start;
+                gap: 10px;
+
+                .episode {
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    background-color: #f0f0f0;
+                    transition: background-color 0.3s;
+
+                    &.active {
+                        background-color: var(--l-c-2);
+                        color: var(--l-fc-3);
+                    }
+
+                    &:hover {
+                        background-color: var(--l-c-3);
+                        color: white;
+                    }
+                }
+            }
+        }
+    }
+}

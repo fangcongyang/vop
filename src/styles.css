@@ -1,0 +1,101 @@
+:root {
+    --color-body-bg: #ffffff;
+    --color-text: #000;
+    --color-error: red;
+    --color-volume-hover: #335eea;
+    --color-secondary: #7a7a7b;
+    --color-secondary-bg: #f5f5f7;
+    --color-navbar-bg: rgba(255, 255, 255, 0.86);
+    --color-primary: #335eea;
+    --color-primary-bg: #eaeffd;
+    --color-primary-bg-for-transparent: rgba(189, 207, 255, 0.28);
+    --color-secondary-bg-for-transparent: rgba(209, 209, 214, 0.28);
+
+    --l-c-2: #823aa022;
+    --l-c-3: #823aa033;
+    --l-c-5: #823aa055;
+    --l-c-8: #823aa088;
+    --l-fc-1: #808695;
+    --l-fc-3: #823aa0;
+    --l-bgc-1: #ffffff;
+    --l-bgc-2: #f2f6f9;
+    --l-bgc-3: #f9fbfc;
+    --l-bsc: 0 1px 3px #8e8da233, 0 1px 2px #8e8da244;
+    --l-bsc-hover: 0 14px 28px #8e8da255, 0 10px 10px #8e8da244;
+    --l-bsc-scroll: inset 0 0 5px #823aa000;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--color-body-bg);
+    height: 100%;
+}
+
+#root {
+    height: 100%;
+}
+
+.main-body {
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    flex-direction: column;
+    height: 100%;
+}
+
+.hidden {
+    display: none !important;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+input:focus {
+    outline: none;
+}
+
+input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+
+button {
+    cursor: pointer;
+    border: 0;
+
+    &:focus-visible {
+        outline: none;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color: #f6f6f6;
+        background-color: #2f2f2f;
+    }
+
+    a:hover {
+        color: #24c8db;
+    }
+
+    input,
+    button {
+        color: #ffffff;
+        background-color: #0f0f0f98;
+    }
+    button:active {
+        background-color: #0f0f0f69;
+    }
+}

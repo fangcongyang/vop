@@ -1,0 +1,53 @@
+.frame {
+    height: 40px;
+    width: calc(100% - 40px);
+    padding: 0 20px;
+    display: flex;
+    user-select: none;
+    align-items: center;
+    background-color: var(--color-body-bg);
+    -webkit-app-region: drag;
+
+    .title {
+        display: inline-block;
+        margin: 0 auto;
+        line-height: 14px;
+    }
+
+    div {
+        display: flex;
+        flex: 1;
+        justify-content: flex-end;
+
+        span {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 14px;
+            display: inline-block;
+            z-index: 999;
+            -webkit-app-region: no-drag;
+        }
+    }
+
+    span {
+        &.min {
+            background-color: #32dc36;
+        }
+
+        &.max {
+            background-color: #ffbe2a;
+        }
+
+        &.close {
+            background-color: #ff5f56;
+        }
+
+        &.top {
+            background-color: #f3bab7;
+        }
+    }
+}

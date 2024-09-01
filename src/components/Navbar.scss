@@ -1,0 +1,105 @@
+.navBar {
+  height: 100%;
+  .nav {
+    position: fixed;
+    right: 0;
+    top: 40px;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 64px;
+
+    padding: {
+      right: 10vw;
+      left: 10vw;
+    }
+
+    backdrop-filter: saturate(180%) blur(20px);
+    background-color: var(--color-navbar-bg);
+    z-index: 100;
+  }
+
+  @media (max-width: 1336px) {
+    .nav {
+      padding: 0 max(5vw, 90px);
+    }
+  }
+  
+  @supports (-moz-appearance: none) {
+    .nav {
+      background-color: var(--color-body-bg);
+    }
+  }
+}
+.navigationButtons {
+  display: flex;
+  align-items: center;
+  width: 200px;
+
+  .svg-icon {
+    height: 24px;
+    width: 24px;
+  }
+
+  button {
+    -webkit-app-region: no-drag;
+  }
+}
+
+.navigationLinks {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  text-transform: uppercase;
+  user-select: none;
+
+  a {
+    -webkit-app-region: no-drag;
+    font-size: 18px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--color-text);
+    transition: 0.2s;
+    -webkit-user-drag: none;
+
+    margin: {
+      right: 12px;
+      left: 12px;
+    }
+
+    &:hover {
+      background: var(--color-secondary-bg-for-transparent);
+    }
+
+    &:active {
+      transform: scale(0.92);
+      transition: 0.2s;
+    }
+  }
+
+  a.active {
+    color: var(--color-primary);
+  }
+}
+
+.rightPart {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 200px;
+
+  .search-button {
+    display: none;
+    -webkit-app-region: no-drag;
+  }
+}
+
+.search {
+  .svg-icon {
+    height: 18px;
+    width: 18px;
+  }
+}
