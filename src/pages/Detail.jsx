@@ -62,13 +62,13 @@ const Detail = (props) => {
             setInfo(di);
             setLoading(false);
             if (!info.rate) {
-                getDoubanRate();
+                getDoubanRate(di);
             }
         }
     };
 
-    const getDoubanRate = async () => {
-        const { name, year } = info;
+    const getDoubanRate = async (di) => {
+        const { name, year } = di;
         const trimmedName = name?.trim();
         const rate = await doubanApi.doubanRate(trimmedName, year);
         setDoubanRate(rate);
@@ -185,6 +185,7 @@ const Detail = (props) => {
                                             key={j}
                                             onClick={() => playEvent(j)}
                                             onMouseEnter={() => setMoveOn(j)}
+                                            onMouseLeave={() => setMoveOn(undefined)}
                                         >
                                             {ftName(i, j)}
                                         </span>

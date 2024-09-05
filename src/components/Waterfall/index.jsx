@@ -239,6 +239,7 @@ const Waterfall = memo(({
                                         return null;
                                     }
                                     const childProps = {
+                                        key: getKey(item, index),
                                         ...child.props,
                                         item,
                                         index,

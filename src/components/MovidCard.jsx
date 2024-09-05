@@ -1,6 +1,6 @@
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { updatePlayInfo, togglePageActive } from "@/store/coreSlice";
-import { storeDownloadList, updateDetailInfo } from "@/store/movieSlice";
+import { updateDetailInfo } from "@/store/movieSlice";
 import { osType } from "@/utils/env";
 import LazyImage from "@/components/LazyImage";
 import doubanApi from "@/api/douban";
@@ -11,50 +11,38 @@ import util from "@/utils";
 import moviesApi from "@/api/movies";
 import "./MovieCard.scss";
 
-const MovieCard = ({ item, layoutHandle, site, viewMode="default", onDelete }) => {
+const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDelete }) => {
     const dispatch = useAppDispatch();
 
-    const imgLoad = () => {
-        layoutHandle();
-    };
+    const imgLoad = () => layoutHandle();
 
     const getSiteKey = () => {
-        if (viewMode == "history" || viewMode == "star") {
-            return item.site_key;
-        } else if (viewMode == "search") {
-            return item.site.site_key;
-        } else {
-            return site.site_key;
+        switch (viewMode) {
+            case "history":
+            case "star":
+                return item.site_key;
+            case "search":
+                return item.site.site_key;
+            default:
+                return site.site_key;
         }
     };
 
-    const getMovieId = () => {
-        if (viewMode == "history" || viewMode == "star") {
-            return item.ids;
-        } else {
-            return item.id;
-        }
-    };
+    const getMovieId = () => (viewMode === "history" || viewMode === "star" ? item.ids : item.id);
 
-    const playEvent = (e, item) => {
+    const playEvent = (e) => {
         e.stopPropagation();
-        let playInfo = {
+        const playInfo = {
             playState: "newPlay",
-            // iptv onlineMovie localMovie
             playType: "onlineMovie",
             isLive: false,
             name: getName(),
-            iptv: {
-                channelGroupId: 0,
-                channelActive: "",
-            },
-            download: {
-                downloadId: 0,
-            },
+            iptv: { channelGroupId: 0, channelActive: "" },
+            download: { downloadId: 0 },
             movie: {
                 siteKey: getSiteKey(),
                 ids: getMovieId(),
-                index: viewMode == "history" ? item.index : 0,
+                index: viewMode === "history" ? item.index : 0,
                 videoFlag: "",
                 onlineUrl: "",
             },
@@ -62,15 +50,14 @@ const MovieCard = ({ item, layoutHandle, site, viewMode="default", onDelete }) =
         dispatch(updatePlayInfo({ playInfo, toPlay: true }));
     };
 
-    const starEvent = async (e, item) => {
+    const starEvent = async (e) => {
         e.stopPropagation();
-        const ids = item.id.toString();
-        let star = {
+        const star = {
             star_name: item.name,
-            ids: ids,
+            ids: item.id.toString(),
             site_key: site.site_key,
             movie_type: item.type,
-            year: item.year + "年",
+            year: `${item.year}年`,
             note: item.note,
             douban_rate: await doubanApi.doubanRate(item.name, item.year),
             last_update_time: item.last,
@@ -82,125 +69,94 @@ const MovieCard = ({ item, layoutHandle, site, viewMode="default", onDelete }) =
 
     const downloadEvent = async (e) => {
         e.stopPropagation();
-        let siteInfo = await getSiteByKey(getSiteKey());
-        moviesApi
-            .download(siteInfo, getMovieId(), null)
-            .then(async (res) => {
-                let downloadInfos = [];
-                res.downloadUrls.forEach((url) => {
-                    downloadInfos.push({
-                        movie_name: util.trimAll(url.name),
-                        url: url.url,
-                        sub_title_name: url.subTitleName,
-                        status: "parseSource",
-                        download_count: 0,
-                        count: 0,
-                        parentId: "0",
-                        download_status: "wait",
-                    });
-                });
-                addDownloads(downloadInfos);
-                message.success(res.info);
-            })
-            .catch((err) => {
-                console.log(err);
-                message.error(err.info);
-            });
+        try {
+            const siteInfo = await getSiteByKey(getSiteKey());
+            const res = await moviesApi.download(siteInfo, getMovieId(), null);
+            const downloadInfos = res.downloadUrls.map((url) => ({
+                movie_name: util.trimAll(url.name),
+                url: url.url,
+                sub_title_name: url.subTitleName,
+                status: "parseSource",
+                download_count: 0,
+                count: 0,
+                parentId: "0",
+                download_status: "wait",
+            }));
+            addDownloads(downloadInfos);
+            message.success(res.info);
+        } catch (err) {
+            console.log(err);
+            message.error(err.info);
+        }
     };
 
     const deleteEvent = (e) => {
         e.stopPropagation();
-        onDelete
-            ? onDelete(item).then(() => {
-                  layoutHandle();
-              })
-            : "";
-    };
-
-    const progress = (e) => {
-        return e.duration > 0
-            ? ((e.play_time / e.duration) * 100).toFixed(0)
-            : 0;
-    };
-
-    const getPic = () => {
-        if (viewMode == "history") {
-            return JSON.parse(item.detail)?.pic;
+        if (onDelete) {
+            onDelete(item).then(layoutHandle);
         }
-        return item.pic;
     };
+
+    const progress = (e) => (e.duration > 0 ? ((e.play_time / e.duration) * 100).toFixed(0) : 0);
+
+    const getPic = () => (viewMode === "history" ? JSON.parse(item.detail)?.pic : item.pic);
 
     const getName = () => {
-        if (viewMode == "history") {
-            return item.history_name;
+        switch (viewMode) {
+            case "history":
+                return item.history_name;
+            case "star":
+                return item.star_name;
+            default:
+                return item.name;
         }
-        if (viewMode == "star") {
-            return item.star_name;
-        }
-        return item.name;
     };
 
     const getInfoDom = () => {
-        if (viewMode == "default" || viewMode == "star") {
+        if (viewMode === "default" || viewMode === "star") {
             return (
                 <>
                     <span>{item.area}</span>
                     <span>{item.year}</span>
-                    <span>{item.note}</span>
-                    {viewMode == "star" ? (
-                        <span>{item.movie_type}</span>
-                    ) : (
-                        <span>{item.type}</span>
-                    )}
+                    <span className="note">{item.note}</span>
+                    <span>{viewMode === "star" ? item.movie_type : item.type}</span>
                 </>
             );
         } else {
-            let spanArr = [];
+            const spanArr = [];
             if (item.play_time && item.duration) {
                 spanArr.push(
-                    <span>
-                        {fmtMSS(item.play_time.toFixed(0))}/
-                        {fmtMSS(item.duration.toFixed(0))}({progress(item)}
-                        %)
+                    <span key="play_time">
+                        {fmtMSS(item.play_time.toFixed(0))}/{fmtMSS(item.duration.toFixed(0))}({progress(item)}%)
                     </span>
                 );
             }
             if (item.online_play) {
-                spanArr.push(<span>在线解析</span>);
+                spanArr.push(<span key="online_play">在线解析</span>);
             }
             if (item.detail) {
                 const detail = JSON.parse(item.detail);
-                if (
-                    detail &&
-                    detail.fullList &&
-                    detail.fullList[0]?.list.length > 1
-                ) {
+                if (detail?.fullList?.[0]?.list.length > 1) {
                     spanArr.push(
-                        <span>
-                            第{item.index + 1}集(共
-                            {detail.fullList[0].list.length}集)
+                        <span key="detail">
+                            第{item.index + 1}集(共{detail.fullList[0].list.length}集)
                         </span>
                     );
                 }
             }
-            return <>{...spanArr}</>;
+            return <>{spanArr}</>;
         }
     };
 
     const onDetail = () => {
-        dispatch(
-            updateDetailInfo({
-                siteKey: getSiteKey(),
-                ids: item.id,
-            })
-        );
+        dispatch(updateDetailInfo({ siteKey: getSiteKey(), ids: item.id }));
         dispatch(togglePageActive("detail"));
     };
 
     return (
-        <div className="card" onClick={() => onDetail()}>
+        <div key={key} className="card" onClick={onDetail}>
             <div className="img">
-                {viewMode == "search" && (
+                {viewMode === "search" && (
                     <div className="site">
                         <span>{item.site.site_name}</span>
                     </div>
@@ -210,52 +166,29 @@ const MovieCard = ({ item, layoutHandle, site, viewMode="default", onDelete }) =
                         <span>{item.douban_rate}分</span>
                     </div>
                 )}
-                <div
-                    className={
-                        viewMode != "default" && item.has_update == "1"
-                            ? "update"
-                            : "update hidden"
-                    }
-                >
+                <div className={viewMode !== "default" && item.has_update === "1" ? "update" : "update hidden"}>
                     <span>有更新</span>
                 </div>
-                <LazyImage url={getPic()} onLoad={() => imgLoad()} />
+                <LazyImage url={getPic()} onLoad={imgLoad} />
                 <div className="operate">
                     <div className="operate-wrap">
-                        <span
-                            className="o-play"
-                            onClick={(e) => playEvent(e, item)}
-                        >
+                        <span className="o-play" onClick={playEvent}>
                             播放
                         </span>
-                        {(viewMode == "default" || viewMode == "search") && (
-                            <span
-                                className="o-star"
-                                onClick={(e) => starEvent(e, item)}
-                            >
+                        {(viewMode === "default" || viewMode === "search") && (
+                            <span className="o-star" onClick={starEvent}>
                                 收藏
                             </span>
-                        )} 
-                        {(
-                            <>
-                                {osType == "desktop" && (
-                                    <span
-                                        className="o-star"
-                                        onClick={(e) => downloadEvent(e)}
-                                    >
-                                        下载
-                                    </span>
-                                )}
-                                {(viewMode == "star" ||
-                                    viewMode == "history") && (
-                                    <span
-                                        className="o-star"
-                                        onClick={(e) => deleteEvent(e)}
-                                    >
-                                        删除
-                                    </span>
-                                )}
-                            </>
+                        )}
+                        {osType === "desktop" && (
+                            <span className="o-star" onClick={downloadEvent}>
+                                下载
+                            </span>
+                        )}
+                        {(viewMode === "star" || viewMode === "history") && (
+                            <span className="o-star" onClick={deleteEvent}>
+                                删除
+                            </span>
                         )}
                     </div>
                 </div>

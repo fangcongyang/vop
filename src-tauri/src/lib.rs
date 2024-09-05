@@ -88,7 +88,8 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
             .resizable(true)
             .decorations(false);
     }
-    
+
+    #[allow(unused_assignments)]
     let mut proxy_protocol: Option<Value> = None;
     #[cfg(not(any(target_os = "android", target_os = "macos")))]
     {
