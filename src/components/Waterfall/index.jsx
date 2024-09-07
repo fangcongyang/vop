@@ -44,7 +44,7 @@ const Waterfall = memo(({
         },
     },
     gutter= 10,
-    hasAroundGutter= true,
+    hasAroundGutter= false,
     posDuration= 300,
     animationPrefix= "animate__animated",
     animationEffect= "fadeIn",
@@ -58,9 +58,10 @@ const Waterfall = memo(({
     //布局刷新的防抖时间，默认 300ms 内没有再次触发才刷新布局。（图片加载完成；容器大小、list、width、gutter、hasAroundGutter变化时均会触发刷新）
     delay= 300,
     //卡片的对齐方式，可选值为：left,center,right
-    align= "center",
+    align="center",
     tipMessage= "暂无数据",
     children,
+    initYzb= 0,
     afterRender
 }) => {
     const waterfallWrapper = useRef(null);
@@ -74,12 +75,8 @@ const Waterfall = memo(({
         for (const entry of entries) {
             if (entry.target === waterfallWrapper.current) {
                 const { width } = entry.contentRect;
-                if (width !== wrapperWidth.current && width != 0) {
-                    wrapperWidth.current = width;
-                    onCalculateCols();
-                } else {
-                    renderer();
-                }
+                wrapperWidth.current = width;
+                onCalculateCols();
             }
         }
     });
@@ -91,7 +88,7 @@ const Waterfall = memo(({
         return () => {
             resizeObserver.unobserve(waterfallWrapperDiv);
         };
-    }, []);
+    }, [hasAroundGutter, initYzb]);
 
     const onCalculateCols = _.debounce(() => {
         const cc = calculateCols(breakpoints, gutter, hasAroundGutter, width, align, wrapperWidth);
@@ -112,7 +109,7 @@ const Waterfall = memo(({
     // 初始y
     const initY = () => {
         posY = new Array(cols.current).fill(
-            hasAroundGutter ? gutter : 0
+            hasAroundGutter ? gutter : initYzb
         );
     };
 

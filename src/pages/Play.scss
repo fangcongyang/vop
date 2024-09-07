@@ -1,9 +1,6 @@
 @import '../Base.scss';
 
 .play {
-    border-radius: 5px;
-    background-color: var(--l-bgc-1);
-    box-shadow: var(--l-bsc);
     height: 100%;
     overflow: auto;
     padding: 0;
@@ -12,15 +9,17 @@
         width: 0;
         height: 0;
     }
+        
+    @include responseTo('desktop') {
+        border-radius: 5px;
+        background-color: var(--l-bgc-1);
+        box-shadow: var(--l-bsc);
+    }
 
     .box {
         border-radius: 5px;
         color: var(--l-fc-1);
         height: 100%;
-
-        @include responseTo('phone') {
-            padding: 0;
-        }
         
         @include responseTo('desktop') {
             padding: 0 10px;
@@ -109,20 +108,31 @@
             .listTitle {
                 line-height: 50px;
                 font-size: 18px;
-                gap: 10px;
             }
 
             .episode-list {
-                display: flex;
+                display: grid;
                 flex-wrap: wrap;
                 justify-items: flex-start;
                 gap: 10px;
+                
+                @include responseTo('phonePortrait') {
+                    grid-template-columns: repeat(4, 1fr); 
+                }
+                
+                @include responseTo('phoneLandscape') {
+                    grid-template-columns: repeat(8, 1fr); 
+                }
+
+                @include responseTo('desktop') {
+                    grid-template-columns: repeat(10, 1fr); 
+                }
 
                 .episode {
-                    padding: 10px 15px;
                     border-radius: 5px;
                     background-color: #f0f0f0;
                     transition: background-color 0.3s;
+                    text-align: center;
 
                     &.active {
                         background-color: var(--l-c-2);
@@ -132,6 +142,20 @@
                     &:hover {
                         background-color: var(--l-c-3);
                         color: white;
+                    }
+
+                    @include responseTo('phonePortrait') {
+                        padding: 6px 8px;
+                        min-width: 70px;
+                    }
+                    
+                    @include responseTo('phoneLandscape') {
+                        padding: 6px 8px;
+                        min-width: 70px;
+                    }
+
+                    @include responseTo('desktop') {
+                        padding: 10px 15px;
                     }
                 }
             }

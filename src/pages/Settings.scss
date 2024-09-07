@@ -10,6 +10,14 @@
         height: 0;
     }
 
+    @include responseTo('phonePortrait') {
+        padding: 0 0.6rem;
+    }
+
+    @include responseTo('phoneLandscape') {
+        padding: 0 1rem;
+    }
+
     .container {
         margin-top: 24px;
         width: 100%;
@@ -249,7 +257,6 @@ input[type='number'] {
 
 .footer {
     text-align: center;
-    margin-top: 6rem;
     color: var(--color-text);
     font-weight: 600;
 
@@ -261,6 +268,20 @@ input[type='number'] {
         font-size: 0.88rem;
         opacity: 0.58;
         margin-top: -10px;
+    }
+
+    @include responseTo('phonePortrait') {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @include responseTo('phoneLandscape') {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    @include responseTo('desktop') {
+        margin-top: 6rem;
     }
 }
 

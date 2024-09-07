@@ -35,7 +35,7 @@ const Star = (props) => {
         >
             <div className="panelBody">
                 <div className="showPicture">
-                    <Waterfall list={starList} gutter={20} width={200} viewMode="star">
+                    <Waterfall list={starList} gutter={20} width={200} viewMode="star" initYzb={10}>
                         <MovidCard
                             viewMode="star"
                             onDelete={onDelete}

@@ -40,7 +40,8 @@ const History = (props) => {
         >
             <div className="panelBody">
                 <div className="showPicture">
-                    <Waterfall list={historyList} gutter={20} width={200} viewMode="history">
+                    <Waterfall list={historyList} gutter={20} width={200} viewMode="history" 
+                        initYzb={10}>
                         <MovidCard
                             viewMode="history"
                             onDelete={onDelete}
