@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { pageActiveStore, togglePageActive } from "@/store/coreSlice";
 import { updateDownloadProcess } from "@/store/movieSlice";
+import { listen } from "@tauri-apps/api/event";
 import Navbar from "./components/Navbar";
 import WinTool from "./components/WinTool";
 import Paper from "@mui/material/Paper";
@@ -22,6 +23,10 @@ import Detail from "./pages/Detail";
 
 const downloadWebsocketNum = 2;
 let downloadBusArr = [];
+
+const unlisten = await listen('download_info', (event) => {
+    console.log(`Got error, payload: ${event.payload}`);
+});
 function App() {
     const dispatch = useAppDispatch();
     const pageActive = useAppSelector(pageActiveStore);
@@ -31,6 +36,7 @@ function App() {
         if (osType === "desktop") {
             initDownloadWebsocket();
             return () => {
+                unlisten();
                 downloadBusArr.forEach((item) => {
                     item.compulsionClose();
                 });

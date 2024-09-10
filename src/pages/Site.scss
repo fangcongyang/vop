@@ -1,0 +1,74 @@
+@import "../Base.scss";
+
+.sitePage {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    // overflow: auto;
+    &::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+    }
+}
+
+.siteTable {
+    &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+}
+
+.wifi-symbol {
+    top: -10px;
+    left: 15px;
+    width: 30px;
+    height: 30px;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    transform: rotate(45deg);
+}
+
+.wifi-circle {
+    border: 2px solid #ccc; // 根据box高度宽度设置 border宽度，根据几个信号改变border颜色
+    border-radius: 50%;
+    position: absolute;
+}
+
+.first, .second, .third, .fourth {
+    position: absolute;
+    border-radius: 50%;
+}
+
+.first {
+    width: 140%;
+    height: 140%;
+    top: 30%;
+    left: 30%;
+}
+
+.second {
+    width: 100%;
+    height: 100%;
+    top: 50%;
+    left: 50%;
+}
+
+.third {
+    width: 60%;
+    height: 60%;
+    top: 70%;
+    left: 70%;
+}
+
+.fourth {
+    width: 15%;
+    height: 15%;
+    top: 90%;
+    left: 90%;
+}
+
+.active {
+    border-color: green;
+}

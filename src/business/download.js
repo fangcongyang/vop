@@ -1,10 +1,10 @@
-import { invoke } from "@tauri-apps/api/core";
 import { updateDownloadById } from "@/db";
 
 export class DownloadBus {
     wsAddr = "ws://127.0.0.1:8000";
     downloadRequest = {
         id: "0",
+        messageType: "get_download_info_by_queue",
         downloadInfo: null,
     };
     ws;
@@ -23,12 +23,8 @@ export class DownloadBus {
 
     intervalGetDownloadInfo = () => {
         this.downloadInterval = setInterval(async () => {
-            let downloadInfo = await invoke("get_download_info_by_queue", {});
-            if (downloadInfo != null && downloadInfo != undefined) {
-                clearInterval(this.downloadInterval);
-                this.downloadRequest.downloadInfo = downloadInfo;
-                this.ws.send(JSON.stringify(this.downloadRequest));
-            }
+            this.downloadRequest.mes_type
+            this.ws.send(JSON.stringify(this.downloadRequest))
         }, 1000);
     };
 
@@ -58,6 +54,15 @@ export class DownloadBus {
 
         this.ws.onmessage = async ({ data }) => {
             const dataObj = JSON.parse(data);
+            if (dataObj.messageType == "get_download_info_by_queue") {
+                if (dataObj.downloadInfo != null && dataObj.downloadInfo != undefined) {
+                    clearInterval(this.downloadInterval);
+                    this.downloadRequest.messageType = "downloadVideo";
+                    this.downloadRequest.downloadInfo = downloadInfo;
+                    this.ws.send(JSON.stringify(this.downloadRequest));
+                }
+                return;
+            }
             let isNeedSeed = false;
             if (dataObj.status) {
                 this.downloadRequest.downloadInfo.status = dataObj.status;

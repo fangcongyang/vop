@@ -462,7 +462,7 @@ export default {
                 wd: encodeURI(wd),
             };
             fetch
-                .get(site.api, params, false, 3000)
+                .get(site.api, params, false, 3)
                 .then((data) => {
                     const json = parser.parse(data);
                     const jsondata = json?.rss === undefined ? json : json.rss;

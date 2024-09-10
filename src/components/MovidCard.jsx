@@ -113,17 +113,18 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
     };
 
     const getInfoDom = () => {
-        if (viewMode === "default" || viewMode === "star") {
-            return (
-                <>
-                    <span>{item.area}</span>
-                    <span>{item.year}</span>
-                    <span className="note">{item.note}</span>
-                    <span>{viewMode === "star" ? item.movie_type : item.type}</span>
-                </>
-            );
-        } else {
+        const renderDefaultOrStarMode = () => (
+            <>
+                <span>{item.area}</span>
+                <span>{item.year}</span>
+                <span className="note">{item.note}</span>
+                <span>{viewMode === "star" ? item.movie_type : item.type}</span>
+            </>
+        );
+
+        const renderOtherModes = () => {
             const spanArr = [];
+
             if (item.play_time && item.duration) {
                 spanArr.push(
                     <span key="play_time">
@@ -131,9 +132,11 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
                     </span>
                 );
             }
+
             if (item.online_play) {
                 spanArr.push(<span key="online_play">在线解析</span>);
             }
+
             if (item.detail) {
                 const detail = JSON.parse(item.detail);
                 if (detail?.fullList?.[0]?.list.length > 1) {
@@ -144,8 +147,11 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
                     );
                 }
             }
-            return <>{spanArr}</>;
-        }
+
+            return spanArr;
+        };
+
+        return viewMode === "default" || viewMode === "star" ? renderDefaultOrStarMode() : renderOtherModes();
     };
 
     const onDetail = () => {

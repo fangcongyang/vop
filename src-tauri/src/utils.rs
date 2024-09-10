@@ -68,6 +68,8 @@ pub mod cmd {
     use log::error;
     use tauri::command;
     use serde::{Serialize, Deserialize};
+    use url::Url;
+    use std::process::Command;
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Site {
@@ -115,6 +117,67 @@ pub mod cmd {
             fs::remove_dir_all(path).unwrap_or_else(|err| {
                 error!("删除失败: {}", err);
             });
+        }
+    }
+
+    #[command]
+    pub async fn calculate_ping_latency(host: String) -> Result<f64, String> {
+        // 构建 ping 命令
+        let issue_list_url = Url::parse(&host).map_err(|e| format!("URL 解析失败: {}", e))?;
+        
+        let output = Command::new("ping")
+            .args([
+                "-n",
+                "3",
+                "-w",
+                "3",
+                issue_list_url.host_str().unwrap()
+            ])
+            .env("LANG", "C") 
+            .env("chcp", "437")
+            .output()
+            .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
+    
+        if output.status.success() {
+            // 解析 ping 命令的输出
+            let output_str = encoding_rs::GBK.decode(&output.stdout).0;
+            extract_latency(&output_str)
+        } else {
+            Err(format!(
+                "ping 命令失败: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ))
+        }
+    }
+    
+    fn extract_latency(output: &str) -> Result<f64, String> {
+        // 使用正则表达式提取丢包数
+        let lose_time_re = regex::Regex::new(r"丢失 = (\d+)").map_err(|e| format!("正则表达式编译失败: {}", e))?;
+        // 使用正则表达式提取平均时间
+        let waste_time_re = regex::Regex::new(r"平均 = (\d+)ms").map_err(|e| format!("正则表达式编译失败: {}", e))?;
+        // 匹配丢包数
+        let lose_time: Vec<_> = lose_time_re.captures_iter(output).collect();
+        // 当匹配到丢失包信息失败,默认为三次请求全部丢包,丢包数lose赋值为3
+        let lose = if lose_time.is_empty() {
+            3
+        } else {
+            lose_time[0][1].parse::<i32>().map_err(|e| format!("解析丢包数失败: {}", e))?
+        };
+
+        // 如果丢包数目大于2个,则认为连接超时,返回平均耗时1000ms
+        if lose > 2 {
+            return Ok(1000.0);
+        }
+
+        // 如果丢包数目小于等于2个,获取平均耗时的时间
+        let average: Vec<_> = waste_time_re.captures_iter(output).collect();
+        // 当匹配耗时时间信息失败,默认三次请求严重超时,返回平均耗时1000ms
+        if average.is_empty() {
+            Ok(1000.0)
+        } else {
+            let average_time = average[0][1].parse::<f64>().map_err(|e| format!("解析平均耗时失败: {}", e))?;
+            // 返回平均耗时
+            Ok(average_time)
         }
     }
 }

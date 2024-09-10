@@ -37,7 +37,8 @@ lazy_static! {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DownloadRequest {
     pub id: String,
-    pub downloadInfo: DownloadInfo,
+    pub messageType: String, 
+    pub downloadInfo: Option<DownloadInfo>,
 }
 
 pub async fn init() {
@@ -71,36 +72,51 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
     loop {
         match socket.read()? {
             msg @ Message::Text(_) | msg @ Message::Binary(_) => {
-                let mut request =
+                let request =
                     serde_json::from_str::<DownloadRequest>(&msg.into_text()?).expect("Resolve json error");
-                let result = download_m3u8(
-                    &mut request.downloadInfo,
-                    &mut socket,
-                    &mut download_count_map,
-                )
-                .await;
-                if result.is_err() {
-                    let uq_key = &format!(
-                        "{}_{}",
-                        request.downloadInfo.id, &request.downloadInfo.status
-                    );
-                    if download_count_map.contains_key(uq_key) {
-                        if let Some(x) = download_count_map.get_mut(uq_key) {
-                            *x += 1;
-                        }
-                        if download_count_map.get(uq_key).unwrap_or(&0) > &4 {
-                            download_count_map.remove(uq_key);
-                            socket.send(tungstenite::Message::Text(
-                                serde_json::to_string(&json!({
-                                    "id": request.downloadInfo.id,
-                                    "download_status": "downloadFail",
-                                    "mes_type": "end"
-                                })).expect("Failed to serialize json"),
-                            ))?
-                        }
-                    } else {
-                        download_count_map.insert(uq_key.clone(), 0);
+                match request.messageType.as_str() {
+                    "get_download_info_by_queue" => {
+                        let queue = DOWNLOAD_QUEUE.lock().unwrap();
+                        let download_info = queue.pop();
+                        socket.send(tungstenite::Message::Text(
+                            serde_json::to_string(&json!({
+                                "id": request.id.clone(),
+                                "downloadInfo": download_info,
+                                "messageType": "get_download_info_by_queue"
+                            })).expect("Failed to serialize json"),
+                        ))?
                     }
+                    "downloadVideo" => {
+                        let mut download_info = request.downloadInfo.unwrap();
+                        let result = download_m3u8(
+                            &mut download_info,
+                            &mut socket,
+                            &mut download_count_map,
+                        )
+                        .await;
+                        if result.is_err() {
+                            let uq_key = &format!(
+                                "{}_{}",
+                                download_info.id, &download_info.status
+                            );
+                            if let Some(x) = download_count_map.get_mut(uq_key) {
+                                *x += 1;
+                                if *x > 4 {
+                                    download_count_map.remove(uq_key);
+                                    socket.send(tungstenite::Message::Text(
+                                        serde_json::to_string(&json!({
+                                            "id": download_info.id,
+                                            "download_status": "downloadFail",
+                                            "mes_type": "end"
+                                        })).expect("Failed to serialize json"),
+                                    ))?
+                                }
+                            } else {
+                                download_count_map.insert(uq_key.clone(), 0);
+                            }
+                        }
+                    }
+                    _ => {}
                 }
             }
             Message::Ping(_) | Message::Pong(_) | Message::Close(_) | Message::Frame(_) => {}
@@ -111,12 +127,6 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
 pub mod cmd {
     use super::{DownloadInfo, DOWNLOAD_QUEUE};
     use tauri::command;
-
-    #[command]
-    pub fn get_download_info_by_queue() -> Option<DownloadInfo> {
-        let queue = DOWNLOAD_QUEUE.lock().unwrap();
-        queue.pop()
-    }
 
     #[command]
     pub fn retry_download(download: DownloadInfo) {

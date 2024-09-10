@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { invoke } from "@tauri-apps/api/core";
 import _ from "lodash";
+import "./Download.scss";
 
 const LinearProgressWithLabel = (props) => (
     <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -116,10 +117,10 @@ const Download = (props) => {
     };
 
     return (
-        <div className={props.className ? `settingsPage ${props.className}` : "settingsPage"}>
+        <div className={props.className ? `downloadPage ${props.className}` : "downloadPage"}>
             <TableContainer component={Paper}>
                 <ThemeProvider theme={finalTheme}>
-                    <Table sx={{ minWidth: 650 }} aria-label="下载表格">
+                    <Table aria-label="下载表格">
                         <TableHead>
                             <TableRow>
                                 <TableCell>影片名称</TableCell>

@@ -66,10 +66,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             utils::cmd::get_init_site_data,
             utils::cmd::del_movie_path,
+            utils::cmd::calculate_ping_latency,
             cache::cmd::cache_data,
             cache::cmd::get_cache_data,
             conf::cmd::reload_store,
-            file_download::cmd::get_download_info_by_queue,
             file_download::cmd::retry_download,
         ])
         .run(tauri::generate_context!())
