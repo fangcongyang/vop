@@ -1,621 +1,95 @@
 import fetch from "./fetch";
-import { XMLParser } from "fast-xml-parser";
 import { getUrlType } from "@/business/play";
 import { invoke } from "@tauri-apps/api/core";
 import { storeSiteList } from "@/store/movieSlice";
 import { getCacheData, cacheData } from "@/business/cache";
-
-const parsetConfig = {
-    // XML 转 JSON 配置
-    trimValues: true,
-    textNodeName: "_t",
-    ignoreAttributes: false,
-    attributeNamePrefix: "_",
-    parseAttributeValue: true,
-};
-
-const parser = new XMLParser(parsetConfig);
-
-class SiteClassXmlParser {
-    getPageParams(params) {
-        params["ac"] = "videolist";
-    }
-
-    doParserClass(resolve, reject, data) {
-        try {
-            const json = parser.parse(data);
-            const jsondata = json?.rss === undefined ? json : json.rss;
-            if (!jsondata?.class || !jsondata?.list) reject("解析xml数据为空");
-            const arr = [];
-            if (jsondata.class) {
-                // 有些网站返回的分类名里会含有一串包含在{}内的字符串,移除掉
-                const regex = /\{.*\}/i;
-                for (const i of jsondata.class.ty) {
-                    const j = {
-                        class_id: i._id,
-                        class_name: i._t.replace(regex, ""),
-                    };
-                    arr.push(j);
-                }
-            }
-            const doc = {
-                classList: arr,
-                page: jsondata.list._page,
-                pageCount: jsondata.list._pagecount,
-                pageSize: jsondata.list._pagesize,
-                recordCount: jsondata.list._recordcount,
-            };
-            resolve(doc);
-        } catch (err) {
-            reject(err);
-        }
-    }
-
-    doParserPage(resolve, reject, data) {
-        try {
-            const data1 = data.match(/<list [^>]*>/)[0] + "</list>"; // 某些源站不含页码时获取到的数据parser无法解析
-            const json = parser.parse(data1);
-            const jsondata = json.rss === undefined ? json : json.rss;
-            let pg = {
-                totalPageCount: jsondata.list._pagecount,
-                pageCount: jsondata.list._pagecount,
-                recordcount: jsondata.list._recordcount,
-                movieList: [],
-                movieFilteredList: [],
-            };
-            resolve(pg);
-        } catch (err) {
-            reject(err);
-        }
-    }
-
-    doParserVideo(resolve, reject, data) {
-        const json = parser.parse(data);
-        const jsondata = json.rss === undefined ? json : json.rss;
-        let videoList = jsondata.list.video;
-        let newVideoList = [];
-        if (videoList) {
-            const type = Object.prototype.toString.call(videoList);
-            if (type === "[object Array]") {
-                // 过滤掉无链接的项
-                videoList = videoList.filter(
-                    (e) =>
-                        e.dl.dd &&
-                        (e.dl.dd._t ||
-                            (Object.prototype.toString.call(e.dl.dd) ===
-                                "[object Array]" &&
-                                e.dl.dd.some((i) => i._t)))
-                );
-                newVideoList.push(...videoList);
-            } else if (type === "[object Object]") {
-                if (
-                    videoList.dl.dd &&
-                    (videoList.dl.dd._t ||
-                        (Object.prototype.toString.call(videoList.dl.dd) ===
-                            "[object Array]" &&
-                            videoList.dl.dd.some((e) => e._t)))
-                ) {
-                    newVideoList.push(videoList);
-                }
-            }
-            resolve(newVideoList);
-        } else {
-            resolve([]);
-        }
-    }
-
-    getDetailParams(params) {
-        params["ac"] = "videolist";
-    }
-
-    doParserVideoDetail(resolve, reject, data) {
-        const json = parser.parse(data);
-        const jsondata = json?.rss === undefined ? json : json.rss;
-        const videoList = jsondata?.list?.video;
-        if (!videoList) resolve();
-        // Parse video lists
-        let fullList = [];
-        let index = 0;
-        const supportedFormats = ["m3u8", "mp4"];
-        const dd = videoList.dl.dd;
-        const type = Object.prototype.toString.call(dd);
-        if (type === "[object Array]") {
-            for (const i of dd) {
-                i._t = i._t.replace(/\$+/g, "$");
-                const ext = Array.from(
-                    new Set(
-                        ...i._t
-                            .split("#")
-                            .map((e) =>
-                                e.includes("$")
-                                    ? e.split("$")[1].match(/\.\w+?$/)
-                                    : e.match(/\.\w+?$/)
-                            )
-                    )
-                ).map((e) => e.slice(1));
-                if (
-                    ext.length &&
-                    ext.length <= supportedFormats.length &&
-                    ext.every((e) => supportedFormats.includes(e))
-                ) {
-                    if (ext.length === 1) {
-                        i._flag = ext[0] + "-" + index;
-                    } else {
-                        i._flag = index ? "ZY支持-" + index : "ZY支持";
-                    }
-                    index++;
-                }
-                fullList.push({
-                    flag: i._flag,
-                    list: i._t
-                        .split("#")
-                        .filter(
-                            (e) =>
-                                e &&
-                                (e.startsWith("http") ||
-                                    (e.split("$")[1] &&
-                                        e.split("$")[1].startsWith("http")))
-                        ),
-                });
-            }
-        } else {
-            fullList.push({
-                flag: dd._flag,
-                list: dd._t
-                    .replace(/\$+/g, "$")
-                    .split("#")
-                    .filter(
-                        (e) =>
-                            e &&
-                            (e.startsWith("http") ||
-                                (e.split("$")[1] &&
-                                    e.split("$")[1].startsWith("http")))
-                    ),
-            });
-        }
-        fullList.forEach((item) => {
-            if (
-                item.list.every(
-                    (e) =>
-                        e.includes("$") && /^\s*\d+\s*$/.test(e.split("$")[0])
-                )
-            )
-                item.list.sort((a, b) => {
-                    return a.split("$")[0] - b.split("$")[0];
-                });
-        });
-        if (fullList.length > 1) {
-            // 将ZY支持的播放列表前置
-            index = fullList.findIndex(
-                (e) =>
-                    supportedFormats.includes(e.flag) ||
-                    e.flag.startsWith("ZY支持")
-            );
-            if (index !== -1) {
-                const first = fullList.splice(index, 1);
-                fullList = first.concat(fullList);
-            }
-        }
-        videoList.fullList = fullList;
-        resolve(videoList);
-    }
-}
-
-class SiteClassJsonParser {
-    getPageParams(params) {
-        params["ac"] = "list";
-    }
-
-    doParserClass(resolve, reject, data) {
-        const json = JSON.parse(data);
-        const arr = [];
-        if (json.class) {
-            for (const i of json.class) {
-                const j = {
-                    class_id: i.type_id,
-                    class_name: i.type_name,
-                };
-                arr.push(j);
-            }
-        }
-        const doc = {
-            classList: arr,
-            page: json.page,
-            pageCount: json.pagecount,
-            pageSize: json.limit,
-            recordCount: json.total,
-        };
-        resolve(doc);
-    }
-
-    doParserPage(resolve, reject, data) {
-        const json = JSON.parse(data);
-        let pg = {
-            totalPageCount: json.pagecount,
-            pageCount: json.pagecount,
-            recordcount: json.total,
-            movieList: [],
-            movieFilteredList: [],
-        };
-        resolve(pg);
-    }
-
-    doParserVideo(resolve, reject, data) {
-        let data1 = data.replace("\n", "");
-        const json = JSON.parse(data1);
-        const videoList = json.list;
-        let newVideoList = [];
-        if (videoList && videoList.length) {
-            videoList.forEach((v) => {
-                let newV = {};
-                for (let key in v) {
-                    if (key.startsWith("vod_")) {
-                        newV[key.replace("vod_", "")] = v[key];
-                    } else {
-                        newV[key] = v[key];
-                    }
-                }
-                newVideoList.push(newV);
-            });
-            resolve(newVideoList);
-        } else {
-            resolve([]);
-        }
-    }
-
-    getDetailParams(params) {
-        params["ac"] = "detail";
-    }
-
-    doParserVideoDetail(resolve, reject, data) {
-        let data1 = data.replace("\n", "");
-        const json = JSON.parse(data1);
-        const videoList = json.list;
-        let videoInfo = {};
-        if (videoList && videoList.length) {
-            let v = videoList[0];
-            for (let key in v) {
-                if (key.startsWith("vod_")) {
-                    videoInfo[key.replace("vod_", "")] = v[key];
-                } else {
-                    videoInfo[key] = v[key];
-                }
-            }
-            videoInfo["des"] = videoInfo.content;
-            videoInfo["fullList"] = [];
-            let i = 1;
-            videoList.forEach((v1) => {
-                videoInfo.fullList.push({
-                    flag: "m3u8" + i,
-                    list: v1.vod_play_url.replace("\\", "").split("#"),
-                });
-                i++;
-            });
-            resolve(videoInfo);
-        } else {
-            resolve(videoInfo);
-        }
-    }
-}
+import htmlParseStrategy from "@/business/htmlParseStrategy";
+import { siteService } from "./siteService";
 
 export default {
-    /**
-     * 检查资源
-     * @param {*} site 资源网信息
-     * @returns boolean
-     */
     async siteCheck(site) {
         try {
             const cls = await this.getSiteClass(site);
-            if (cls) {
-                return true;
-            } else {
-                return false;
-            }
+            return !!cls;
         } catch (e) {
             return false;
         }
     },
-    /**
-     * 获取资源分类 和 所有资源的总数, 分页等信息
-     * @param {*} site 资源网信息
-     * @returns
-     */
+
     getSiteClass(site) {
-        return new Promise((resolve, reject) => {
-            fetch.get(site.api, null).then(
-                (data) => {
-                    let dataParser;
-                    if (site.parse_mode == "json") {
-                        dataParser = new SiteClassJsonParser();
-                    } else {
-                        dataParser = new SiteClassXmlParser();
-                    }
-                    dataParser.doParserClass(resolve, reject, data);
-                },
-                (err) => {
-                    reject(err);
-                }
-            );
-        });
+        return siteService.getSiteClass(site);
     },
 
     pageMovies(site, params) {
-        return new Promise((resolve, reject) => {
-            let dataParser;
-            if (site.parse_mode == "json") {
-                dataParser = new SiteClassJsonParser();
-            } else {
-                dataParser = new SiteClassXmlParser();
-            }
-            dataParser.getPageParams(params);
-            fetch.get(site.api, params).then(
-                (data) => {
-                    dataParser.doParserPage(resolve, reject, data);
-                },
-                (err) => {
-                    reject(err);
-                }
-            );
-        });
+        return siteService.getSiteClass(site, params);
     },
 
     listMovies(site, params) {
-        return new Promise((resolve, reject) => {
-            let dataParser;
-            if (site.parse_mode == "json") {
-                dataParser = new SiteClassJsonParser();
-            } else {
-                dataParser = new SiteClassXmlParser();
-            }
-            params["ac"] = "videolist";
-            fetch.get(site.api, params).then(
-                (data) => {
-                    dataParser.doParserVideo(resolve, reject, data);
-                },
-                (err) => {
-                    reject(err);
-                }
-            );
-        });
+        return siteService.listMovies(site, params);
     },
 
-    /**
-     * 获取资源详情
-     * @param {*} site 资源网信息
-     * @param {*} id 资源唯一标识符 id
-     * @returns
-     */
     detail(site, id) {
-        return new Promise((resolve, reject) => {
-            let params = {
-                ids: id,
-            };
-            let dataParser;
-            if (site.parse_mode == "json") {
-                dataParser = new SiteClassJsonParser();
-            } else {
-                dataParser = new SiteClassXmlParser();
-            }
-            dataParser.getDetailParams(params);
-            fetch
-                .get(site.api, params)
-                .then((data) => {
-                    dataParser.doParserVideoDetail(resolve, reject, data);
-                })
-                .catch((err) => {
-                    reject(err);
-                });
-        });
+        return siteService.detail(site, id);
     },
 
-    /**
-     * 搜索资源
-     * @param {*} key 资源网 key
-     * @param {*} wd 搜索关键字
-     * @returns
-     */
     search(site, wd) {
-        return new Promise(async (resolve, reject) => {
-            let params = {
-                wd: wd,
-            };
-            fetch
-                .get(site.api, params, false, 3000)
-                .then((data) => {
-                    const json = parser.parse(data);
-                    const jsondata = json?.rss === undefined ? json : json.rss;
-                    if (json && jsondata && jsondata.list) {
-                        let videoList = jsondata.list.video;
-                        if (
-                            Object.prototype.toString.call(videoList) ===
-                            "[object Object]"
-                        )
-                            videoList = [].concat(videoList);
-                        videoList = videoList?.filter((e) =>
-                            e.name.toLowerCase().includes(wd.toLowerCase())
-                        );
-                        if (videoList?.length) {
-                            resolve(videoList);
-                        } else {
-                            resolve();
-                        }
-                    } else {
-                        resolve();
-                    }
-                })
-                .catch((err) => {
-                    reject("搜索资源失败");
-                });
-        });
+        return siteService.search(site, wd);
     },
 
-    /**
-     * 搜索资源详情
-     * @param {*} site 资源网
-     * @param {*} wd 搜索关键字
-     * @returns
-     */
     searchFirstDetail(site, wd) {
-        return new Promise((resolve, reject) => {
-            let params = {
-                wd: encodeURI(wd),
-            };
-            fetch
-                .get(site.api, params, false, 3)
-                .then((data) => {
-                    const json = parser.parse(data);
-                    const jsondata = json?.rss === undefined ? json : json.rss;
-                    if (json && jsondata && jsondata.list) {
-                        let videoList = jsondata.list.video;
-                        if (
-                            Object.prototype.toString.call(videoList) ===
-                            "[object Object]"
-                        )
-                            videoList = [].concat(videoList);
-                        videoList = videoList?.filter((e) =>
-                            e.name.toLowerCase().includes(wd.toLowerCase())
-                        );
-                        if (videoList?.length) {
-                            this.detail(site, videoList[0].id).then(
-                                (detailRes) => {
-                                    resolve(detailRes);
-                                }
-                            );
-                        } else {
-                            resolve();
-                        }
-                    } else {
-                        resolve();
-                    }
-                })
-                .catch((err) => {
-                    reject(err);
-                });
-        }).catch((err) => {
-            reject(err);
-        });
+        return siteService.searchFirstDetail(site, wd);
     },
 
     fetchPlaylist(site, cacheKey, ids) {
         return new Promise((resolve, reject) => {
-            let videoInfo = getCacheData[cacheKey];
-            if (videoInfo && videoInfo.fullList && videoInfo.fullList.length) {
+            const videoInfo = getCacheData(cacheKey);
+            if (videoInfo?.fullList?.length) {
                 resolve(videoInfo.fullList);
             } else {
-                this.detail(site, ids)
-                    .then((res) => {
+                this.detail(site, ids).then(
+                    res => {
                         cacheData(cacheKey, res);
                         resolve(res.fullList);
-                    })
-                    .catch((err) => {
-                        reject();
-                    });
+                    },
+                    err => reject()
+                );
             }
         });
     },
 
-    /**
-     * 下载资源
-     * @param {*} site 资源网
-     * @param {*} id 资源唯一标识符 id
-     * @returns
-     */
     download(site, id, videoFlag) {
         return new Promise((resolve, reject) => {
-            let info = "";
-            let downloadUrls = [];
             if (site.download) {
-                let params = {
-                    ac: "videolist",
-                    ids: id,
-                    ct: 1,
-                };
-                fetch
-                    .get(site.download, params)
-                    .then((data) => {
-                        const json = parser.parse(data);
-                        const jsondata =
-                            json.rss === undefined ? json : json.rss;
-                        const videoList = jsondata.list.video;
-                        const dd = videoList.dl.dd;
-                        const type = Object.prototype.toString.call(dd);
-                        if (type === "[object Array]") {
-                            for (const i of dd) {
-                                downloadUrls = i._t
-                                    .replace(/\$+/g, "$")
-                                    .split("#")
-                                    .map((e) =>
-                                        encodeURI(
-                                            e.includes("$")
-                                                ? e.split("$")[1]
-                                                : e
-                                        )
-                                    )
-                                    .join("\n");
-                            }
-                        } else {
-                            downloadUrls = dd._t
-                                .replace(/\$+/g, "$")
-                                .split("#")
-                                .map((e) =>
-                                    encodeURI(
-                                        e.includes("$") ? e.split("$")[1] : e
-                                    )
-                                )
-                                .join("\n");
-                        }
-                        if (downloadUrls) {
-                            info =
-                                "加入下载队列成功!";
-                            resolve({ downloadUrls: downloadUrls, info: info });
-                        } else {
-                            throw new Error();
-                        }
-                    })
-                    .catch((err) => {
-                        err.info =
-                            "无法获取到下载链接，请通过播放页面点击“调试”按钮获取";
-                        reject(err);
-                    });
+                siteService.siteDownload(site).then(
+                    data => {
+                        const dataParser = htmlParseStrategy[site.parse_mode];
+                        dataParser.doParserDownload(resolve, reject, data);
+                    },
+                    err => reject({ info: "无法获取到下载链接，请通过播放页面点击\"调试\"按钮获取" })
+                );
             } else {
-                this.detail(site, id)
-                    .then((res) => {
-                        const dl =
-                            res.fullList.find(
-                                (e, index) => e.flag + "-" + index === videoFlag
-                            ) || res.fullList[0];
-                        for (const i of dl.list) {
-                            const url = encodeURI(
-                                i.includes("$") ? i.split("$")[1] : i
-                            );
-                            if (getUrlType(url) != "m3u8") {
-                                reject({ info: "不支持的下载类型" });
-                            }
-                            downloadUrls.push({
+                this.detail(site, id).then(
+                    res => {
+                        const dl = res.fullList.find((e, index) => e.flag + "-" + index === videoFlag) || res.fullList[0];
+                        const downloadUrls = dl.list.map(i => {
+                            const url = encodeURI(i.includes("$") ? i.split("$")[1] : i);
+                            return {
                                 name: res.name,
                                 subTitleName: i.split("$")[0],
-                                url: url,
-                            });
-                        }
-                        if (downloadUrls) {
-                            info = "视频源链接已复制, 快去下载吧!";
-                            resolve({ downloadUrls: downloadUrls, info: info });
+                                url,
+                            }
+                        })
+
+                        if (downloadUrls.length) {
+                            resolve({ downloadUrls, info: "视频源链接已复制, 快去下载吧!" });
                         } else {
                             reject({ info: "下载链接不存在" });
                         }
-                    })
-                    .catch((err) => {
-                        err.info =
-                            "无法获取到下载链接，请通过播放页面点击“调试”按钮获取";
-                        reject(err);
-                    });
+                    },
+                    err => reject({ info: "无法获取到下载链接，请通过播放页面点击\"调试\"按钮获取" })
+                );
             }
         });
     },
 
-    async getAllSite(store) {
-        let siteList = await invoke("select_site", {});
-        store.dispatch(storeSiteList({ siteList, forceRefresh: true }));
-    },
 };

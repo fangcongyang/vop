@@ -71,6 +71,7 @@ pub fn run() {
             cache::cmd::get_cache_data,
             conf::cmd::reload_store,
             file_download::cmd::retry_download,
+            file_download::cmd::movie_merger,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

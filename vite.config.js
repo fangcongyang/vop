@@ -37,10 +37,10 @@ export default defineConfig(async ({ mode }) => ({
         strictPort: true,
         host: mobile ? "0.0.0.0" : "0.0.0.0",
         proxy: {
-            "/vopApi": {
+            "/api": {
                 target: loadEnv(mode, process.cwd()).VITE_VOP_API,
                 changeOrigin: true, // 允许跨域
-                rewrite: (path) => path.replace(/^\/vopApi/, ""),
+                rewrite: (path) => path.replace(/^\/api/, "api"),
             },
         },
         hmr: mobile

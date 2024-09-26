@@ -3,10 +3,16 @@ use log::error;
 use m3u8_rs::{MediaPlaylist, Playlist};
 use serde_json::json;
 use std::{
-    collections::HashMap, fs::create_dir_all, net::TcpStream, path::{Path, PathBuf}, process::Command, sync::{
+    fs::create_dir_all,
+    net::TcpStream,
+    path::{Path, PathBuf},
+    process::Command,
+    sync::{
         atomic::{AtomicI32, Ordering},
         Arc,
-    }, thread, time::Duration
+    },
+    thread,
+    time::Duration,
 };
 use tauri::http::StatusCode;
 use tauri_plugin_http::reqwest;
@@ -21,19 +27,20 @@ use tungstenite::WebSocket;
 use crate::utils;
 
 use super::{
-    file_download::DownloadInfo, m3u8_encrypt_key::{KeyType, M3u8EncryptKey}, types::{parse_operation_name, DownloadInfoContext, DownloadInfoDetail, DownloadInfoQueueDetail, DownloadOperation, DownloadSourceInfo}, util::download_request
+    file_download::DownloadInfo,
+    m3u8_encrypt_key::{KeyType, M3u8EncryptKey},
+    types::{
+        parse_operation_name, DownloadInfoContext, DownloadInfoDetail, DownloadInfoQueueDetail,
+        DownloadOperation, DownloadSourceInfo,
+    },
+    util::download_request,
 };
 
 pub async fn download_m3u8(
     download_info: &mut DownloadInfo,
     socket: &mut WebSocket<TcpStream>,
-    download_count_map: &mut HashMap<String, i32>,
 ) -> anyhow::Result<(), Box<dyn std::error::Error>> {
     let mut download_info_context = DownloadInfoContext::new(download_info)?;
-    let uq_key = &format!(
-        "{}_{}",
-        download_info_context.id, &download_info_context.status
-    );
     let result;
 
     let operation = parse_operation_name(&download_info_context.status[..]);
@@ -53,11 +60,10 @@ pub async fn download_m3u8(
         }
         DownloadOperation::UnsupportedOperation => {
             result = Err(Box::from("不支持的操作"));
-        },
+        }
     }
     // 程序报错直接修改任务状态为失败
     if result.is_ok() {
-        download_count_map.remove(uq_key);
         socket.send(tungstenite::Message::Text(result?))?;
     } else {
         error!("下载m3u8失败，失败原因:{}", result.unwrap_err());
@@ -67,7 +73,8 @@ pub async fn download_m3u8(
                 "status": download_info_context.status,
                 "download_status": "downloadFail",
                 "mes_type": "end"
-            })).expect("Failed to serialize JSON"),
+            }))
+            .expect("Failed to serialize JSON"),
         ))?
     }
     Ok(())
@@ -119,7 +126,13 @@ async fn parse_source(
     }
     download_source_info.download_info_list = download_list;
     let v = serde_json::to_string_pretty(&download_source_info)?;
-    std::fs::write(&download_info_context.json_path, v)?;
+    let mut json_file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(&download_info_context.json_path)
+        .await?;
+    json_file.write_all(v.as_bytes()).await?;
 
     let r_json = json!({
         "id": download_info_context.id,
@@ -202,8 +215,11 @@ async fn download_slice(
                         } else {
                             if !matches!(&detail.m3u8_encrypt_key.ty, KeyType::None) {
                                 match detail.m3u8_encrypt_key.decode(&mut data) {
-                                    Some(data1) => data = data1,
-                                    _ => {}
+                                    Ok(Some(data1)) => {
+                                        data = data1;
+                                    }
+                                    Ok(None) => success = false,
+                                    Err(_) => success = false,
                                 };
                             }
                         }
@@ -239,7 +255,7 @@ async fn download_slice(
         .open(&download_info_context.json_success_path)
         .await?;
 
-    while let Some(res) = rx.recv().await {
+    while let Some(mut res) = rx.recv().await {
         if res.success {
             let file_name = res.file_name.clone();
             let rs = downloaded_file_save(res.clone()).await;
@@ -256,6 +272,7 @@ async fn download_slice(
                     "mes_type": "progress",
                 }))?))?
             } else {
+                res.data = None;
                 download_source_info.download_info_list.push(res);
             }
         } else {
@@ -264,7 +281,12 @@ async fn download_slice(
     }
 
     let v = serde_json::to_string_pretty(&download_source_info)?;
-    std::fs::write(&download_info_context.json_path, v)?;
+    let mut json_file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .open(&download_info_context.json_path)
+        .await?;
+    json_file.write_all(v.as_bytes()).await?;
 
     let r_json = json!({
         "id": download_info_context.id,
@@ -338,7 +360,7 @@ async fn check_souce(
     Ok(result)
 }
 
-async fn merger(
+pub async fn merger(
     download_info_context: &mut DownloadInfoContext,
 ) -> anyhow::Result<String, Box<dyn std::error::Error>> {
     let index_str = utils::get_path_name(&download_info_context.index_path);
@@ -396,7 +418,7 @@ async fn delete_m3u8_tmp_file(
     remove_file(index_path.join(&index_json)).await?;
     let txt = format!("{}.txt", &sub_title_name);
     remove_file(index_path.join(&txt)).await?;
-    let success_json  = format!("{}_success.json", &sub_title_name);
+    let success_json = format!("{}_success.json", &sub_title_name);
     remove_file(index_path.join(&success_json)).await?;
     Ok(())
 }

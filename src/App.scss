@@ -6,7 +6,6 @@ main {
   width: 100%;
   box-sizing: border-box;
   scrollbar-width: none;
-  overflow: auto;
   
   @include responseTo('phonePortrait') {
     padding: 36px 8px 56px 8px;

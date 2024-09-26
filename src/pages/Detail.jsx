@@ -41,7 +41,7 @@ const Detail = (props) => {
         }
 
         let res = await getCacheData(cacheKey);
-        if (!res) {
+        if (_.isEmpty(res)) {
             const currentSite = await getSiteByKey(detailInfo.siteKey);
             res = await movieApi.detail(currentSite, detailInfo.ids);
             cacheData(cacheKey, res);
@@ -180,15 +180,17 @@ const Detail = (props) => {
                                 {info.videoList &&
                                     info.videoList.length > 0 &&
                                     info.videoList.map((i, j) => (
-                                        <span
-                                            className={j === selectedEpisode || j === moveOn ? "selected" : ""}
+                                        <div
                                             key={j}
                                             onClick={() => playEvent(j)}
                                             onMouseEnter={() => setMoveOn(j)}
                                             onMouseLeave={() => setMoveOn(undefined)}
                                         >
-                                            {ftName(i, j)}
-                                        </span>
+                                            <span 
+                                                className={j === selectedEpisode || j === moveOn ? "selected" : ""}>
+                                                {ftName(i, j)}
+                                            </span>
+                                        </div>
                                     ))}
                             </div>
                         </div>

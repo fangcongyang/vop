@@ -17,14 +17,13 @@ export class DownloadBus {
         this.initSocket();
     }
 
-    isWsOpen = () => {
-        return this.ws && this.ws.readyState === 1;
-    };
+    isWsOpen = () => this.ws && this.ws.readyState === 1;
 
     intervalGetDownloadInfo = () => {
-        this.downloadInterval = setInterval(async () => {
-            this.downloadRequest.mes_type
-            this.ws.send(JSON.stringify(this.downloadRequest))
+        this.downloadInterval = setInterval(() => {
+            this.downloadRequest.downloadInfo = null
+            this.downloadRequest.messageType = "get_download_info_by_queue";
+            this.ws.send(JSON.stringify(this.downloadRequest));
         }, 1000);
     };
 
@@ -36,69 +35,62 @@ export class DownloadBus {
 
     initSocket = () => {
         this.ws = new WebSocket(this.wsAddr);
-        this.ws.onopen = () => {
-            this.intervalGetDownloadInfo();
-        };
+        this.ws.onopen = this.intervalGetDownloadInfo;
 
         this.ws.onclose = () => {
-            setTimeout(() => {
-                if (!this.isCompulsionClose) {
-                    this.initSocket();
-                }
-            }, 3000);
+            if (!this.isCompulsionClose) {
+                clearInterval(this.downloadInterval);
+                setTimeout(this.initSocket, 3000);
+            }
         };
 
         this.ws.onerror = () => {
-            console.log("websoket连接失败，请刷新！");
+            console.log("websocket连接失败，请刷新！");
         };
 
         this.ws.onmessage = async ({ data }) => {
             const dataObj = JSON.parse(data);
-            if (dataObj.messageType == "get_download_info_by_queue") {
-                if (dataObj.downloadInfo != null && dataObj.downloadInfo != undefined) {
+            if (dataObj.messageType === "get_download_info_by_queue") {
+                if (dataObj.downloadInfo) {
                     clearInterval(this.downloadInterval);
                     this.downloadRequest.messageType = "downloadVideo";
-                    this.downloadRequest.downloadInfo = downloadInfo;
+                    this.downloadRequest.downloadInfo = dataObj.downloadInfo;
                     this.ws.send(JSON.stringify(this.downloadRequest));
                 }
                 return;
             }
+
             let isNeedSeed = false;
-            if (dataObj.status) {
+            if (dataObj?.status) {
                 this.downloadRequest.downloadInfo.status = dataObj.status;
             }
-            if (dataObj.download_status) {
-                this.downloadRequest.downloadInfo.download_status =
-                    dataObj.download_status;
+            if (dataObj?.download_status) {
+                this.downloadRequest.downloadInfo.download_status = dataObj.download_status;
             }
+
             switch (dataObj.mes_type) {
                 case "parseSourceEnd":
-                    this.downloadRequest.downloadInfo.count = dataObj.count;
-                    isNeedSeed = true;
-                    break;
                 case "parseSourceError":
-                    isNeedSeed = true;
-                    break;
-                case "progress":
-                    this.downloadRequest.downloadInfo.download_count =
-                        dataObj.download_count;
-                    break;
                 case "downloadSliceEnd":
-                    this.downloadRequest.downloadInfo.download_count =
-                        dataObj.download_count;
-                    isNeedSeed = true;
-                    break;
                 case "checkSourceEnd":
                     isNeedSeed = true;
+                    if (dataObj.mes_type === "parseSourceEnd") {
+                        this.downloadRequest.downloadInfo.count = dataObj.count;
+                    }
+                    break;
+                case "progress":
+                    this.downloadRequest.downloadInfo.download_count = dataObj.download_count;
+                    break;
+                case "end":
+                    this.downloadRequest.downloadInfo.download_status = dataObj.download_status;
                     break;
             }
 
             await updateDownloadById(this.downloadRequest.downloadInfo);
             this.updateDownloadInfoEvent(this.downloadRequest.downloadInfo);
 
-            if (isNeedSeed) {
-                this.isWsOpen() &&
-                    this.ws.send(JSON.stringify(this.downloadRequest));
+            if (isNeedSeed && this.isWsOpen()) {
+                this.ws.send(JSON.stringify(this.downloadRequest));
             }
 
             if (dataObj.mes_type === "end") {

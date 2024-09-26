@@ -1,27 +1,21 @@
-import { size } from 'lodash';
 import { useMemo } from 'react';
 
-const SvgIcon = ({name, title, color, style, className, size = 24}) => {
-
+const SvgIcon = ({ name, title, color, style, className, size = 24 }) => {
     const getStyle = useMemo(() => {
-        if (style && style.width) {
-            return style;
-        }
-        let s = `${size}`;
-        s = `${s.replace('px', '')}px`;
+        const dimension = `${parseInt(size, 10)}px`;
         return {
-            width: s,
-            height: s,
+            width: dimension,
+            height: dimension,
             ...style
         };
-    }, [size]);
+    }, [size, style]);
 
     return (
-        <svg style={getStyle} className={className ? 'svg-icon ' + className : 'svg-icon'}>
-            { title ? <title>{title}</title> : '' }
-            <use xlinkHref={'#icon-' + name} fill={color} />
+        <svg style={getStyle} className={`svg-icon ${className || ''}`}>
+            {title && <title>{title}</title>}
+            <use xlinkHref={`#icon-${name}`} fill={color} />
         </svg>
     );
-}
+};
 
 export default SvgIcon;

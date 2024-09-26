@@ -1,3 +1,5 @@
+@import "../Base.scss";
+
 .detail {
     border-radius: 10px;
     width: 100%;
@@ -76,7 +78,7 @@
             }
         }
 
-        .operate span, .m3u8 .box span, .m3u8 .box .selected {
+        .operate span {
             font-size: 14px;
             cursor: pointer;
             user-select: none;
@@ -96,40 +98,56 @@
 
         .m3u8 {
             display: flex;
-            align-content: center;
+            justify-content: center;
 
             .box {
                 width: 100%;
                 display: flex;
-                flex-wrap: wrap;
-                padding: 0 10px 10px 10px;
+                flex-flow: row wrap;
+                align-content: flex-start;
 
-                span, .selected {
-                    display: inline-block;
-                    text-align: center;
-                    font-size: 12px;
-                    border: 1px solid;
-                    border-radius: 2px;
-                    cursor: pointer;
-                    height: 20px;
-                    width: 20px;
-                    padding: 8px 24px;
-                    margin: 10px 10px 0 0;
-                    border-color: var(--l-c-5);
+                div {
+                    display: flex;
+                    align-content: center;
+                    justify-content: center;
+                    height: 2.5rem;
+                    box-sizing: border-box;
+                    flex: 0 0 10%;
 
-                    &:hover {
-                        color: var(--l-fc-2);
-                        background-color: var(--l-c-1);
-                        border-color: var(--l-c-8);
+                    @include responseTo('phonePortrait') {
+                        flex: 0 0 20%;
                     }
-                }
 
-                .selected {
-                    background-color: var(--l-c-5);
-                    border-color: var(--l-c-5);
+                    span {
+                        display: block;
+                        align-content: center;
+                        width: 90%;
+                        height: 80%;
+                        padding: auto;
+                        border-color: var(--l-c-5);
+                        text-align: center;
+                        font-size: 12px;
+                        border: 1px solid;
+                        border-radius: 2px;
+                        overflow: hidden;
+                        white-space: nowrap;
+                        text-overflow: ellipsis;
+                        cursor: pointer;
 
-                    &:hover {
+                        &:hover {
+                            color: var(--l-fc-2);
+                            background-color: var(--l-c-1);
+                            border-color: var(--l-c-8);
+                        }
+                    }
+                    
+                    .selected {
                         background-color: var(--l-c-5);
+                        border-color: var(--l-c-5);
+
+                        &:hover {
+                            background-color: var(--l-c-5);
+                        }
                     }
                 }
             }

@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { pageActiveStore, updatePlayInfo } from "@/store/coreSlice";
-import { downloadListStore, storeDownloadList } from "@/store/movieSlice";
-import { getAllDownloadList, getDownloadSavePath, deleteDownload } from "@/db";
+import { downloadListStore, storeDownloadList, updateDownloadProcess } from "@/store/movieSlice";
+import { getAllDownloadList, getDownloadSavePath, deleteDownload, updateDownloadById } from "@/db";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import {
     Table,
@@ -85,7 +85,7 @@ const Download = (props) => {
         const statusMap = {
             parseSource: "解析资源",
             downloadSlice: "下载ts分片",
-            checkSouce: "检测完整性",
+            checkSource: "检测完整性",
             merger: "合并视频",
             downloadEnd: "下载结束",
         };
@@ -111,6 +111,17 @@ const Download = (props) => {
         await invoke("retry_download", { download: downloadInfo });
     };
 
+    const movieMerger = async (download) => {
+        const di = await invoke("movie_merger", { download });
+        if (di) {
+            const diInfo = _.cloneDeep(download)
+            diInfo.download_status = di.download_status;
+            diInfo.status = di.status;
+            await updateDownloadById(diInfo);
+            dispatch(updateDownloadProcess(diInfo));
+        }
+    };
+
     const onDeleteDownload = async (download) => {
         await deleteDownload(download);
         init();
@@ -124,7 +135,7 @@ const Download = (props) => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>影片名称</TableCell>
-                                <TableCell sx={{ width: "50px" }}>子标题</TableCell>
+                                <TableCell sx={{ width: "100px" }}>子标题</TableCell>
                                 <TableCell>状态</TableCell>
                                 <TableCell sx={{ width: "200px" }}>下载进度</TableCell>
                                 <TableCell>下载状态</TableCell>
@@ -147,7 +158,15 @@ const Download = (props) => {
                                                 <Button color="primary" size="small" onClick={() => playEvent(row)}>播放</Button>
                                             )}
                                             {row.status !== "downloadEnd" && (
+                                                <>
                                                 <Button color="warning" onClick={() => retryEvent(row)}>重试</Button>
+                                                <Button onClick={() => movieMerger(row)}>合并</Button>
+                                                </>
+                                            )}
+                                            {row.status === "downloadFail" && (
+                                                <>
+                                                <Button onClick={() => movieMerger(row)}>强制合并</Button>
+                                                </>
                                             )}
                                             <Button color="error" onClick={() => onDeleteDownload(row)}>删除</Button>
                                         </Stack>

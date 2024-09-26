@@ -28,8 +28,9 @@ const Search = (props) => {
     const [searchList, setSearchList] = useState([]);
 
     useEffect(() => {
-        if (osType != "mobile" && pageActive === "search" && searchKeyword != searchKeywordRef.current) {
+        if (pageActive === "search" && searchKeyword != searchKeywordRef.current) {
             searchKeywordRef.current = searchKeyword;
+            console.log(searchKeyword)
             searchMovie();
         }
     }, [pageActive, searchKeyword]);
@@ -49,6 +50,9 @@ const Search = (props) => {
         searchInfo.searchRunning = true;
         movieListRef.current = []
         setMovieList([]);
+        if (!searchKeywordRef.current) {
+            return;
+        }
         siteList.forEach((site) => {
             const id = searchInfo.searchId;
             movieApi

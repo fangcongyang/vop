@@ -9,7 +9,7 @@ use super::{file_download::DownloadInfo, m3u8_encrypt_key::M3u8EncryptKey};
 pub struct DownloadInfoContext {
     pub id: i32,
     pub url: Url,
-    pub count: i32,
+    pub count: Option<i32>,
     pub download_count: i32,
     pub movie_name: String,
     pub sub_title_name: String,

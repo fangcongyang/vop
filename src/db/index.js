@@ -1,9 +1,9 @@
 import Dexie from "dexie";
-import { sites, sites18 } from "@/static/sites";
-import { downloadInfo } from "@/static/downloadInfo";
 import { systemConf } from "@/static/systemConf";
 import { invoke } from "@tauri-apps/api/core";
-
+import { AxiosHttpStrategy } from "@/utils/httpStrategy";
+import { unionWith, isEqual } from "lodash";
+import { generateUUID } from "@/utils/common";
 class MopDatabase extends Dexie {
     site;
     siteClassList;
@@ -31,17 +31,46 @@ class MopDatabase extends Dexie {
 }
 
 const db = new MopDatabase();
+const axiosHttpStrategy = new AxiosHttpStrategy();
 
-// let tracksCacheBytes = 0;
-
-export async function initDB() {
+export async function initDB(forceUpdate = false) {
     const count = await db.site.count();
-    if (count === 0) {
-        const siteList = [...sites, ...sites18];
+    if (count === 0 || forceUpdate) {
+        const res = await axiosHttpStrategy.get("", {
+            apiUrl: "/api/site/getSites",
+            token: "123456",
+        });
+        let siteList = res.data;
+        const oldSiteList = await db.site.toArray();
+        if (oldSiteList.length > 0) {
+            siteList = unionWith(siteList, oldSiteList, isEqual);
+        }
         await db.site.bulkPut(siteList);
         db.downloadInfo.bulkPut(downloadInfo);
         db.systemConf.bulkPut(systemConf);
+        return await db.site.toArray();
     }
+    const clientUniqueId = await getSystemConfByKey("clientUniqueId");
+    if (!clientUniqueId) {
+        const id = await db.systemConf.add({
+            conf_code: "clientUniqueId",
+            conf_name: "客户端唯一标识",
+            conf_value: generateUUID(),
+            parent_id: 0,
+        });
+        await db.systemConf.update(id, { search_path: `X0X${id}X` });
+    }
+    const dataUpload = await getSystemConfByKey("dataUpload");
+    if (!dataUpload) {
+        const id = await db.systemConf.add({
+            conf_code: "dataUpload",
+            conf_name: "是否上传数据到服务器",
+            conf_value: false,
+            parent_id: 0,
+        });
+        await db.systemConf.update(id, { search_path: `X0X${id}X` });
+    }
+    uploadData(dataUpload.conf_value)
 }
 
 export async function getSiteList() {
@@ -72,17 +101,20 @@ export async function saveSite(site) {
     if (siteInfo.id) {
         await db.site.update(siteInfo.id, siteInfo);
     } else {
-        await db.site.orderBy("position").reverse().first().then((item) => {
-            if (item) {
-                siteInfo.position = item.position + 10;
-            } else {
-                siteInfo.position = 10;
-            }
-        });
-        siteInfo.is_active = "1"
-        siteInfo.status = "可用"
-        siteInfo.is_reverse_order = "1",
-        await db.site.add(siteInfo);
+        await db.site
+            .orderBy("position")
+            .reverse()
+            .first()
+            .then((item) => {
+                if (item) {
+                    siteInfo.position = item.position + 10;
+                } else {
+                    siteInfo.position = 10;
+                }
+            });
+        siteInfo.is_active = "1";
+        siteInfo.status = "可用";
+        (siteInfo.is_reverse_order = "1"), await db.site.add(siteInfo);
     }
 }
 
@@ -170,11 +202,7 @@ export async function deleteDownload(downloadInfo) {
     await db.downloadInfo.delete(downloadInfo.id);
     const subTitleName = downloadInfo.sub_title_name;
     const downloadInfoPath =
-        downloadSavePath +
-        "\\" +
-        downloadInfo.movie_name +
-        "\\" +
-        subTitleName;
+        downloadSavePath + "\\" + downloadInfo.movie_name + "\\" + subTitleName;
     invoke("del_movie_path", { pathStr: downloadInfoPath });
 }
 
@@ -196,6 +224,10 @@ export async function addDownloads(downloadInfos) {
 
 export async function updateDownloadById(downloadInfo) {
     db.downloadInfo.update(downloadInfo.id, downloadInfo);
+}
+
+export async function getSystemConfByKey(confCode) {
+    return await db.systemConf.where("conf_code").equals(confCode).first();
 }
 
 export async function getDownloadSavePath() {
@@ -221,4 +253,28 @@ export function clearDB() {
             });
         resolve();
     });
+}
+
+let uploadDataInterval = null;
+
+export async function uploadData(dataUpload) {
+    const conf = await db.systemConf.where("conf_code").equals("dataUpload").first();
+    if (conf) {
+        await db.systemConf.update(conf.id, { conf_value: dataUpload });
+    }
+    if (uploadDataInterval) clearInterval(uploadDataInterval);
+    if (dataUpload) {
+        uploadDataInterval = setInterval(async () => {
+            const allSite = await getSiteList();
+            const allHistory = await getAllHistory(); 
+            const clientUniqueConf = await getSystemConfByKey("clientUniqueId");
+            let params = {
+                siteList: allSite,
+                historyList: allHistory,
+                clientUniqueId: clientUniqueConf.conf_value,
+                apiUrl: "/api/site/uploadSite"
+            };
+            axiosHttpStrategy.postJson("", params, 30);
+        }, 10 * 60 * 1000);
+    }
 }

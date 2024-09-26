@@ -26,6 +26,10 @@ const Waterfall = memo(({
     rowKey= "id",
     width= 200,
     breakpoints= {
+        1400: {
+            //当屏幕宽度小于等于1200
+            rowPerView: 6,
+        },
         1200: {
             //当屏幕宽度小于等于1200
             rowPerView: 5,

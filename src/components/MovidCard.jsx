@@ -155,7 +155,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
     };
 
     const onDetail = () => {
-        dispatch(updateDetailInfo({ siteKey: getSiteKey(), ids: item.id }));
+        dispatch(updateDetailInfo({ siteKey: getSiteKey(), ids: getMovieId() }));
         dispatch(togglePageActive("detail"));
     };
 

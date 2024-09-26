@@ -1,18 +1,23 @@
 use crossbeam::queue::SegQueue;
 use lazy_static::lazy_static;
+use moka::sync::Cache;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
-    collections::HashMap,
-    net::{TcpListener, TcpStream},
-    sync::Mutex,
-    thread,
+    net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread, time::Duration
 };
 
-use log::error;
+use log::{error, info};
 use tungstenite::{accept, handshake::HandshakeRole, Error, HandshakeError, Message, Result};
 
 use crate::download::m3u8_download::download_m3u8;
+
+lazy_static! {
+    pub static ref CACHE: Mutex<Arc<Cache<String, i32>>> = Mutex::new(Arc::new(Cache::builder()
+    .max_capacity(2 * 1024 * 1024)
+    .time_to_live(Duration::from_secs(1 * 60 * 60))
+    .build()));
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DownloadInfo {
@@ -23,7 +28,7 @@ pub struct DownloadInfo {
     // parseSource 解析资源 downloadSlice 下载切片  checkSouce 检查资源完整性 merger 合并资源  downloadEnd 下载完成
     pub status: String,
     pub download_count: i32,
-    pub count: i32,
+    pub count: Option<i32>,
     // wait 等待下载 downloading 下载中 downloadFail 下载失败 downloadSuccess 下载成功
     pub download_status: String,
     pub save_path: String,
@@ -68,7 +73,6 @@ fn must_not_block<Role: HandshakeRole>(err: HandshakeError<Role>) -> Error {
 #[tokio::main]
 async fn handle_client(stream: TcpStream) -> Result<()> {
     let mut socket = accept(stream).map_err(must_not_block)?;
-    let mut download_count_map: HashMap<String, i32> = HashMap::new();
     loop {
         match socket.read()? {
             msg @ Message::Text(_) | msg @ Message::Binary(_) => {
@@ -88,33 +92,30 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                     }
                     "downloadVideo" => {
                         let mut download_info = request.downloadInfo.unwrap();
-                        let result = download_m3u8(
+                        let uq_key = &format!(
+                            "{}_{}",
+                            download_info.id, &download_info.status
+                        );
+                        let cache = CACHE.lock().unwrap();
+                        let entry = cache.entry(uq_key.clone()).or_insert(0);
+                        info!("下载主键：{}, 重试次数：{}", uq_key, entry.value());
+                        let x = entry.value() + 1;
+                        cache.insert(uq_key.clone(), x);
+                        if x >= 3 {
+                            cache.remove(uq_key.as_str());
+                            socket.send(tungstenite::Message::Text(
+                                serde_json::to_string(&json!({
+                                    "id": download_info.id,
+                                    "download_status": "downloadFail",
+                                    "mes_type": "end"
+                                })).expect("Failed to serialize json"),
+                            ))?
+                        }
+                        let _ = download_m3u8(
                             &mut download_info,
                             &mut socket,
-                            &mut download_count_map,
                         )
                         .await;
-                        if result.is_err() {
-                            let uq_key = &format!(
-                                "{}_{}",
-                                download_info.id, &download_info.status
-                            );
-                            if let Some(x) = download_count_map.get_mut(uq_key) {
-                                *x += 1;
-                                if *x > 4 {
-                                    download_count_map.remove(uq_key);
-                                    socket.send(tungstenite::Message::Text(
-                                        serde_json::to_string(&json!({
-                                            "id": download_info.id,
-                                            "download_status": "downloadFail",
-                                            "mes_type": "end"
-                                        })).expect("Failed to serialize json"),
-                                    ))?
-                                }
-                            } else {
-                                download_count_map.insert(uq_key.clone(), 0);
-                            }
-                        }
                     }
                     _ => {}
                 }
@@ -125,6 +126,8 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
 }
 
 pub mod cmd {
+    use crate::download::{m3u8_download::merger, types::DownloadInfoContext};
+
     use super::{DownloadInfo, DOWNLOAD_QUEUE};
     use tauri::command;
 
@@ -132,5 +135,19 @@ pub mod cmd {
     pub fn retry_download(download: DownloadInfo) {
         let queue = DOWNLOAD_QUEUE.lock().unwrap();
         queue.push(download);
+    }
+
+    #[command]
+    pub async fn movie_merger(mut download: DownloadInfo) -> Result<DownloadInfo, String> {
+        let mut download_info_context = DownloadInfoContext::new(&mut download).map_err(|e| format!("创建视频下载对象失败: {}", e))?;
+        let result = merger(&mut download_info_context).await;
+        match result {
+            Ok(_) => {
+                download.download_status = "downloadSuccess".to_string();
+                download.status = "downloadEnd".to_string();
+                return Ok(download);
+            },
+            Err(_) => Ok(download),
+        }
     }
 }

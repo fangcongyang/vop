@@ -4,7 +4,7 @@ import { settingsStore, togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { osType, appVersion } from "@/utils/env";
-import { getSiteList } from "@/db";
+import { getSiteList, getSystemConfByKey, initDB, uploadData } from "@/db";
 import logo from "@/assets/logo.png";
 import SettingsSwitch from "@/components/SettingsSwitch";
 import SettingsInputArray from "@/components/SettingsInputArray";
@@ -75,6 +75,18 @@ const Settings = (props) => {
         page: "settings",
     });
 
+    const [clientUniqueId, setClientUniqueId] = useState("");
+    const [dataUpload, setDataUpload] = useState(false);
+
+    useEffect(() => {
+        const fetchConfig = async (key, setter) => {
+            const res = await getSystemConfByKey(key);
+            setter(res.conf_value);
+        };
+        fetchConfig("clientUniqueId", setClientUniqueId);
+        fetchConfig("dataUpload", setDataUpload);
+    }, []);
+
     const linkOpen = (url) => {
         open(url);
     };
@@ -85,7 +97,14 @@ const Settings = (props) => {
 
     const resetApp = () => {
         clearDB().then(() => {
+            if (osType.startsWith("web")) return;
             relaunch();
+        });
+    };
+
+    const syncSite = () => {
+        initDB(true).then((res) => {
+            dispatch(storeSiteList({ siteList: res, forceRefresh: true }));
         });
     };
 
@@ -137,6 +156,11 @@ const Settings = (props) => {
 
     const sendProxyConfig = () => {
         relaunch();
+    };
+
+    const dataUploadCallback = (dataUpload) => {
+        setDataUpload(dataUpload);
+        uploadData(dataUpload)
     };
 
     return (
@@ -237,16 +261,20 @@ const Settings = (props) => {
                         />
                     </>
                 )}
-                <h3>代理配置</h3>
-                <SettingsSelect
-                    title="代理协议"
-                    initValue={proxyProtocol}
-                    fieldKey="proxyProtocol"
-                    selectData={proxyProtocolSelectData()}
-                    callback={(proxyProtocol) =>
-                        setProxyProtocol(proxyProtocol)
-                    }
-                />
+                {!osType.startsWith("web") && (
+                    <>
+                        <h3>代理配置</h3>
+                        <SettingsSelect
+                            title="代理协议"
+                            initValue={proxyProtocol}
+                            fieldKey="proxyProtocol"
+                            selectData={proxyProtocolSelectData()}
+                            callback={(proxyProtocol) =>
+                                setProxyProtocol(proxyProtocol)
+                            }
+                        />
+                    </>
+                )}
                 <div
                     id="proxy-form"
                     className={proxyProtocol === "noProxy" ? "disabled" : ""}
@@ -281,11 +309,31 @@ const Settings = (props) => {
                 </div>
                 {/* 其他 */}
                 <h3>其他</h3>
+                <SettingsSwitch
+                    title="数据上传"
+                    initValue={dataUpload}
+                    fieldKey="dataUpload"
+                    callback={(switchValue) =>
+                        dataUploadCallback(switchValue)
+                    }
+                />
+                <SettingButton
+                    title="唯一标识符"
+                    description={clientUniqueId}
+                    placeholder="复制"
+                    callback={() => syncSite()}
+                />
                 <SettingButton
                     title="站点管理"
                     description="站点管理，进行增删改查操作"
                     placeholder="站点管理"
                     callback={() => openSite()}
+                />
+                <SettingButton
+                    title="同步站点"
+                    description="同步最新站点信息. "
+                    placeholder="同步站点"
+                    callback={() => syncSite()}
                 />
                 {osType == "desktop" && (
                     <SettingsSelect
