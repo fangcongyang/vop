@@ -37,6 +37,13 @@ pub fn create_file(path: &Path) -> Result<File> {
     File::create(path).map_err(Into::into)
 }
 
+pub fn create_dir_if_not_exists(path: &Path) -> Result<()> {
+    if let Some(p) = path.parent() {
+        fs::create_dir_all(p)?
+    }
+    Ok(())
+}
+
 pub async fn async_create_file(path: &Path) -> Result<tokio::fs::File> {
     if let Some(p) = path.parent() {
         tokio::fs::create_dir_all(p).await?;

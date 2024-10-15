@@ -7,10 +7,10 @@ import ButtonIcon from "./ButtonIcon";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { osType } from "@/utils/env";
-import { getAllSearchList } from "@/db";
+import { getAllSearchList, addSearchRecord, clearSearchRecord } from "@/db";
 import "./Navbar.scss";
 
-const Navbar = memo(({children}) => {
+const Navbar = memo(({ children }) => {
     const dispatch = useAppDispatch();
     const pageActive = useAppSelector(pageActiveStore);
     const [inputFocus, setInputFocus] = useState(false);
@@ -18,14 +18,22 @@ const Navbar = memo(({children}) => {
     const [searchList, setSearchList] = useState([]);
 
     useEffect(() => {
+        getSearchList();
+    }, []);
+
+
+    const getSearchList = () => {
         getAllSearchList().then((res) => {
             setSearchList(res);
         });
-    }, []);
+    };
 
     const doSearch = (e) => {
         if (e.key !== "Enter") return;
         if (!keywords) return;
+        addSearchRecord(keywords).then(() => {
+            getSearchList();
+        });
         if (pageActive == "search") {
             dispatch(updateSearchKeyword(keywords));
             return;
@@ -35,10 +43,9 @@ const Navbar = memo(({children}) => {
 
     const goSearch = () => {
         dispatch(togglePageActive("search"));
-    }
-
-    const go = (where) => {
     };
+
+    const go = (where) => {};
 
     return (
         <div className="navBar">
@@ -115,12 +122,25 @@ const Navbar = memo(({children}) => {
                                 outline: "none",
                             },
                         }}
+                        clearText="清除"
                         options={searchList.map((option) => option.keyword)}
+                        onClose={(event) => {
+                            clearSearchRecord().then(() => {
+                                getSearchList();
+                                setKeywords("");
+                                return;
+                            });
+                        }}
+                        onChange={(event, value) => {
+                            if (typeof value === "string") {
+                                dispatch(updateSearchKeyword(value));
+                            }
+                        }}
                         renderInput={(params) => (
                             <TextField
                                 {...params}
-                                value={keywords}
                                 label="搜索"
+                                value={keywords}
                                 InputProps={{
                                     ...params.InputProps,
                                     type: "search",

@@ -8,7 +8,7 @@ export let appVersion = '';
 
 async function initOsType() {
     try {
-        let ot = await type();
+        let ot = type();
         let newOsType;
         switch (ot) {
             case 'linux':

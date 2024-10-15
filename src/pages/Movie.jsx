@@ -90,7 +90,7 @@ const Movie = ({className}) => {
                 dispatch(
                     storeSiteList({ siteList: result, forceRefresh: true })
                 );
-                siteClick(result[0]);
+                if (result[0]) siteClick(result[0]);
             }
         });
     }, [excludeR18Site]);
@@ -310,16 +310,24 @@ const Movie = ({className}) => {
         setMovieFilteredList(filteredData);
         movieInfo.movieRequestList = false;
     };
+    
+    const getSearchList = () => {
+        getSearchList().then((res) => {
+            setSearchList(res);
+        });
+    };
 
     const doSearch = (e) => {
         if (e.key !== "Enter" && e.keyCode !== 13) return;
         if (!keywords) return;
+        addSearchRecord(keywords).then(() => {
+            getSearchList();
+        });
         if (pageActive == "search") {
             dispatch(updateSearchKeyword(keywords));
             return;
         }
         dispatch(updateSearchKeyword(keywords));
-        dispatch(togglePageActive("search"));
     };
     
     const goSearch = () => {

@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { AxiosHttpStrategy } from "@/utils/httpStrategy";
 import { unionWith, isEqual } from "lodash";
 import { generateUUID } from "@/utils/common";
+import { message } from "@tauri-apps/plugin-dialog";
 class MopDatabase extends Dexie {
     site;
     siteClassList;
@@ -34,21 +35,21 @@ const db = new MopDatabase();
 const axiosHttpStrategy = new AxiosHttpStrategy();
 
 export async function initDB(forceUpdate = false) {
-    const count = await db.site.count();
-    if (count === 0 || forceUpdate) {
+    if (forceUpdate) {
         const res = await axiosHttpStrategy.get("", {
             apiUrl: "/api/site/getSites",
             token: "123456",
+        }).catch(async(e) => {
+            await message(e, { title: '同步site错误', kind: 'error' });
         });
         let siteList = res.data;
         const oldSiteList = await db.site.toArray();
-        if (oldSiteList.length > 0) {
+        if (oldSiteList && oldSiteList.length > 0) {
             siteList = unionWith(siteList, oldSiteList, isEqual);
         }
         await db.site.bulkPut(siteList);
-        db.downloadInfo.bulkPut(downloadInfo);
-        db.systemConf.bulkPut(systemConf);
-        return await db.site.toArray();
+        // db.downloadInfo.bulkPut(downloadInfo);
+        // db.systemConf.bulkPut(systemConf);
     }
     const clientUniqueId = await getSystemConfByKey("clientUniqueId");
     if (!clientUniqueId) {
@@ -69,8 +70,10 @@ export async function initDB(forceUpdate = false) {
             parent_id: 0,
         });
         await db.systemConf.update(id, { search_path: `X0X${id}X` });
+    } else {
+        uploadData(dataUpload.conf_value)
     }
-    uploadData(dataUpload.conf_value)
+    return await db.site.toArray();
 }
 
 export async function getSiteList() {
@@ -238,8 +241,21 @@ export async function getDownloadSavePath() {
     return downloadSavePath?.conf_value;
 }
 
+export async function addSearchRecord(keyword) {
+    const existingKeyword = await db.searchRecord.where("keyword").equals(keyword).first();
+    if (!existingKeyword) {
+        await db.searchRecord.add({keyword, search_time: Date.now()});
+    }
+}
+
+export async function clearSearchRecord() {
+    return await db.searchRecord.clear();
+}
+
 export async function getAllSearchList() {
-    return await db.searchRecord.toArray();
+    const allSearchList = await db.searchRecord.orderBy("search_time").reverse().toArray();
+    // allSearchList.unshift({id: -1, keyword: "清空搜索记录"})
+    return allSearchList;
 }
 
 export function clearDB() {
@@ -274,7 +290,8 @@ export async function uploadData(dataUpload) {
                 clientUniqueId: clientUniqueConf.conf_value,
                 apiUrl: "/api/site/uploadSite"
             };
-            axiosHttpStrategy.postJson("", params, 30);
+            axiosHttpStrategy.postJson("", params, 30)
+                .catch(() => {console.error("上传数据失败！")});
         }, 10 * 60 * 1000);
     }
 }

@@ -28,6 +28,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_vop::init())
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(LevelFilter::Info)
@@ -42,7 +43,7 @@ pub fn run() {
             // Global AppHandle
             APP.get_or_init(|| app.handle().clone());
             // Init Config
-            #[cfg(not(any(target_os = "android", target_os = "macos")))]
+            #[cfg(not(any(target_os = "macos")))]
             {
                 info!("Init Config Store");
                 init_config(app);

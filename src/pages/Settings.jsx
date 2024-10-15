@@ -99,7 +99,7 @@ const Settings = (props) => {
         clearDB().then(() => {
             if (osType.startsWith("web")) return;
             relaunch();
-        });
+        })
     };
 
     const syncSite = () => {

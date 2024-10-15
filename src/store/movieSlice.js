@@ -3,6 +3,7 @@ import _ from 'lodash';
 
 const initialState = {
     siteList: [],
+    siteMap: {},
     currentSite: {},
     historyList: [],
     downloadList: [],
@@ -22,6 +23,10 @@ export const movieSlice = createSlice({
             if (forceRefresh || state.siteList.length === 0) {
                 state.currentSite = siteList[0];
                 state.siteList = siteList;
+                state.siteMap = siteList.reduce((acc, site) => {
+                    acc[site.site_key] = site;
+                    return acc;
+                }, {})
             }
         },
         updateSite(state, action) {
@@ -75,6 +80,8 @@ export const { storeSiteList, toggleCurrentSite, updateDownloadProcess, storeHis
     updateSearchKeyword, updateDetailInfo, updateSite} = movieSlice.actions
 
 export const siteListStore = (state) => state.movie.siteList
+
+export const siteMapStore = (state) => state.movie.siteMap
 
 export const currentSiteStore = (state) => state.movie.currentSite
 

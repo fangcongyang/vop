@@ -49,7 +49,6 @@ class TauriHttpStrategy extends HttpStrategy {
                         reject(error);
                     });
             } catch (error) {
-                console.log(error);
                 reject(error);
             }
         });
@@ -66,7 +65,6 @@ class TauriHttpStrategy extends HttpStrategy {
                 });
                 resolve(res);
             } catch (error) {
-                console.log(error);
                 reject(error);
             }
         });
@@ -114,7 +112,6 @@ class AxiosHttpStrategy extends HttpStrategy {
                         reject(error);
                     });
             } catch (error) {
-                console.log(error);
                 reject(error);
             }
         });
@@ -154,7 +151,6 @@ class AxiosHttpStrategy extends HttpStrategy {
                         reject(error);
                     });
             } catch (error) {
-                console.log(error);
                 reject(error);
             }
         });
@@ -176,7 +172,6 @@ class AxiosHttpStrategy extends HttpStrategy {
                 });
                 resolve(res.data);
             } catch (error) {
-                console.log(error);
                 reject(error);
             }
         });
@@ -198,8 +193,7 @@ class AxiosHttpStrategy extends HttpStrategy {
                 });
                 resolve(res.data);
             } catch (error) {
-                console.log(error);
-                reject(error);
+                reject("Post JSON request error" + error.message);
             }
         });
     }

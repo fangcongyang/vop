@@ -164,13 +164,16 @@ const Detail = (props) => {
                             <div className="m3u8">
                                 <div className="box">
                                     {info.videoFullList.map((i, j) => (
-                                        <span
+                                        <div
                                             key={j}
-                                            className={i.flag === videoFlag ? "selected" : ""}
                                             onClick={() => setVideoFlag(i.flag)}
                                         >
-                                            {i.flag}
-                                        </span>
+                                            <div className={j === videoFlag ? "selected" : ""}>
+                                                <span>
+                                                    {i.flag}
+                                                </span>
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -186,10 +189,12 @@ const Detail = (props) => {
                                             onMouseEnter={() => setMoveOn(j)}
                                             onMouseLeave={() => setMoveOn(undefined)}
                                         >
-                                            <span 
-                                                className={j === selectedEpisode || j === moveOn ? "selected" : ""}>
-                                                {ftName(i, j)}
-                                            </span>
+                                            <div className={j === selectedEpisode || j === moveOn ? "selected" : ""}>
+                                                <span 
+                                                    >
+                                                    {ftName(i, j)}
+                                                </span>
+                                            </div>
                                         </div>
                                     ))}
                             </div>

@@ -117,7 +117,7 @@ class SiteClassXmlParser extends HtmlParseStrategy {
         let fullList = [];
         let index = 0;
         const supportedFormats = ["m3u8", "mp4"];
-        const dd = videoList.dl.dd;
+        const dd = videoList.dl?.dd;
         const type = Object.prototype.toString.call(dd);
         if (type === "[object Array]") {
             for (const i of dd) {

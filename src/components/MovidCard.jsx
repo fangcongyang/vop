@@ -1,6 +1,6 @@
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { updatePlayInfo, togglePageActive } from "@/store/coreSlice";
-import { updateDetailInfo } from "@/store/movieSlice";
+import { updateDetailInfo, siteMapStore } from "@/store/movieSlice";
 import { osType } from "@/utils/env";
 import LazyImage from "@/components/LazyImage";
 import doubanApi from "@/api/douban";
@@ -13,6 +13,7 @@ import "./MovieCard.scss";
 
 const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDelete }) => {
     const dispatch = useAppDispatch();
+    const siteMap = useAppSelector(siteMapStore);
 
     const imgLoad = () => layoutHandle();
 
@@ -25,6 +26,19 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
                 return item.site.site_key;
             default:
                 return site.site_key;
+        }
+    };
+
+    const getSiteName = () => {
+        console.log(viewMode, item, site)
+        switch (viewMode) {
+            case "history":
+            case "star":
+                return siteMap[item.site_key].site_name;
+            case "search":
+                return item.site.site_name;
+            default:
+                return site.site_name;
         }
     };
 
@@ -64,7 +78,9 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
             pic: item.pic,
             area: item.area,
         };
-        starMovie(star);
+        starMovie(star).then(() => {
+            message.success("收藏影片成功");
+        });
     };
 
     const downloadEvent = async (e) => {
@@ -162,9 +178,9 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
     return (
         <div key={key} className="card" onClick={onDetail}>
             <div className="img">
-                {viewMode === "search" && (
+                {viewMode !== "default" && (
                     <div className="site">
-                        <span>{item.site.site_name}</span>
+                        <span>{getSiteName()}</span>
                     </div>
                 )}
                 {item.douban_rate && item.douban_rate !== "暂无评分" && (
@@ -181,7 +197,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
                         <span className="o-play" onClick={playEvent}>
                             播放
                         </span>
-                        {(viewMode === "default" || viewMode === "search") && (
+                        {(viewMode !== "star") && (
                             <span className="o-star" onClick={starEvent}>
                                 收藏
                             </span>

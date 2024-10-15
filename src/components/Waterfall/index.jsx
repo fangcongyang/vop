@@ -210,7 +210,8 @@ const Waterfall = memo(({
 
     // 获取唯一值
     const getKey = (item, index) => {
-        return item[rowKey] || index;
+        let uqKey = _.isArray(rowKey) && rowKey.every(key => item.hasOwnProperty(key)) ? _.castArray(rowKey).map((key) => item[key]).join("_") : item[rowKey];
+        return uqKey || index;
     };
 
     const waterfallListStyle = useMemo(() => {

@@ -46,11 +46,14 @@
         "os:allow-os-type",
         "shell:allow-open",
         "process:allow-restart",
+        "store:allow-create-store",
+        "store:default",
         "store:allow-set",
         "store:allow-save",
         "store:allow-get",
         "store:allow-load",
         "dialog:allow-open",
+        "dialog:allow-message",
         "log:default"
     ]
 }

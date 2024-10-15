@@ -8,7 +8,7 @@ android {
     compileSdk = 33
     namespace = "com.tauri.vop"
     defaultConfig {
-        manifestPlaceholders["usesCleartextTraffic"] = "false"
+        manifestPlaceholders["usesCleartextTraffic"] = "true"
         applicationId = "com.tauri.vop"
         minSdk = 24
         targetSdk = 33

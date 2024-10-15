@@ -1,4 +1,4 @@
-import { Store } from "@tauri-apps/plugin-store";
+import { Store, createStore } from "@tauri-apps/plugin-store";
 import { appConfigDir, join } from "@tauri-apps/api/path";
 
 const eventNames = ["excludeR18Site", "excludeRootClasses", "rootClassFilter", "excludeR18Classes", "r18ClassFilter", 
@@ -59,28 +59,28 @@ export interface StoreSubject {
 }
 
 export class TauriDataStore implements DataStore, StoreSubject {
-    _store: Store;
+    _store: Store | undefined;
     _observers: Set<StoreObserver>;
 
     constructor() {
-        this._store = new Store("");
+        this._store = undefined;
         this._observers = new Set();
     }
 
     async _init() {
         const appConfigDirPath = await appConfigDir();
         const appConfigPath = await join(appConfigDirPath, "config.json");
-        this._store = new Store(appConfigPath);
-        await this._store.load();
+        this._store = await createStore(appConfigPath);
+        await this._store?.load();
     }
 
     async set(key: string, value: any) {
-        this._store.set(key, value);
-        this._store.save();
+        this._store?.set(key, value);
+        this._store?.save();
     }
 
     async get(key: string): Promise<any> {
-        return this._store.get(key);
+        return this._store?.get(key);
     }
 
     registerObserver(observer: StoreObserver): void {
