@@ -20,6 +20,7 @@ import message from "@/components/message";
 import { fmtMSS } from "@/utils/common";
 import _ from "lodash";
 import date from "@/utils/date";
+import { toggleScreenOrientation } from "tauri-plugin-vop-api"
 import { osType } from "@/utils/env";
 import "./Play.scss";
 
@@ -268,7 +269,7 @@ const Play = (props) => {
             currentHistory.index = playPage.movieIndex;
             currentHistory.online_play = playInfo.movie.onlineUrl;
             currentHistory.update_time = date.getDateTimeStr();
-            saveHistory(currentHistory);
+            await saveHistory(currentHistory);
         } else {
             timerEvent();
         }
@@ -477,15 +478,11 @@ const Play = (props) => {
         });
 
         dp.on("fullscreen", async () => {
-            if (osType.toLowerCase().includes("mobile")) {
-                screen.orientation.lock("landscape-primary");
-            }
+            toggleScreenOrientation("")
         });
 
         dp.on("fullscreen_cancel", async () => {
-            if (osType.toLowerCase().includes("mobile")) {
-                screen.orientation.unlock();
-            }
+            toggleScreenOrientation("")
         });
     };
 

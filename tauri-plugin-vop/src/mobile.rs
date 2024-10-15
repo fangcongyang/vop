@@ -25,7 +25,7 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct Vop<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> Vop<R> {
-  pub fn toggle_screen_orientation(&self, payload: Option<String>) -> crate::Result<PingResponse> {
+  pub fn toggle_screen_orientation(&self, payload: VopRequest) -> crate::Result<VopResponse> {
     self
       .0
       .run_mobile_plugin("toggle_screen_orientation", payload)

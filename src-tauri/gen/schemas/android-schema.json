@@ -5318,6 +5318,21 @@
           "description": "Denies the values command without any pre-configured scope.",
           "type": "string",
           "const": "store:deny-values"
+        },
+        {
+          "description": "Default permissions for the plugin",
+          "type": "string",
+          "const": "vop:default"
+        },
+        {
+          "description": "Enables the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "vop:allow-ping"
+        },
+        {
+          "description": "Denies the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "vop:deny-ping"
         }
       ]
     },
