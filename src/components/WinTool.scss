@@ -1,6 +1,6 @@
 .frame {
     height: 40px;
-    width: calc(100% - 40px);
+    width: 100%;
     padding: 0 20px;
     display: flex;
     user-select: none;
@@ -25,9 +25,9 @@
             cursor: pointer;
             margin-left: 10px;
             border-radius: 50%;
-            text-align: center;
             line-height: 14px;
-            display: inline-block;
+            display: flex;
+            justify-content: center;
             z-index: 999;
             -webkit-app-region: no-drag;
         }

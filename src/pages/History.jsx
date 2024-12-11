@@ -6,7 +6,7 @@ import {
     storeHistoryList
 } from "@/store/movieSlice";
 import { getAllHistory, deleteHistory } from "@/db";
-import MovidCard from "@/components/MovidCard";
+import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import { identity } from "lodash";
 import "./Movie.scss";
@@ -42,7 +42,7 @@ const History = (props) => {
                 <div className="showPicture">
                     <Waterfall list={historyList} gutter={20} width={200} viewMode="history" 
                         initYzb={10}>
-                        <MovidCard
+                        <MovieCard
                             viewMode="history"
                             onDelete={onDelete}
                             breakpoints={{

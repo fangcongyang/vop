@@ -9,7 +9,7 @@
         width: 0;
         height: 0;
     }
-        
+
     @include responseTo('desktop') {
         border-radius: 5px;
         background-color: var(--l-bgc-1);
@@ -20,7 +20,7 @@
         border-radius: 5px;
         color: var(--l-fc-1);
         height: 100%;
-        
+
         @include responseTo('desktop') {
             padding: 0 10px;
         }
@@ -64,16 +64,17 @@
             width: 100%;
             overflow: hidden;
 
-            .dplayer, .iframePlayer {
+            .dplayer,
+            .iframePlayer {
                 height: 100%;
                 width: 100%;
             }
-            
+
 
             @include responseTo('phonePortrait') {
                 height: 40%;
             }
-            
+
             @include responseTo('phoneLandscape') {
                 height: 100%;
             }
@@ -110,21 +111,26 @@
             }
 
             .episode-list {
+                --episode-max-size: 6;
+                --column-size: 10;
+                --column-count: 5;
                 display: grid;
                 flex-wrap: wrap;
                 justify-items: flex-start;
                 gap: 10px;
-                
+
                 @include responseTo('phonePortrait') {
-                    grid-template-columns: repeat(4, 1fr); 
+                    --column-size: 4;
+                    grid-template-columns: repeat(var(--column-count), 1fr);
                 }
-                
+
                 @include responseTo('phoneLandscape') {
-                    grid-template-columns: repeat(8, 1fr); 
+                    --column-size: 8;
+                    grid-template-columns: repeat(var(--column-count), 1fr);
                 }
 
                 @include responseTo('desktop') {
-                    grid-template-columns: repeat(10, 1fr); 
+                    grid-template-columns: repeat(var(--column-count), 1fr);
                 }
 
                 .episode {
@@ -132,6 +138,8 @@
                     background-color: #f0f0f0;
                     transition: background-color 0.3s;
                     text-align: center;
+                    padding: 6px 8px;
+                    font-size: 14px;
 
                     &.active {
                         background-color: var(--l-c-2);
@@ -141,20 +149,6 @@
                     &:hover {
                         background-color: var(--l-c-3);
                         color: white;
-                    }
-
-                    @include responseTo('phonePortrait') {
-                        padding: 6px 8px;
-                        min-width: 70px;
-                    }
-                    
-                    @include responseTo('phoneLandscape') {
-                        padding: 6px 8px;
-                        min-width: 70px;
-                    }
-
-                    @include responseTo('desktop') {
-                        padding: 10px 15px;
                     }
                 }
             }

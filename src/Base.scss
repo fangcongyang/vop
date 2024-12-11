@@ -19,3 +19,44 @@ $breakpoints: (
     }
   }
 }
+
+// 定义一个按钮的通用样式混合宏，只传入一个背景色
+@mixin button-style($bg-color) {
+  $text-color: if(lightness($bg-color) > 50%, #000, #fff);
+  $hover-bg-color: darken($bg-color, 10%);
+  $hover-text-color: $text-color;
+
+  background-color: $bg-color;
+  color: $text-color;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+
+  &:hover {
+      background-color: $hover-bg-color;
+      color: $hover-text-color;
+  }
+}
+
+// 使用混合宏创建不同风格的按钮
+.primary-button {
+  @include button-style(#007bff);
+}
+
+.secondary-button {
+  @include button-style(#6c757d);
+}
+
+.success-button {
+  @include button-style(#28a745);
+}
+
+.span-one-line {
+  display: block; // 或者 inline-block
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+} 

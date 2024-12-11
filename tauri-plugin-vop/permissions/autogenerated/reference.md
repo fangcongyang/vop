@@ -2,7 +2,7 @@
 
 Default permissions for the plugin
 
-- `allow-ping`
+- `allow-toggle-screen-orientation`
 
 ## Permission Table
 
@@ -16,12 +16,12 @@ Default permissions for the plugin
 <tr>
 <td>
 
-`vop:allow-ping`
+`vop:allow-toggle-screen-orientation`
 
 </td>
 <td>
 
-Enables the ping command without any pre-configured scope.
+Enables the toggle_screen_orientation command without any pre-configured scope.
 
 </td>
 </tr>
@@ -29,12 +29,12 @@ Enables the ping command without any pre-configured scope.
 <tr>
 <td>
 
-`vop:deny-ping`
+`vop:deny-toggle-screen-orientation`
 
 </td>
 <td>
 
-Denies the ping command without any pre-configured scope.
+Denies the toggle_screen_orientation command without any pre-configured scope.
 
 </td>
 </tr>

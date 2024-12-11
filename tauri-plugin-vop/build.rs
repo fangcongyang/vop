@@ -1,4 +1,4 @@
-const COMMANDS: &[&str] = &["ping"];
+const COMMANDS: &[&str] = &["toggle_screen_orientation"];
 
 fn main() {
   tauri_plugin::Builder::new(COMMANDS)

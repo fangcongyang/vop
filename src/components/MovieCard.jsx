@@ -10,6 +10,7 @@ import { fmtMSS } from "@/utils/common";
 import util from "@/utils";
 import moviesApi from "@/api/movies";
 import "./MovieCard.scss";
+import { get } from "lodash";
 
 const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDelete }) => {
     const dispatch = useAppDispatch();
@@ -30,11 +31,10 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
     };
 
     const getSiteName = () => {
-        console.log(viewMode, item, site)
         switch (viewMode) {
             case "history":
             case "star":
-                return siteMap[item.site_key].site_name;
+                return siteMap? siteMap[item.site_key]?.site_name: "";
             case "search":
                 return item.site.site_name;
             default:
@@ -66,16 +66,17 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
 
     const starEvent = async (e) => {
         e.stopPropagation();
+        const movieName = getName();
         const star = {
-            star_name: item.name,
-            ids: item.id.toString(),
-            site_key: site.site_key,
+            star_name: movieName,
+            ids: getMovieId(),
+            site_key: getSiteKey(),
             movie_type: item.type,
             year: `${item.year}年`,
             note: item.note,
-            douban_rate: await doubanApi.doubanRate(item.name, item.year),
+            douban_rate: await doubanApi.doubanRate(movieName, item.year),
             last_update_time: item.last,
-            pic: item.pic,
+            pic: getPic(),
             area: item.area,
         };
         starMovie(star).then(() => {

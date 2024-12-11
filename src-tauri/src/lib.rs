@@ -19,7 +19,6 @@ pub static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::async_runtime::spawn(file_download::init());
     tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
@@ -27,7 +26,7 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_vop::init())
         .plugin(
             tauri_plugin_log::Builder::default()
@@ -61,6 +60,7 @@ pub fn run() {
                     create_window_result.err().unwrap()
                 );
             }
+            tauri::async_runtime::spawn(file_download::init());
 
             Ok(())
         })

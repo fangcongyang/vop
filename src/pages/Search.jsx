@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { pageActiveStore } from "@/store/coreSlice";
 import { searchKeywordStore, siteListStore } from "@/store/movieSlice";
-import MovidCard from "@/components/MovidCard";
+import MovidCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import movieApi from "@/api/movies";
 import message from "@/components/message";

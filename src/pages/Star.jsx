@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { pageActiveStore } from "@/store/coreSlice";
 import { getAllStar, deleteStar } from "@/db";
-import MovidCard from "@/components/MovidCard";
+import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import { identity } from "lodash";
 import "./Movie.scss";
@@ -36,7 +36,7 @@ const Star = (props) => {
             <div className="panelBody">
                 <div className="showPicture">
                     <Waterfall list={starList} gutter={20} width={200} viewMode="star" initYzb={10}>
-                        <MovidCard
+                        <MovieCard
                             viewMode="star"
                             onDelete={onDelete}
                             breakpoints={{

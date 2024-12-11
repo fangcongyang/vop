@@ -1,51 +1,31 @@
-import { Store, createStore } from "@tauri-apps/plugin-store";
+import { Store, load } from "@tauri-apps/plugin-store";
 import { appConfigDir, join } from "@tauri-apps/api/path";
-
-const eventNames = ["excludeR18Site", "excludeRootClasses", "rootClassFilter", "excludeR18Classes", "r18ClassFilter", 
-    "downloadSavePath", "proxyProtocol", "proxyServer", "proxyPort"] as const;
-
-type StoreEventName = typeof eventNames[number];
 
 export class StoreObserver {
     private _name: string;
-    private _listeners: Record<StoreEventName, Set<Function>>;
+    private _listeners: Record<string, Set<Function>>;
 
     constructor(name: string) {
         this._name = name;
-        this._listeners = {
-            "excludeR18Site": new Set(),
-            "excludeRootClasses": new Set(),
-            "rootClassFilter": new Set(),
-            "excludeR18Classes": new Set(),
-            "r18ClassFilter": new Set(),
-            "downloadSavePath": new Set(),
-            "proxyProtocol": new Set(),
-            "proxyServer": new Set(),
-            "proxyPort": new Set(),
-        };
+        this._listeners = {};
     }
 
-    on(eventName: StoreEventName, listener: Function) {
+    on(eventName: string, listener: Function) {
+        if (!this._listeners[eventName]) {
+            this._listeners[eventName] = new Set();
+        }
         this._listeners[eventName].add(listener);
     }
 
-    emit(eventName: StoreEventName, ...args: any[]) {
-        this._listeners[eventName].forEach((listener) => {
-            listener(...args);
+    emit(eventName: string, value: any) {
+        this._listeners[eventName]?.forEach((listener) => {
+            listener(value);
         });
     }
 
     get name() {
         return this._name;
     }
-}
-
-interface DataStore {
-    _store?: any;
-    _observers: Set<StoreObserver>;
-    _init(): Promise<void>;
-    set(key: string, value: any): void;
-    get(key: string): Promise<any>;
 }
 
 // 播放器专题
@@ -55,7 +35,15 @@ export interface StoreSubject {
     // 移除播放器观察者
     removeObserver(observer: StoreObserver): void;
     // 播放器通知观察者
-    notifyObservers(eventName: StoreEventName, ...args: any[]): void;
+    notifyObservers(eventName: string, observerName: string, value: any): void;
+}
+
+interface DataStore extends StoreSubject {
+    _store?: any;
+    _observers: Set<StoreObserver>;
+    _init(): Promise<void>;
+    set(key: string, value: any): void;
+    get(key: string): Promise<any>;
 }
 
 export class TauriDataStore implements DataStore, StoreSubject {
@@ -70,8 +58,7 @@ export class TauriDataStore implements DataStore, StoreSubject {
     async _init() {
         const appConfigDirPath = await appConfigDir();
         const appConfigPath = await join(appConfigDirPath, "config.json");
-        this._store = await createStore(appConfigPath);
-        await this._store?.load();
+        this._store = await load(appConfigPath, { autoSave: false })
     }
 
     async set(key: string, value: any) {
@@ -86,15 +73,21 @@ export class TauriDataStore implements DataStore, StoreSubject {
     registerObserver(observer: StoreObserver): void {
         this._observers.add(observer);
     }
-    
+
     removeObserver(observer: StoreObserver): void {
         this._observers.delete(observer);
     }
 
-    notifyObservers(eventName: StoreEventName, ...args: any[]): void {
-        this._observers.forEach((observer) => {
-            observer.emit(eventName, args);
-        });
+    notifyObservers(eventName: string, observerName: string, value: any): void {
+        for (const observer of this._observers) {
+            if (observer.name !== observerName) {
+                try {
+                    observer.emit(eventName, value);
+                } catch (error) {
+                    console.error(`Error emitting event for observer ${observer.name}:`, error);
+                }
+            }
+        }        
     }
 }
 
@@ -122,7 +115,7 @@ class LocalDataStore implements DataStore, StoreSubject {
             } else {
                 resolve(null);
             }
-        })
+        });
     }
 
     registerObserver(observer: StoreObserver): void {
@@ -133,10 +126,16 @@ class LocalDataStore implements DataStore, StoreSubject {
         this._observers.delete(observer);
     }
 
-    notifyObservers(eventName: StoreEventName, ...args: any[]): void {
-        this._observers.forEach((observer) => {
-            observer.emit(eventName, args);
-        });
+    notifyObservers(
+        eventName: string,
+        observerName: String,
+        value: any
+    ): void {
+        Array.from(this._observers)
+            .filter((observer) => observer.name !== observerName)
+            .forEach((observer) => {
+                observer.emit(eventName, value);
+            });
     }
 }
 
@@ -150,5 +149,3 @@ export async function initStore(osType: string) {
         await store._init();
     }
 }
-
-

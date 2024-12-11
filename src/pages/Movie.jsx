@@ -13,7 +13,7 @@ import {
     searchKeywordStore,
     updateSearchKeyword,
 } from "@/store/movieSlice";
-import MovidCard from "@/components/MovidCard";
+import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import Pagination from "@mui/material/Pagination";
 import movieApi from "@/api/movies";
@@ -38,7 +38,7 @@ let movieInfo = {
     refreshClass: false,
 };
 
-const Movie = ({className}) => {
+const Movie = ({ className }) => {
     const dispatch = useAppDispatch();
     const pageActive = useAppSelector(pageActiveStore);
     const siteList = useAppSelector(siteListStore);
@@ -46,26 +46,13 @@ const Movie = ({className}) => {
     const settings = useAppSelector(settingsStore);
     const [excludeR18Site, setExcludeR18Site, getExcludeR18Site] = useConfig(
         "excludeR18Site",
-        true,
-        { page: "movie" }
+        true
     );
-    const [excludeRootClasses] = useConfig("excludeRootClasses", true, {
-        page: "movie",
-    });
-    const [rootClassFilter] = useConfig("rootClassFilter", [], {
-        page: "movie",
-    });
+    const [excludeRootClasses] = useConfig("excludeRootClasses", true);
+    const [rootClassFilter] = useConfig("rootClassFilter", []);
 
-    const [excludeR18Classes, setExcludeR18Classes] = useConfig(
-        "excludeR18Classes",
-        false,
-        { page: "settings" }
-    );
-    const [r18ClassFilter, setR18ClassFilter] = useConfig(
-        "r18ClassFilter",
-        [],
-        { page: "settings" }
-    );
+    const [excludeR18Classes, setExcludeR18Classes] = useConfig("excludeR18Classes", false);
+    const [r18ClassFilter, setR18ClassFilter] = useConfig("r18ClassFilter", []);
     const [classList, setClassList] = useState([]);
     const [currentClass, setCurrentClass] = useState({ id: -1, name: "" });
     const [movieFilteredList, setMovieFilteredList] = useState([]);
@@ -187,7 +174,13 @@ const Movie = ({className}) => {
             return rootExclude && r18Exclude;
         });
         return newClassList;
-    }, [classList, excludeRootClasses, rootClassFilter, excludeR18Classes, r18ClassFilter]);
+    }, [
+        classList,
+        excludeRootClasses,
+        rootClassFilter,
+        excludeR18Classes,
+        r18ClassFilter,
+    ]);
 
     const classClick = (classType) => {
         movieInfo.classChange = false;
@@ -310,7 +303,7 @@ const Movie = ({className}) => {
         setMovieFilteredList(filteredData);
         movieInfo.movieRequestList = false;
     };
-    
+
     const getSearchList = () => {
         getSearchList().then((res) => {
             setSearchList(res);
@@ -329,17 +322,15 @@ const Movie = ({className}) => {
         }
         dispatch(updateSearchKeyword(keywords));
     };
-    
+
     const goSearch = () => {
         dispatch(togglePageActive("search"));
-    }
+    };
 
     return (
         <div
             ref={pageMainRef}
-            className={
-                className ? "pageMain " + className : "pageMain"
-            }
+            className={className ? "pageMain " + className : "pageMain"}
         >
             <div className="panel">
                 {osType.toLowerCase().includes("mobile") && (
@@ -431,7 +422,7 @@ const Movie = ({className}) => {
                         tipMessage={tipMessage}
                         initYzb={10}
                     >
-                        <MovidCard
+                        <MovieCard
                             site={currentSite}
                             breakpoints={{
                                 1400: {

@@ -9,4 +9,5 @@
     <color name="white">#FFFFFFFF</color>
     <color name="app_bg_color">@color/white</color>
     <color name="app_text_color">@color/black</color>
+    <color name="bar_color">#00FFFFFF</color>
 </resources>

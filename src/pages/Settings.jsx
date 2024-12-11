@@ -22,23 +22,19 @@ const Settings = (props) => {
     const settings = useAppSelector(settingsStore);
     const [excludeR18Site, setExcludeR18Site] = useConfig(
         "excludeR18Site",
-        true,
-        { page: "settings" }
+        true
     );
     const [excludeRootClasses, setExcludeRootClasses] = useConfig(
         "excludeRootClasses",
-        false,
-        { page: "settings" }
+        false
     );
     const [rootClassFilter, setRootClassFilter] = useConfig(
         "rootClassFilter",
-        ["电影", "电影片", "电视剧", "连续剧", "综艺", "动漫"],
-        { page: "settings" }
+        ["电影", "电影片", "电视剧", "连续剧", "综艺", "动漫"]
     );
     const [excludeR18Classes, setExcludeR18Classes] = useConfig(
         "excludeR18Classes",
-        false,
-        { page: "settings" }
+        false
     );
     const [r18ClassFilter, setR18ClassFilter] = useConfig(
         "r18ClassFilter",
@@ -57,24 +53,15 @@ const Settings = (props) => {
             "性感",
             "里番",
             "VIP",
-        ],
-        { page: "settings" }
+        ]
     );
     const [downloadSavePath, setDownloadSavePath] = useConfig(
         "downloadSavePath",
-        "",
-        { page: "settings" }
+        ""
     );
-    const [proxyProtocol, setProxyProtocol] = useConfig("proxyProtocol", "", {
-        page: "settings",
-    });
-    const [proxyServer, setProxyServer] = useConfig("proxyServer", "", {
-        page: "settings",
-    });
-    const [proxyPort, setProxyPort] = useConfig("proxyPort", "", {
-        page: "settings",
-    });
-
+    const [proxyProtocol, setProxyProtocol] = useConfig("proxyProtocol", "");
+    const [proxyServer, setProxyServer] = useConfig("proxyServer", "");
+    const [proxyPort, setProxyPort] = useConfig("proxyPort", "");
     const [clientUniqueId, setClientUniqueId] = useState("");
     const [dataUpload, setDataUpload] = useState(false);
 
@@ -110,27 +97,22 @@ const Settings = (props) => {
 
     const excludeR18SiteCallback = (excludeR18Site) => {
         setExcludeR18Site(excludeR18Site);
-        store.notifyObservers("excludeR18Site", excludeR18Site);
     };
 
     const excludeRootClassesCallback = (excludeRootClasses) => {
         setExcludeRootClasses(excludeRootClasses);
-        store.notifyObservers("excludeRootClasses", excludeRootClasses);
     };
 
     const rootClassFilterCallback = (rootClassFilter) => {
         setRootClassFilter(rootClassFilter);
-        store.notifyObservers("rootClassFilter", rootClassFilter);
     };
 
     const excludeR18ClassesCallback = (excludeR18Classes) => {
         setExcludeR18Classes(excludeR18Classes);
-        store.notifyObservers("excludeR18Classes", excludeR18Classes);
     };
 
     const r18ClassFilterCallback = (r18ClassFilter) => {
         setR18ClassFilter(r18ClassFilter);
-        store.notifyObservers("r18ClassFilter", r18ClassFilter);
     };
 
     const downloadSavePathCallback = (downloadSavePath) => {

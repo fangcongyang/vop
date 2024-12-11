@@ -53,7 +53,7 @@ pub async fn download_m3u8(
             result = download_slice(&mut download_info_context, socket).await;
         }
         DownloadOperation::CheckSource => {
-            result = check_souce(&mut download_info_context).await;
+            result = check_source(&mut download_info_context).await;
         }
         DownloadOperation::Merger => {
             result = merger(&mut download_info_context).await;
@@ -336,7 +336,7 @@ pub async fn downloaded_file_save(p: DownloadInfoDetail) -> anyhow::Result<(), t
     Ok(())
 }
 
-async fn check_souce(
+async fn check_source(
     download_info_context: &mut DownloadInfoContext,
 ) -> anyhow::Result<String, Box<dyn std::error::Error>> {
     let mut downloaded = true;

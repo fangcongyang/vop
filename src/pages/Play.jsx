@@ -45,7 +45,6 @@ const Play = (props) => {
     // localFile 本地文件 local 本地在线 online iframe网页
     const [playMode, setPlayMode] = useState("local");
     const [playing, setPlaying] = useState(false);
-    const [menuRigthShowType, setMenuRigthShowType] = useState("");
     const [playerInfo, setPlayerInfo] = useState({
         searchTxt: "",
         skipendStatus: false,
@@ -273,7 +272,7 @@ const Play = (props) => {
         } else {
             timerEvent();
         }
-        getAllHistory(true);
+        selectAllHistory()
     };
 
     // 定时更新历史记录时间
@@ -417,37 +416,34 @@ const Play = (props) => {
         dp.on("play", async () => {
             clearTimeout(playPage.stallIptvTimeout);
             if (playPage.isFirstPlay) {
-                getAllHistory(true).then((res) => {
-                    const newHistoryList = res;
-                    // 如果当前播放页面的播放信息没有被赋值,播放历史记录
-                    if (newHistoryList.length === 0) {
-                        message.warning("历史记录为空，无法播放！");
-                        return;
-                    }
-                    const historyItem = newHistoryList[0];
-                    let playInfo = {
-                        playState: "newPlay",
-                        // iptv onlineMovie localMovie
-                        playType: "onlineMovie",
-                        isLive: false,
-                        name: historyItem.history_name,
-                        iptv: {
-                            channelGroupId: 0,
-                            channelActive: "",
-                        },
-                        download: {
-                            downloadId: 0,
-                        },
-                        movie: {
-                            siteKey: historyItem.site_key,
-                            ids: historyItem.ids,
-                            index: historyItem.index,
-                            videoFlag: "",
-                            onlineUrl: "",
-                        },
-                    };
-                    dispatch(updatePlayInfo({ playInfo }));
-                });
+                // 如果当前播放页面的播放信息没有被赋值,播放历史记录
+                if (historyList.length === 0) {
+                    message.warning("历史记录为空，无法播放！");
+                    return;
+                }
+                const historyItem = historyList[0];
+                let playInfo = {
+                    playState: "newPlay",
+                    // iptv onlineMovie localMovie
+                    playType: "onlineMovie",
+                    isLive: false,
+                    name: historyItem.history_name,
+                    iptv: {
+                        channelGroupId: 0,
+                        channelActive: "",
+                    },
+                    download: {
+                        downloadId: 0,
+                    },
+                    movie: {
+                        siteKey: historyItem.site_key,
+                        ids: historyItem.ids,
+                        index: historyItem.index,
+                        videoFlag: "",
+                        onlineUrl: "",
+                    },
+                };
+                dispatch(updatePlayInfo({ playInfo }));
             }
         });
 
@@ -486,10 +482,14 @@ const Play = (props) => {
         });
     };
 
-    useEffect(() => {
+    const selectAllHistory = () => {
         getAllHistory().then((res) => {
             dispatch(storeHistoryList({historyList: res, forceRefresh: true}));
         })
+    };
+
+    useEffect(() => {
+        selectAllHistory();
         getPlayer("", true);
 
         return () => {
@@ -498,6 +498,24 @@ const Play = (props) => {
                 clearTimeout(playPage.stallIptvTimeout);
         };
     }, []);
+
+    useEffect(() => {
+        if (!movieList) {
+            return;
+        }
+        const episodeList = document.querySelector('.episode-list');
+        const episodeListComputedStyle = getComputedStyle(episodeList);
+        // 获取 CSS 变量的值
+        const episodeMaxSize = movieList.reduce((maxLength, currentString) => {
+            return Math.max(maxLength, ftName(currentString).length);
+        }, 0);
+        const columnSize = parseFloat(episodeListComputedStyle.getPropertyValue('--column-size'));
+        
+        // 计算并取整
+        const columnCount = columnSize - Math.floor(episodeMaxSize / 7);
+        // 设置新的 CSS 变量值
+        episodeList.style.setProperty('--column-count', columnCount);
+    }, [movieList])
 
     useEffect(() => {
         if (playInfo.playState !== "newPlay" && !playInfo.movie.siteKey) return;
@@ -520,6 +538,7 @@ const Play = (props) => {
     }, [playInfo.movie.onlineUrl]);
 
     const closePlayerAndInit = () => {
+        selectAllHistory();
         dispatch(resetPlayInfo());
         playPage.isFirstPlay = true;
         playPage.movieList = [];
@@ -528,26 +547,6 @@ const Play = (props) => {
         setPlaying(false);
         setMovieList([]);
         getPlayer("", true);
-    };
-
-    const menuRigthShowTypeChange = (type) => {
-        if (type == menuRigthShowType) {
-            setMenuRigthShowType("");
-        } else {
-            setMenuRigthShowType(type);
-        }
-    };
-
-    const getMenuRigthName = () => {
-        let mrn;
-        switch (menuRigthShowType) {
-            case "channelGroupList":
-                break;
-            case "movieList":
-                mrn = "播放列表";
-                break;
-        }
-        return mrn;
     };
 
     const ftName = (e, n) => {
@@ -587,7 +586,7 @@ const Play = (props) => {
                     ) : (
                         ""
                     )}
-                    <span>{playInfo.name}</span>
+                    <span className="span-one-line">{playInfo.name}</span>
                     <div className="right" onClick={() => closePlayerAndInit()}>
                         <SvgIcon name="close" />
                     </div>

@@ -1,31 +1,32 @@
 import { useCallback, useEffect } from "react";
 import { useGetState } from "./useGetState";
 import { store, TauriDataStore, StoreObserver } from "../utils/store";
+import { generateUUID } from "@/utils/common";
 import { debounce } from "lodash";
 
-export const useConfig = (key, defaultValue, options = { page: "" }) => {
+export const useConfig = (key, defaultValue, options = { }) => {
     const [property, setPropertyState, getProperty] = useGetState(defaultValue);
     const { sync = true } = options;
-    const storeObserver = new StoreObserver(options.page);
+    const storeObserver = new StoreObserver(generateUUID());
 
     // 同步到Store (State -> Store)
-    const syncToStore = useCallback(
-        debounce(async (v) => {
+    const syncToStore = async (v, isSync) => {
+        if (!isSync) return;
+        setTimeout(() => { 
             store.set(key, v);
-        }),
-        []
-    );
+            let eventKey = key.replace('/./g', '_').replace('/@/g', ':');
+            store.notifyObservers(eventKey, storeObserver.name, v);
+        }, 200);
+    }
 
     // 同步到State (Store -> State)
     const syncToState = useCallback((v) => {
         if (v !== null) {
             setPropertyState(v);
         } else {
-            // console.log(options.page, key, store)
             store.get(key).then((value) => {
-                // console.log(options.page, key, value)
                 if (value === null) {
-                    setPropertyState(convertValue(value));
+                    setPropertyState(defaultValue);
                     store.set(key, defaultValue);
                 } else {
                     setPropertyState(convertValue(value));
@@ -47,20 +48,20 @@ export const useConfig = (key, defaultValue, options = { page: "" }) => {
         return newValue;
     };
 
-    const setProperty = useCallback((v, forceSync = false) => {
+    const setProperty = useCallback((v, forceSync = true) => {
         setPropertyState(v);
-        const isSync = forceSync || sync;
-        isSync && syncToStore(v);
+        const isSync = forceSync && sync;
+        syncToStore(v, isSync);
     }, []);
 
     // 初始化
     useEffect(() => {
         syncToState(null);
+        let eventKey = key.replace('/./g', '_').replace('/@/g', ':');
         store.registerObserver(storeObserver);
-        storeObserver.on(key, (v) => {
-            setProperty(...v);
+        storeObserver.on(eventKey, (v) => {
+            setProperty(v, false);
         });
-        if (key.includes("[")) return;
         return () => {
             store.removeObserver(storeObserver);
         };
