@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useGetState } from "@/hooks";
 import { pageActiveStore, updatePlayInfo } from "@/store/coreSlice";
 import { detailInfoStore } from "@/store/movieSlice";
-import MovidCard from "@/components/MovieCard";
+import MovieCard from "@/components/MovieCard";
 import SvgIcon from "@/components/SvgIcon";
 import Waterfall from "@/components/Waterfall";
 import { getCurrentHistory, getSiteByKey, starMovie } from "@/db";
@@ -23,12 +23,11 @@ const Detail = (props) => {
     const [info, setInfo] = useState({});
     const [doubanRate, setDoubanRate] = useState(null);
     const [doubanRecommendations, setDoubanRecommendations] = useState([]);
-    const [moveOn, setMoveOn] = useState(undefined);
     const [maxWidth, setMaxWidth] = useState(0);
 
     useEffect(() => {
         if (pageActive === "detail") {
-            setMaxWidth(0)
+            setMaxWidth(0);
             getDetailInfo();
         }
     }, [detailInfo.ids]);
@@ -56,7 +55,8 @@ const Detail = (props) => {
 
     useEffect(() => {
         // 获取所有具有指定类名的节点
-        const items = document.querySelectorAll(".episode-name");
+        const items = document.querySelectorAll(".episode-btn");
+        if (items.length == 0) return;
 
         // 初始化最大宽度
         let maxWidth = 0;
@@ -68,7 +68,7 @@ const Detail = (props) => {
                 maxWidth = itemWidth; // 更新最大宽度
             }
         });
-        setMaxWidth(maxWidth);
+        maxWidth > 0 && setMaxWidth(Math.ceil(maxWidth) + 1);
     }, [info.videoList]);
 
     const handlerDetailData = async (res) => {
@@ -162,122 +162,135 @@ const Detail = (props) => {
             className={props.className ? `detail ${props.className}` : "detail"}
         >
             <div className="detail-content">
-                <div className="detail-header">
-                    <span className="detail-title">详情</span>
-                </div>
                 {!loading && (
                     <div className="detail-body">
-                        <div className="info">
-                            <div className="info-left">
-                                <img src={info.pic} alt="" />
-                            </div>
-                            <div className="info-right">
-                                <div className="name">{info.name}</div>
-                                {info.director && (
-                                    <div className="director">
-                                        导演: {info.director}
-                                    </div>
-                                )}
-                                {info.actor && (
-                                    <div className="actor">
-                                        主演: {info.actor}
-                                    </div>
-                                )}
-                                <div className="type">类型: {info.type}</div>
-                                <div className="area">地区: {info.area}</div>
-                                <div className="lang">语言: {info.lang}</div>
-                                <div className="year">上映: {info.year}</div>
-                                <div className="last">更新: {info.last}</div>
-                                <div className="note">备注: {info.note}</div>
-                                {doubanRate && (
-                                    <div className="rate">
+                        <div className="poster-section enhanced">
+                            <div className="poster-container">
+                                <img
+                                    src={info.pic}
+                                    alt="剧集海报"
+                                    className="poster"
+                                />
+                                <div className="poster-overlay">
+                                    <h1 className="title">{info.name}</h1>
+                                    <p className="rating">
                                         豆瓣评分: {doubanRate}
-                                    </div>
-                                )}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                        <div className="operate">
-                            <button className="primary-button" onClick={() => playEvent(selectedEpisode)}>
-                                播放
-                            </button>
-                            <button className="ml-2 success-button" onClick={starEvent}>收藏</button>
-                            <button className="ml-2 secondary-button" onClick={doubanLinkEvent}>豆瓣</button>
+                            <div className="poster-details">
+                                {info.director && (
+                                    <p>
+                                        <strong>导演:</strong> {info.director}
+                                    </p>
+                                )}
+                                <p>
+                                    <strong>主演:</strong> {info.actor}
+                                </p>
+                                <p>
+                                    <strong>类型:</strong> {info.type}
+                                </p>
+                                <p>
+                                    <strong>地区:</strong> {info.area}
+                                </p>
+                                <p>
+                                    <strong>语言:</strong> {info.lang}
+                                </p>
+                                <p>
+                                    <strong>上映:</strong> {info.year}
+                                </p>
+                                <p>
+                                    <strong>更新:</strong> {info.last}
+                                </p>
+                                <p>
+                                    <strong>备注:</strong> {info.note}
+                                </p>
+                            </div>
                         </div>
                         {info.des && (
-                            <div
-                                className="desc"
-                                dangerouslySetInnerHTML={{ __html: info.des }}
-                            ></div>
+                            <div className="description-section">
+                                <p
+                                    className="description"
+                                    dangerouslySetInnerHTML={{
+                                        __html: info.des
+                                    }}
+                                ></p>
+                            </div>
                         )}
+                        <div className="action-section">
+                            <button
+                                className="action-btn play-btn"
+                                onClick={() => playEvent(selectedEpisode)}
+                            >
+                                播放
+                            </button>
+                            <button
+                                className="action-btn favorite-btn"
+                                onClick={starEvent}
+                            >
+                                收藏
+                            </button>
+                            <button
+                                className="action-btn douban-btn"
+                                onClick={doubanLinkEvent}
+                            >
+                                豆瓣
+                            </button>
+                        </div>
                         {info.videoFullList &&
                             info.videoFullList.length > 1 && (
-                                <div className="m3u8">
-                                    <div className="box">
-                                        {info.videoFullList.map((i, j) => (
-                                            <div
-                                                key={j}
-                                                onClick={() =>
-                                                    setVideoFlag(i.flag)
-                                                }
-                                            >
-                                                <div
-                                                    className={
-                                                        j === videoFlag
-                                                            ? "selected"
-                                                            : ""
-                                                    }
-                                                >
-                                                    <span>{i.flag}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        <div className="m3u8">
-                            <div className="box">
-                                {info.videoList &&
-                                    info.videoList.length > 0 &&
-                                    info.videoList.map((i, j) => (
+                                <div className="episodes-section">
+                                    <h2>剧集源选择</h2>
+                                    {info.videoFullList.map((i, j) => (
                                         <div
                                             key={j}
-                                            onClick={() => playEvent(j)}
-                                            onMouseEnter={() => setMoveOn(j)}
-                                            onMouseLeave={() =>
-                                                setMoveOn(undefined)
+                                            className={
+                                                j === videoFlag
+                                                    ? "episode-source active"
+                                                    : "episode-source"
                                             }
-                                            className="episode-name"
-                                            style={{width: maxWidth == 0 ? 'auto' : `${maxWidth}px` }}
+                                            onClick={() => setVideoFlag(i.flag)}
                                         >
-                                            <div
-                                                className={
-                                                    j === selectedEpisode ||
-                                                    j === moveOn
-                                                        ? "selected"
-                                                        : ""
-                                                }
-                                            >
-                                                <span>
-                                                    {ftName(i, j)}
-                                                </span>
+                                            <div>
+                                                <span>{i.flag}</span>
                                             </div>
                                         </div>
                                     ))}
-                            </div>
+                                </div>
+                            )}
+                        <div className="episodes-section">
+                            <h2>剧集选择</h2>
+                            {info.videoList &&
+                                info.videoList.length > 0 &&
+                                info.videoList.map((i, j) => (
+                                    <div
+                                        key={j}
+                                        className="episode-btn"
+                                        onClick={() => playEvent(j)}
+                                        style={{
+                                            width:
+                                                maxWidth == 0
+                                                    ? "auto"
+                                                    : `${maxWidth}px`,
+                                        }}
+                                    >
+                                        <div>
+                                            <span>{ftName(i, j)}</span>
+                                        </div>
+                                    </div>
+                                ))}
                         </div>
                         {info.recommendations &&
                             info.recommendations.length > 0 && (
-                                <div className="m3u8">
-                                    <span>
-                                        喜欢这部电影的人也喜欢 · · · · · ·
-                                    </span>
+                                <div className="recommend-section">
+                                    <h2>喜欢这部电影的人也喜欢 · · · · · ·</h2>
                                     <Waterfall
                                         list={doubanRecommendations}
                                         gutter={20}
                                         width={200}
                                         viewMode="detail"
                                     >
-                                        <MovidCard
+                                        <MovieCard
                                             viewMode="detail"
                                             breakpoints={{
                                                 1400: { rowPerView: 5 },

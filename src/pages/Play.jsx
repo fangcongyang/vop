@@ -8,8 +8,17 @@ import {
     updatePlayInfoIndex,
     resetPlayInfo,
 } from "@/store/coreSlice";
-import { siteListStore, historyListStore, storeHistoryList } from "@/store/movieSlice";
-import { getAllHistory, getCurrentHistory, saveHistory, getDownloadById } from "@/db";
+import {
+    siteListStore,
+    historyListStore,
+    storeHistoryList,
+} from "@/store/movieSlice";
+import {
+    getAllHistory,
+    getCurrentHistory,
+    saveHistory,
+    getDownloadById,
+} from "@/db";
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getCacheData } from "@/business/cache";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -20,7 +29,7 @@ import message from "@/components/message";
 import { fmtMSS } from "@/utils/common";
 import _ from "lodash";
 import date from "@/utils/date";
-import { toggleScreenOrientation } from "tauri-plugin-vop-api"
+import { toggleScreenOrientation } from "tauri-plugin-vop-api";
 import { osType } from "@/utils/env";
 import "./Play.scss";
 
@@ -45,6 +54,7 @@ const Play = (props) => {
     // localFile 本地文件 local 本地在线 online iframe网页
     const [playMode, setPlayMode] = useState("local");
     const [playing, setPlaying] = useState(false);
+    const [episodesButtonMaxWidth, setEpisodesButtonMaxWidth] = useState(0);
     const [playerInfo, setPlayerInfo] = useState({
         searchTxt: "",
         skipendStatus: false,
@@ -94,13 +104,15 @@ const Play = (props) => {
             // 是直播源，直接播放
             playChannel(currentChannel.value);
         } else if (playInfo.playType === "localMovie") {
-            getDownloadById(playInfo.download.downloadId).then((downloadInfo) => {
-                const assetUrl = convertFileSrc(downloadInfo.url);
-                player.dp.switchVideo({
-                    url: assetUrl,
-                    type: "mp4",
-                });
-            })
+            getDownloadById(playInfo.download.downloadId).then(
+                (downloadInfo) => {
+                    const assetUrl = convertFileSrc(downloadInfo.url);
+                    player.dp.switchVideo({
+                        url: assetUrl,
+                        type: "mp4",
+                    });
+                }
+            );
         } else {
             // iptvInfo.showChannelGroupList = false;
             const key = playMovieUq;
@@ -272,7 +284,7 @@ const Play = (props) => {
         } else {
             timerEvent();
         }
-        selectAllHistory()
+        selectAllHistory();
     };
 
     // 定时更新历史记录时间
@@ -474,18 +486,20 @@ const Play = (props) => {
         });
 
         dp.on("fullscreen", async () => {
-            toggleScreenOrientation("")
+            toggleScreenOrientation("");
         });
 
         dp.on("fullscreen_cancel", async () => {
-            toggleScreenOrientation("")
+            toggleScreenOrientation("");
         });
     };
 
     const selectAllHistory = () => {
         getAllHistory().then((res) => {
-            dispatch(storeHistoryList({historyList: res, forceRefresh: true}));
-        })
+            dispatch(
+                storeHistoryList({ historyList: res, forceRefresh: true })
+            );
+        });
     };
 
     useEffect(() => {
@@ -503,19 +517,22 @@ const Play = (props) => {
         if (!movieList) {
             return;
         }
-        const episodeList = document.querySelector('.episode-list');
-        const episodeListComputedStyle = getComputedStyle(episodeList);
-        // 获取 CSS 变量的值
-        const episodeMaxSize = movieList.reduce((maxLength, currentString) => {
-            return Math.max(maxLength, ftName(currentString).length);
-        }, 0);
-        const columnSize = parseFloat(episodeListComputedStyle.getPropertyValue('--column-size'));
-        
-        // 计算并取整
-        const columnCount = columnSize - Math.floor(episodeMaxSize / 7);
-        // 设置新的 CSS 变量值
-        episodeList.style.setProperty('--column-count', columnCount);
-    }, [movieList])
+        // 获取所有具有指定类名的节点
+        const items = document.querySelectorAll(".play-episode-btn");
+        if (items.length == 0) return;
+
+        // 初始化最大宽度
+        let maxWidth = 0;
+
+        // 遍历所有节点，计算最大宽度
+        items.forEach((item) => {
+            const itemWidth = item.offsetWidth; // 获取节点的宽度
+            if (itemWidth > maxWidth) {
+                maxWidth = itemWidth; // 更新最大宽度
+            }
+        });
+        maxWidth > 0 &&setEpisodesButtonMaxWidth(Math.ceil(maxWidth) + 1);
+    }, [movieList]);
 
     useEffect(() => {
         if (playInfo.playState !== "newPlay" && !playInfo.movie.siteKey) return;
@@ -581,12 +598,45 @@ const Play = (props) => {
         <div className={props.className ? "play " + props.className : "play"}>
             <div className="box">
                 <div className="title">
-                    {movieList.length > 1 ? (
-                        <span>『第 {playInfo.movie.index + 1} 集』</span>
-                    ) : (
-                        ""
-                    )}
-                    <span className="span-one-line">{playInfo.name}</span>
+                    {
+                        playing ? (
+                            <>
+                            {
+                            movieList.length > 1 ? (
+                                <span>『第 {playInfo.movie.index + 1} 集』</span>
+                            ) : (
+                                ""
+                            )}
+                            <span className="span-one-line">{playInfo.name}</span>
+                            </>
+                        ) : (
+                            historyList.length > 0 && historyList[0] && (
+                                <div className="span-one-line">
+                                    <strong>上次播放到:</strong> 【
+                                    {historyList[0]?.site_key}】
+                                    {historyList[0]?.history_name}第
+                                    {historyList[0]?.index + 1}集
+                                    <span
+                                        className={
+                                            historyList[0]?.time && historyList[0]?.duration
+                                                ? ""
+                                                : "hidden"
+                                        }
+                                    >
+                                        {fmtMSS(historyList[0]?.time?.toFixed(0))}/
+                                        {fmtMSS(historyList[0]?.duration?.toFixed(0))}
+                                    </span>
+                                    <span
+                                        className={
+                                            historyList[0]?.onlinePlay ? "" : "hidden"
+                                        }
+                                    >
+                                        在线解析
+                                    </span>
+                                </div>
+                            )
+                        )
+                    }
                     <div className="right" onClick={() => closePlayerAndInit()}>
                         <SvgIcon name="close" />
                     </div>
@@ -614,59 +664,29 @@ const Play = (props) => {
                         allow="autoplay;fullscreen"
                     ></iframe>
                 </div>
-                <div
-                    className={
-                        !playing && historyList.length > 0 && historyList[0]
-                            ? "more"
-                            : "more hidden"
-                    }
-                >
-                    <span className="last-tip">
-                        <span>
-                            上次播放到:【{historyList[0]?.site_key}】
-                            {historyList[0]?.history_name}第
-                            {historyList[0]?.index + 1}集
-                        </span>
-                        <span
+                <div className="episodes-section pb-3" style={{display: movieList.length == 0 ? 'none' : '' }}>
+                    <h2>剧集选择</h2>
+                    {movieList.map((i, j) => (
+                        <div
+                            key={j}
                             className={
-                                historyList[0]?.time && historyList[0]?.duration
-                                    ? ""
-                                    : "hidden"
+                                playInfo.movie.index === j
+                                    ? "play-episode-btn active"
+                                    : "play-episode-btn"
                             }
+                            onClick={() => listItemEvent(j)}
+                            style={{
+                                width:
+                                    episodesButtonMaxWidth == 0
+                                        ? "auto"
+                                        : `${episodesButtonMaxWidth}px`,
+                            }}
                         >
-                            {fmtMSS(historyList[0]?.time?.toFixed(0))}/
-                            {fmtMSS(historyList[0]?.duration?.toFixed(0))}
-                        </span>
-                        <span
-                            className={
-                                historyList[0]?.onlinePlay ? "" : "hidden"
-                            }
-                        >
-                            在线解析
-                        </span>
-                    </span>
-                </div>
-                <div className="list">
-                    <div className="listTitle">剧集</div>
-                    <div className="episode-list">
-                        {movieList.length == 0 ? (
-                            <li>无数据</li>
-                        ) : (
-                            movieList.map((i, j) => {
-                                return (
-                                    <div onClick={() => listItemEvent(j)}
-                                        className={
-                                            playInfo.movie.index === j
-                                                ? "episode active"
-                                                : "episode"
-                                        }
-                                        key={j}>
-                                        {ftName(i)}
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
+                            <div>
+                                <span>{ftName(i)}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

@@ -24,6 +24,7 @@ import message from "@/components/message";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { osType } from "@/utils/env";
+import utils from "@/utils";
 import NProgress from "nprogress";
 import { useConfig, useGetState } from "@/hooks";
 import "./Movie.scss";
@@ -51,7 +52,10 @@ const Movie = ({ className }) => {
     const [excludeRootClasses] = useConfig("excludeRootClasses", true);
     const [rootClassFilter] = useConfig("rootClassFilter", []);
 
-    const [excludeR18Classes, setExcludeR18Classes] = useConfig("excludeR18Classes", false);
+    const [excludeR18Classes, setExcludeR18Classes] = useConfig(
+        "excludeR18Classes",
+        false
+    );
     const [r18ClassFilter, setR18ClassFilter] = useConfig("r18ClassFilter", []);
     const [classList, setClassList] = useState([]);
     const [currentClass, setCurrentClass] = useState({ id: -1, name: "" });
@@ -67,6 +71,7 @@ const Movie = ({ className }) => {
         movieList: [],
     });
     const [tipMessage, setTipMessage] = useState("");
+    const cancelSiteClassRequest = useRef(null); 
 
     useEffect(() => {
         getSiteList().then((result) => {
@@ -100,19 +105,30 @@ const Movie = ({ className }) => {
         resetMoviePageInfo();
         dispatch(toggleCurrentSite(site));
         movieInfo.currentSite = site;
-        getSiteClassList(site.site_key)
-            .then((newClassList) => {
-                if (newClassList && newClassList.length > 0) {
-                    setClassList(newClassList);
-                    classClick(newClassList[0]);
-                    movieInfo.refreshClass = false;
-                } else {
+        if (cancelSiteClassRequest.current) {
+            cancelSiteClassRequest.current();
+        }
+        const fetchWithCancel = utils.createCancelableRequest(() =>
+            getSiteClassList(site.site_key)
+                .then((newClassList) => {
+                    if (newClassList && newClassList.length > 0) {
+                        setClassList(newClassList);
+                        classClick(newClassList[0]);
+                        movieInfo.refreshClass = false;
+                    } else {
+                        refreshClass();
+                    }
+                })
+                .catch(() => {
                     refreshClass();
-                }
-            })
-            .catch(() => {
-                refreshClass();
-            });
+                })
+                .finally(() => {
+                    cancelSiteClassRequest.current = null;
+                })
+        );
+        const { cancelableRequest, cancel } = fetchWithCancel;
+        cancelableRequest.apply();
+        cancelSiteClassRequest.current = cancel;
     }, 500);
 
     const refreshClass = () => {
