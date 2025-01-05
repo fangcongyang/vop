@@ -41,6 +41,10 @@ $breakpoints: (
   }
 }
 
+$primary-color: #6a5acd;
+$secondary-color: #f5f5f5;
+$button-hover-color: #836fff;
+
 // 使用混合宏创建不同风格的按钮
 .primary-button {
   @include button-style(#007bff);

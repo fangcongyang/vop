@@ -124,7 +124,10 @@ const Navbar = memo(({ children }) => {
                         }}
                         clearText="清除"
                         options={searchList.map((option) => option.keyword)}
-                        onClose={(event) => {
+                        onClose={(event, reason) => {
+                            if (reason !== "removeOption") {
+                                return;
+                            }
                             clearSearchRecord().then(() => {
                                 getSearchList();
                                 setKeywords("");
