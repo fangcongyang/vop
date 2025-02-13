@@ -274,14 +274,12 @@ const Settings = (props) => {
                         className="text-input"
                         placeholder="代理端口"
                         type="number"
-                        min={1}
+                        min={0}
                         max={65535}
                         disabled={proxyProtocol === "noProxy"}
                         onChange={(e) =>
                             setProxyPort(
                                 e.target.valueAsNumber
-                                    ? e.target.valueAsNumber
-                                    : 1
                             )
                         }
                     />

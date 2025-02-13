@@ -7,6 +7,7 @@ import {
     updateplayerConf,
     updatePlayInfoIndex,
     resetPlayInfo,
+    pageActiveStore,
 } from "@/store/coreSlice";
 import {
     siteListStore,
@@ -50,6 +51,7 @@ const Play = (props) => {
     const playerConf = useAppSelector(playerConfStore);
     const siteList = useAppSelector(siteListStore);
     const historyList = useAppSelector(historyListStore);
+    const pageActive = useAppSelector(pageActiveStore);
     const [movieList, setMovieList] = useState([]);
     // localFile 本地文件 local 本地在线 online iframe网页
     const [playMode, setPlayMode] = useState("local");
@@ -284,7 +286,6 @@ const Play = (props) => {
         } else {
             timerEvent();
         }
-        selectAllHistory();
     };
 
     // 定时更新历史记录时间
@@ -428,12 +429,12 @@ const Play = (props) => {
         dp.on("play", async () => {
             clearTimeout(playPage.stallIptvTimeout);
             if (playPage.isFirstPlay) {
-                // 如果当前播放页面的播放信息没有被赋值,播放历史记录
-                if (historyList.length === 0) {
+                const localHistoryList = await getAllHistory();
+                if (localHistoryList.length === 0) {
                     message.warning("历史记录为空，无法播放！");
                     return;
                 }
-                const historyItem = historyList[0];
+                const historyItem = localHistoryList[0];
                 let playInfo = {
                     playState: "newPlay",
                     // iptv onlineMovie localMovie
@@ -503,7 +504,6 @@ const Play = (props) => {
     };
 
     useEffect(() => {
-        selectAllHistory();
         getPlayer("", true);
 
         return () => {
@@ -512,6 +512,12 @@ const Play = (props) => {
                 clearTimeout(playPage.stallIptvTimeout);
         };
     }, []);
+
+    useEffect(() => {
+        if (pageActive === "play") {
+            selectAllHistory();
+        }
+    }, [pageActive]);
 
     useEffect(() => {
         if (!movieList) {
@@ -531,12 +537,13 @@ const Play = (props) => {
                 maxWidth = itemWidth; // 更新最大宽度
             }
         });
-        maxWidth > 0 &&setEpisodesButtonMaxWidth(Math.ceil(maxWidth) + 1);
+        maxWidth > 0 && setEpisodesButtonMaxWidth(Math.ceil(maxWidth) + 1);
     }, [movieList]);
 
     useEffect(() => {
         if (playInfo.playState !== "newPlay" && !playInfo.movie.siteKey) return;
         playPage.isFirstPlay = false;
+        setEpisodesButtonMaxWidth(0);
         if (playInfo.playType == "onlineMovie") {
             getCurrentHistory(
                 playInfo.movie.siteKey,
@@ -561,6 +568,7 @@ const Play = (props) => {
         playPage.movieList = [];
         playPage.movieIndex = 0;
         playPage.playing = false;
+        setEpisodesButtonMaxWidth(0);
         setPlaying(false);
         setMovieList([]);
         getPlayer("", true);
@@ -598,45 +606,52 @@ const Play = (props) => {
         <div className={props.className ? "play " + props.className : "play"}>
             <div className="box">
                 <div className="title">
-                    {
-                        playing ? (
-                            <>
-                            {
-                            movieList.length > 1 ? (
-                                <span>『第 {playInfo.movie.index + 1} 集』</span>
+                    {playing ? (
+                        <>
+                            {movieList.length > 1 ? (
+                                <span>
+                                    『第 {playInfo.movie.index + 1} 集』
+                                </span>
                             ) : (
                                 ""
                             )}
-                            <span className="span-one-line">{playInfo.name}</span>
-                            </>
-                        ) : (
-                            historyList.length > 0 && historyList[0] && (
-                                <div className="span-one-line">
-                                    <strong>上次播放到:</strong> 【
-                                    {historyList[0]?.site_key}】
-                                    {historyList[0]?.history_name}第
-                                    {historyList[0]?.index + 1}集
-                                    <span
-                                        className={
-                                            historyList[0]?.time && historyList[0]?.duration
-                                                ? ""
-                                                : "hidden"
-                                        }
-                                    >
-                                        {fmtMSS(historyList[0]?.time?.toFixed(0))}/
-                                        {fmtMSS(historyList[0]?.duration?.toFixed(0))}
-                                    </span>
-                                    <span
-                                        className={
-                                            historyList[0]?.onlinePlay ? "" : "hidden"
-                                        }
-                                    >
-                                        在线解析
-                                    </span>
-                                </div>
-                            )
+                            <span className="span-one-line">
+                                {playInfo.name}
+                            </span>
+                        </>
+                    ) : (
+                        historyList.length > 0 &&
+                        historyList[0] && (
+                            <div className="span-one-line">
+                                <strong>上次播放到:</strong> 【
+                                {historyList[0]?.site_key}】
+                                {historyList[0]?.history_name}第
+                                {historyList[0]?.index + 1}集
+                                <span
+                                    className={
+                                        historyList[0]?.time &&
+                                        historyList[0]?.duration
+                                            ? ""
+                                            : "hidden"
+                                    }
+                                >
+                                    {fmtMSS(historyList[0]?.time?.toFixed(0))}/
+                                    {fmtMSS(
+                                        historyList[0]?.duration?.toFixed(0)
+                                    )}
+                                </span>
+                                <span
+                                    className={
+                                        historyList[0]?.onlinePlay
+                                            ? ""
+                                            : "hidden"
+                                    }
+                                >
+                                    在线解析
+                                </span>
+                            </div>
                         )
-                    }
+                    )}
                     <div className="right" onClick={() => closePlayerAndInit()}>
                         <SvgIcon name="close" />
                     </div>
@@ -664,7 +679,10 @@ const Play = (props) => {
                         allow="autoplay;fullscreen"
                     ></iframe>
                 </div>
-                <div className="episodes-section pb-3" style={{display: movieList.length == 0 ? 'none' : '' }}>
+                <div
+                    className="play-episodes-section pb-3"
+                    style={{ display: movieList.length == 0 ? "none" : "" }}
+                >
                     <h2>剧集选择</h2>
                     {movieList.map((i, j) => (
                         <div
@@ -687,6 +705,20 @@ const Play = (props) => {
                             </div>
                         </div>
                     ))}
+                    {
+                        Array.from({ length: 12 }).map((i, j) => (
+                            <div
+                                key={j}
+                                className="play-episode-btn h1"
+                                style={{
+                                    width:
+                                        episodesButtonMaxWidth == 0
+                                            ? "auto"
+                                            : `${episodesButtonMaxWidth}px`,
+                                }}
+                            />
+                        ))
+                    }
                 </div>
             </div>
         </div>

@@ -64,8 +64,8 @@ const SiteModal = ({ siteInfo, open, onClose, onSubmit }) => {
             aria-labelledby="site-modal-title"
             aria-describedby="site-modal-description"
         >
-            <Box sx={{ ...style, width: 300 }}>
-                <h4 id="site-modal-title">{ (siteInfo && siteInfo.id ? "编辑" : "新增") + "站点"}</h4>
+            <Box sx={{ ...style, width: 400 }}>
+                <h4 id="site-modal-title" className="mb-4">{ (siteInfo && siteInfo.id ? "编辑" : "新增") + "站点"}</h4>
                 <form onSubmit={handleSubmit}>
                     <Grid container spacing={2}>
                         <Grid item xs={24}>

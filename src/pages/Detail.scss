@@ -133,6 +133,7 @@
                 display: -webkit-box;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 2; // 限制为2行
+                line-clamp: 2;
                 overflow: hidden;
                 text-overflow: ellipsis
             }
@@ -271,6 +272,7 @@
     display: flex;
     flex-wrap: wrap; // 允许换行
     gap: 10px; 
+    justify-content: space-between;
 
     h2 {
         font-size: 1.2rem;
@@ -315,6 +317,11 @@
             background-color: var(--l-c-5);
             border-color: var(--l-c-5);
         }
+    }
+
+    .episode-btn.h1 {
+        height: 1px;
+        visibility: hidden
     }
 
 }

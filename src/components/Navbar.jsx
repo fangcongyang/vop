@@ -24,6 +24,7 @@ const Navbar = memo(({ children }) => {
 
     const getSearchList = () => {
         getAllSearchList().then((res) => {
+            res.unshift({id: -1, keyword: "清除搜索记录"})
             setSearchList(res);
         });
     };
@@ -34,15 +35,19 @@ const Navbar = memo(({ children }) => {
         addSearchRecord(keywords).then(() => {
             getSearchList();
         });
-        if (pageActive == "search") {
-            dispatch(updateSearchKeyword(keywords));
-            return;
-        }
         dispatch(updateSearchKeyword(keywords));
     };
 
     const goSearch = () => {
         dispatch(togglePageActive("search"));
+    };
+
+    const onClearSearchRecord = () => {
+        clearSearchRecord().then(() => {
+            getSearchList();
+            setKeywords("");
+            return;
+        });
     };
 
     const go = (where) => {};
@@ -128,22 +133,25 @@ const Navbar = memo(({ children }) => {
                             if (reason !== "removeOption") {
                                 return;
                             }
-                            clearSearchRecord().then(() => {
-                                getSearchList();
-                                setKeywords("");
-                                return;
-                            });
                         }}
                         onChange={(event, value) => {
                             if (typeof value === "string") {
+                                if (value === "清除搜索记录") {
+                                    onClearSearchRecord();
+                                    return;
+                                }
+                                setKeywords(value);
                                 dispatch(updateSearchKeyword(value));
+                            } else {
+                                setKeywords("");
                             }
                         }}
+                        inputValue={keywords}
                         renderInput={(params) => (
                             <TextField
                                 {...params}
-                                label="搜索"
                                 value={keywords}
+                                label="搜索"
                                 InputProps={{
                                     ...params.InputProps,
                                     type: "search",

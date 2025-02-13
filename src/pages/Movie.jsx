@@ -307,6 +307,10 @@ const Movie = ({ className }) => {
 
     const refreshFilteredList = () => {
         let filteredData = getMoviePageInfo().movieList;
+        if (!filteredData) {
+            setTipMessage("暂无数据");
+            return;
+        }
         movieInfo.selectedClassName =
             currentClass.name +
             "    " +

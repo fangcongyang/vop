@@ -279,6 +279,20 @@ const Detail = (props) => {
                                         </div>
                                     </div>
                                 ))}
+                                {
+                                    Array.from({ length: 12 }).map((i, j) => (
+                                        <div
+                                            key={j}
+                                            className="episode-btn h1"
+                                            style={{
+                                                width:
+                                                    maxWidth == 0
+                                                        ? "auto"
+                                                        : `${maxWidth}px`,
+                                            }}
+                                        />
+                                    ))
+                                }
                         </div>
                         {info.recommendations &&
                             info.recommendations.length > 0 && (

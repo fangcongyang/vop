@@ -86,12 +86,13 @@
     }
 }
 
-  .episodes-section {
+  .play-episodes-section {
     margin-top: 10px;
     width: 100%;
     display: flex;
     flex-wrap: wrap; // 允许换行
-    gap: 10px; 
+    gap: 10px;
+    justify-content: space-between;
 
     h2 {
         line-height: 40px;
@@ -137,6 +138,11 @@
             background-color: var(--l-c-5);
             border-color: var(--l-c-5);
         }
+    }
+
+    .play-episode-btn.h1 {
+        height: 1px;
+        visibility: hidden
     }
 
 }
