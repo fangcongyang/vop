@@ -89,6 +89,7 @@ export async function getSiteByKey(site_key) {
 }
 
 export async function getSiteClassList(site_key) {
+    // db.siteClassList.clear();
     return db.siteClassList.where("site_key").equals(site_key).toArray();
 }
 

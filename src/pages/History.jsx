@@ -40,7 +40,7 @@ const History = (props) => {
         >
             <div className="panelBody">
                 <div className="showPicture">
-                    <Waterfall list={historyList} gutter={20} width={200} viewMode="history" 
+                    <Waterfall list={historyList} gutter={10} 
                         initYzb={10}>
                         <MovieCard
                             viewMode="history"

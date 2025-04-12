@@ -26,7 +26,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { Transition } from "react-transition-group";
 import movieApi from "@/api/movies";
 import SvgIcon from "@/components/SvgIcon";
-import message from "@/components/message";
+import { message } from "antd";
 import { fmtMSS } from "@/utils/common";
 import _ from "lodash";
 import date from "@/utils/date";
@@ -47,6 +47,7 @@ let playPage = {
 
 const Play = (props) => {
     const dispatch = useAppDispatch();
+    const [messageApi, contextHolder] = message.useMessage();
     const playInfo = useAppSelector(playInfoStore);
     const playerConf = useAppSelector(playerConfStore);
     const siteList = useAppSelector(siteListStore);
@@ -204,7 +205,7 @@ const Play = (props) => {
                     if (!url.endsWith(".m3u8") && !url.endsWith(".mp4")) {
                         // moviesInfo.exportablePlaylist = true;
                         if (getIsVipMovies(url)) {
-                            message.info("即将调用解析接口播放，请等待...");
+                            messageApi.info("即将调用解析接口播放，请等待...");
                             movieParseUrlInfo.value.vipPlay = true;
                             playInfo.value.movie.onlineUrl =
                                 movieParseUrl.websiteParseUrl + url;
@@ -234,7 +235,7 @@ const Play = (props) => {
             })
             .catch((err) => {
                 console.log(err);
-                message.error("播放地址可能已失效，请换源并调整收藏");
+                messageApi.error("播放地址可能已失效，请换源并调整收藏");
                 // otherEvent();
             });
     };
@@ -345,7 +346,7 @@ const Play = (props) => {
                         })
                     );
                 } else {
-                    message.warning("这已经是第一集了。");
+                    messageApi.warning("这已经是第一集了。");
                 }
             } else if (playPage.movieIndex < playPage.movieList.length - 1) {
                 playPage.movieIndex += 1;
@@ -356,7 +357,7 @@ const Play = (props) => {
                     })
                 );
             } else {
-                message.warning("这已经是最后一集了。");
+                messageApi.warning("这已经是最后一集了。");
             }
         }
     };
@@ -431,7 +432,7 @@ const Play = (props) => {
             if (playPage.isFirstPlay) {
                 const localHistoryList = await getAllHistory();
                 if (localHistoryList.length === 0) {
-                    message.warning("历史记录为空，无法播放！");
+                    messageApi.warning("历史记录为空，无法播放！");
                     return;
                 }
                 const historyItem = localHistoryList[0];

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import { CloseOutlined } from '@ant-design/icons';
 import "./SettingsInputArray.scss";
 
 const SettingsInputArray = ({
@@ -47,9 +47,8 @@ const SettingsInputArray = ({
                         {
                             initValue.map((rootFilter, index) => {
                                 return (<div key={index} className="tag">{rootFilter}
-                                    <CloseRoundedIcon fontSize="small"
+                                    <CloseOutlined
                                         className="close"
-                                        sx={{ fontSize: 14 }}
                                         onClick={() => {removeValue(rootFilter)}} />
                                 </div>)
                             })

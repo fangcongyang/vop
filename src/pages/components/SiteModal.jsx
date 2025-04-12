@@ -1,163 +1,142 @@
 import React, { useEffect, useState } from "react";
-import {
-    Modal,
-    TextField,
-    Button,
-    Grid,
-    styled,
-    Box,
-    Select,
-    MenuItem,
-    InputLabel,
-    FormControl,
-} from "@mui/material";
+import { Button, Modal, Form, Select, Input } from "antd";
 
-const style = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: 400,
-    bgcolor: "background.paper",
-    pt: 2,
-    px: 4,
-    pb: 3,
-};
+const { Field, useForm } = Form;
 
 const SiteModal = ({ siteInfo, open, onClose, onSubmit }) => {
-    const [siteGroup, setSiteGroup] = useState("影视");
-    const [siteKey, setSiteKey] = useState("");
-    const [siteName, setSiteName] = useState("");
-    const [api, setApi] = useState("");
-    const [parseMode, setParseMode] = useState("xml");
+  const [form] = useForm();
 
-    useEffect(() => {
-        if (siteInfo.site_group) {
-            setSiteGroup(siteInfo.site_group)
-            setSiteKey(siteInfo.site_key)
-            setSiteName(siteInfo.site_name)
-            setApi(siteInfo.api)
-            setParseMode(siteInfo.parse_mode)
-        } else {
-            setSiteGroup("影视");
-            setSiteKey("");
-            setSiteName("");
-            setApi("");
-            setParseMode("xml");
-        }
-    }, [siteInfo]);
+  useEffect(() => {
+    resetFormValue();
+  }, [siteInfo]);
 
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        onSubmit({ id: siteInfo.id, siteGroup, siteKey, siteName, api, parseMode });
-        handleClose();
-    };
+  const resetFormValue = () => {
+    if (siteInfo.site_group) {
+        form.setFieldsValue({
+          siteGroup: siteInfo.site_group,
+          siteKey: siteInfo.site_key,
+          siteName: siteInfo.site_name,
+          api: siteInfo.api,
+          parseMode: siteInfo.parse_mode,
+        });
+      } else {
+        form.setFieldsValue({
+          siteGroup: "影视",
+          siteKey: "",
+          siteName: "",
+          api: "",
+          parseMode: "xml",
+        });
+      }
+  }
 
-    const handleClose = () => {
-        onClose();
-    };
+  const handleSubmit = (values) => {
+    const id = siteInfo?.id || "";
+    onSubmit({id, ...values});
+    handleClose();
+  };
 
-    return (
-        <Modal
-            open={open}
-            onClose={handleClose}
-            aria-labelledby="site-modal-title"
-            aria-describedby="site-modal-description"
+  const handleClose = () => {
+    onClose();
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={handleClose}
+      title={(siteInfo && siteInfo.id ? "编辑" : "新增") + "站点"}
+      footer={null}
+    >
+      <Form
+        form={form}
+        name="basic"
+        labelCol={{
+          span: 4,
+        }}
+        wrapperCol={{
+          span: 20,
+        }}
+        style={{
+          maxWidth: 600,
+        }}
+        onFinish={handleSubmit}
+        autoComplete="off"
+      >
+        <Form.Item
+          label="站点分组"
+          name="siteGroup"
+          rules={[
+            {
+              required: true,
+              message: "请选择站点分组",
+            },
+          ]}
         >
-            <Box sx={{ ...style, width: 400 }}>
-                <h4 id="site-modal-title" className="mb-4">{ (siteInfo && siteInfo.id ? "编辑" : "新增") + "站点"}</h4>
-                <form onSubmit={handleSubmit}>
-                    <Grid container spacing={2}>
-                        <Grid item xs={24}>
-                            <FormControl
-                                sx={{ width: "100%" }}
-                                size="small"
-                                required
-                            >
-                                <InputLabel id="site-group-small-label">
-                                    站点分组
-                                </InputLabel>
-                                <Select
-                                    labelId="site-group-small-label"
-                                    id="site-group-small"
-                                    value={siteGroup}
-                                    onChange={(e) =>
-                                        setSiteGroup(e.target.value)
-                                    }
-                                    label="站点分组"
-                                    size="small"
-                                    sx={{ width: "100%" }}
-                                >
-                                    <MenuItem value={"影视"}>影视</MenuItem>
-                                    <MenuItem value={"18+"}>18+</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                label="站点编码"
-                                value={siteKey}
-                                onChange={(e) => setSiteKey(e.target.value)}
-                                size="small"
-                                sx={{ width: "100%" }}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                label="站点名称"
-                                value={siteName}
-                                onChange={(e) => setSiteName(e.target.value)}
-                                size="small"
-                                sx={{ width: "100%" }}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                label="api"
-                                value={api}
-                                onChange={(e) => setApi(e.target.value)}
-                                size="small"
-                                sx={{ width: "100%" }}
-                                required
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <FormControl sx={{ width: "100%" }} size="small">
-                                <InputLabel id="parse-mode-small-label">
-                                    解析模式
-                                </InputLabel>
-                                <Select
-                                    labelId="parse-mode-small-label"
-                                    id="parse-mode-small"
-                                    value={parseMode}
-                                    onChange={(e) =>
-                                        setParseMode(e.target.value)
-                                    }
-                                    label="解析模式"
-                                    size="small"
-                                    sx={{ width: "100%" }}
-                                    required
-                                >
-                                    <MenuItem value={"xml"}>xml</MenuItem>
-                                    <MenuItem value={"json"}>json</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                            >
-                                提交
-                            </Button>
-                        </Grid>
-                    </Grid>
-                </form>
-            </Box>
-        </Modal>
-    );
+          <Select>
+            <Select.Option value="影视">影视</Select.Option>
+            <Select.Option value="18+">18+</Select.Option>
+          </Select>
+        </Form.Item>
+        <Form.Item
+          label="站点编码"
+          name="siteKey"
+          rules={[
+            {
+              required: true,
+              message: "请输入站点编码",
+            },
+          ]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          label="站点名称"
+          name="siteName"
+          rules={[
+            {
+              required: true,
+              message: "请输入站点名称",
+            },
+          ]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          label="api"
+          name="api"
+          rules={[
+            {
+              required: true,
+              message: "请输入api",
+            },
+          ]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          label="解析模式"
+          name="parseMode"
+          rules={[
+            {
+              required: true,
+              message: "请选择解析模式",
+            },
+          ]}
+        >
+          <Select>
+            <Select.Option value="xml">xml</Select.Option>
+            <Select.Option value="json">json</Select.Option>
+          </Select>
+        </Form.Item>
+        <Form.Item label={null}>
+          <Button type="primary" htmlType="submit">
+            提交
+          </Button>
+          <Button onClick={resetFormValue}>重置</Button>
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
 };
 
 export default SiteModal;

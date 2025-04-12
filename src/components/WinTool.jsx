@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useAppSelector } from "@/store/hooks";
-import {
-  settingsStore
-} from "@/store/coreSlice"
+import { settingsStore } from "@/store/coreSlice";
 import SvgIcon from "./SvgIcon";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./WinTool.scss";
@@ -15,7 +13,7 @@ const WinTool = () => {
 
   const svgStyle = {
     width: "8Px",
-    height: "14Px"
+    height: "14Px",
   };
 
   async function handleAlwaysTop() {
@@ -38,28 +36,23 @@ const WinTool = () => {
 
   // 关闭
   const handleWinClose = async () => {
-    await getCurrentWindow().close()
+    await getCurrentWindow().close();
   };
 
   return (
-      <div className="frame">
-        <span className="title">
-          {settings.title}
-        </span>
+    <div className="frame">
+      <div className="content">
+        <span className="title">{settings.title}</span>
         <div data-tauri-drag-region>
-          <span
-            className="top"
-            onClick={handleAlwaysTop}
-          >
+          <span className="top" onClick={handleAlwaysTop}>
             <SvgIcon
               name="wintool-ontop"
               title="data.isAlwaysOnTop ? '取消置顶' : '置顶'"
               style={svgStyle}
-              color={isAlwaysOnTop ? '#555555' : '#ffffff'}
+              color={isAlwaysOnTop ? "#555555" : "#ffffff"}
             ></SvgIcon>
           </span>
-          <span
-            className="min" onClick={handleWinMin}>
+          <span className="min" onClick={handleWinMin}>
             <SvgIcon
               name="wintool-min"
               title="最小化"
@@ -67,29 +60,26 @@ const WinTool = () => {
               color="#ffffff"
             ></SvgIcon>
           </span>
-          <span
-            className="max"
-            onClick={handleWinMax2Min}
-          >
+          <span className="max" onClick={handleWinMax2Min}>
             <SvgIcon
               name="wintool-max"
-              title={isMaximized ? '还原' : '最大化'}
+              title={isMaximized ? "还原" : "最大化"}
               style={svgStyle}
               color="#ffffff"
             ></SvgIcon>
           </span>
-          <span v-if="closable"
-            className="close" onClick={handleWinClose}>
+          <span v-if="closable" className="close" onClick={handleWinClose}>
             <SvgIcon
               title="关闭"
               name="wintool-close"
               style={svgStyle}
               color="#ffffff"
             ></SvgIcon>
-          </span >
+          </span>
         </div>
-      </div >
+      </div>
+    </div>
   );
-}
+};
 
 export default WinTool;

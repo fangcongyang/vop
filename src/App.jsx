@@ -4,9 +4,7 @@ import { pageActiveStore, togglePageActive } from "@/store/coreSlice";
 import { updateDownloadProcess } from "@/store/movieSlice";
 import Navbar from "./components/Navbar";
 import WinTool from "./components/WinTool";
-import Paper from "@mui/material/Paper";
-import BottomNavigation from "@mui/material/BottomNavigation";
-import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import BottomNav from "./components/BottomNav";
 import Movie from "./pages/Movie";
 import Play from "./pages/Play";
 import History from "./pages/History";
@@ -145,44 +143,7 @@ function App() {
                         <Detail
                             className={pageActive == "detail" ? "" : "hidden"}
                         />
-                        <Paper
-                            sx={{
-                                position: "fixed",
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                            }}
-                            elevation={3}
-                        >
-                            <BottomNavigation
-                                value={pageActive}
-                                onChange={(event, newValue) => {
-                                    dispatch(togglePageActive(newValue));
-                                }}
-                                showLabels
-                            >
-                                <BottomNavigationAction
-                                    label="影视"
-                                    value="movie"
-                                />
-                                <BottomNavigationAction
-                                    label="播放"
-                                    value="play"
-                                />
-                                <BottomNavigationAction
-                                    label="历史"
-                                    value="history"
-                                />
-                                <BottomNavigationAction
-                                    label="收藏"
-                                    value="star"
-                                />
-                                <BottomNavigationAction
-                                    label="设置"
-                                    value="settings"
-                                />
-                            </BottomNavigation>
-                        </Paper>
+                        <BottomNav value={pageActive} />
                     </>
                 )}
             </main>

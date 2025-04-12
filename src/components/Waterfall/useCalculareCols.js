@@ -30,7 +30,9 @@ const getItemWidth = (breakpoints, gutter, hasAroundGutter, width, wrapperWidth)
 const memoizedGetItemWidth = memoizeOne(getItemWidth);
 
 export const calculateCols = (breakpoints, gutter, hasAroundGutter, width, align, wrapperWidth) => {
-
+    if (localStorage.getItem(wrapperWidth.current + '_' + gutter)) {
+        return JSON.parse(localStorage.getItem(wrapperWidth.current))
+    }
     // 列实际宽度
     const colWidth = memoizedGetItemWidth(breakpoints, gutter, hasAroundGutter, width, wrapperWidth.current);
 
@@ -63,5 +65,6 @@ export const calculateCols = (breakpoints, gutter, hasAroundGutter, width, align
 
     const offsetX = offsetXFun();
 
+    localStorage.setItem(wrapperWidth.current + '_' + gutter, JSON.stringify({ colWidth, cols, offsetX }))
     return { colWidth, cols, offsetX }
 }
