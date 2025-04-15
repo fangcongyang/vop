@@ -499,7 +499,7 @@ const Play = (props) => {
     const selectAllHistory = () => {
         getAllHistory().then((res) => {
             dispatch(
-                storeHistoryList({ historyList: res, forceRefresh: true })
+                storeHistoryList({ historyList: res, forceRefresh: false })
             );
         });
     };

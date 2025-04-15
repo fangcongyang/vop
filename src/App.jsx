@@ -17,6 +17,7 @@ import "./App.scss";
 import Search from "./pages/Search";
 import Site from "./pages/Site";
 import Detail from "./pages/Detail";
+import KeepAlive from "./components/KeepAlive";
 
 const downloadWebsocketNum = 2;
 let downloadBusArr = [];
@@ -55,94 +56,64 @@ function App() {
                 {!osType.toLowerCase().includes("mobile") && (
                     <>
                         <Navbar>
-                             <Movie
-                                className={
-                                    pageActive == "movie"
-                                        ? ""
-                                        : "hidden"
-                                }
-                            />
-                            <Play
-                                className={
-                                    pageActive == "play" ? "" : "hidden"
-                                }
-                            />
-                            <History
-                                className={
-                                    pageActive == "history"
-                                        ? ""
-                                        : "hidden"
-                                }
-                            />
-                            <Star
-                                className={
-                                    pageActive == "star" ? "" : "hidden"
-                                }
-                            />
+                            <KeepAlive cacheKey="movie" active={pageActive==="movie"}>
+                                <Movie />
+                            </KeepAlive>
+                            <KeepAlive cacheKey="play" active={pageActive==="play"}>
+                                <Play />
+                            </KeepAlive>
+                            <KeepAlive cacheKey="history" active={pageActive==="history"}>
+                                <History />
+                            </KeepAlive>
+                            <KeepAlive cacheKey="star" active={pageActive==="star"}>
+                                <Star />
+                            </KeepAlive>
                             {osType === "desktop" && (
-                                <Download
-                                    className={
-                                        pageActive == "download"
-                                            ? ""
-                                            : "hidden"
-                                    }
-                                />
+                                <KeepAlive cacheKey="download" active={pageActive==="download"}>
+                                    <Download />
+                                </KeepAlive>
                             )}
-                            <Settings
-                                className={
-                                    pageActive == "settings"
-                                        ? ""
-                                        : "hidden"
-                                }
-                            />
-                            <Search
-                                className={
-                                    pageActive == "search"
-                                        ? ""
-                                        : "hidden"
-                                }
-                            />
-                            <Site
-                                className={
-                                    pageActive == "site" ? "" : "hidden"
-                                }
-                            />
-                            <Detail
-                                className={
-                                    pageActive == "detail"
-                                        ? ""
-                                        : "hidden"
-                                }
-                            />
+                            <KeepAlive cacheKey="settings" active={pageActive==="settings"}>
+                                <Settings />
+                            </KeepAlive>
+                            <KeepAlive cacheKey="search" active={pageActive==="search"}>
+                                <Search />
+                            </KeepAlive>
+                            <KeepAlive cacheKey="site" active={pageActive==="site"}>
+                                <Site />
+                            </KeepAlive>
+                            <KeepAlive cacheKey="detail" active={pageActive==="detail"}>
+                                <Detail />
+                            </KeepAlive>
                         </Navbar>
                     </>
                 )}
                 {osType.toLowerCase().includes("mobile") && (
                     <>
-                        <Movie
-                            className={pageActive == "movie" ? "" : "hidden"}
-                        />
-                        <Play
-                            className={pageActive == "play" ? "" : "hidden"}
-                        />
-                        <History
-                            className={pageActive == "history" ? "" : "hidden"}
-                        />
-                        <Star
-                            className={pageActive == "star" ? "" : "hidden"}
-                        />
-                        <Settings
-                            className={pageActive == "settings" ? "" : "hidden"}
-                        />
-                        <Search
-                            className={pageActive == "search" ? "" : "hidden"}
-                        />
-                        <Site
-                            className={pageActive == "site" ? "" : "hidden"}
-                        />
-                        <Detail
-                            className={pageActive == "detail" ? "" : "hidden"}
-                        />
+                        <KeepAlive cacheKey="movie" active={pageActive==="movie"}>
+                            <Movie />
+                        </KeepAlive>
+                        <KeepAlive cacheKey="play" active={pageActive==="play"}>
+                            <Play />
+                        </KeepAlive>
+                        <KeepAlive cacheKey="history" active={pageActive==="history"}>
+                            <History />
+                        </KeepAlive>
+                        <KeepAlive cacheKey="star" active={pageActive==="star"}>
+                            <Star />
+                        </KeepAlive>
+                        <KeepAlive cacheKey="settings" active={pageActive==="settings"}>
+                            <Settings />
+                        </KeepAlive>
+                        <KeepAlive cacheKey="search" active={pageActive==="search"}>
+                            <Search />
+                        </KeepAlive>
+                        <KeepAlive cacheKey="site" active={pageActive==="site"}>
+                            <Site />
+                        </KeepAlive>
+                        <KeepAlive cacheKey="detail" active={pageActive==="detail"}>
+                            <Detail />
+                        </KeepAlive>
                         <BottomNav value={pageActive} />
                     </>
                 )}

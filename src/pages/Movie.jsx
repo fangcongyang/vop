@@ -33,7 +33,9 @@ import { osType } from "@/utils/env";
 import utils from "@/utils";
 import NProgress from "nprogress";
 import { useConfig, useGetState } from "@/hooks";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import "./Movie.scss";
+
 
 let movieInfo = {
   forceRequest: false,
@@ -43,7 +45,7 @@ let movieInfo = {
   classType: 0,
 };
 
-const Movie = ({ className }) => {
+const Movie = () => {
   const dispatch = useAppDispatch();
   const [messageApi, contextHolder] = message.useMessage();
   const pageActive = useAppSelector(pageActiveStore);
@@ -79,36 +81,12 @@ const Movie = ({ className }) => {
   const cancelSiteClassRequest = useRef(null);
   const loadingRef = useRef(null);
 
-  useEffect(() => {
-    let loadData = false;
-    const ob = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(async (entry) => {
-          if (entry.isIntersecting) {
-            try {
-              if (loadData) return;
-              loadData = true;
-              if (pageRef.current > getMoviePageInfo().pageCount) {
-                return;
-              }
-              await infiniteHandler(pageRef.current);
-              pageRef.current = pageRef.current + 1;
-            } finally {
-              loadData = false;
-            }
-          }
-        });
-      },
-      {
-        root: null,
-        threshold: 0.5,
-      }
-    );
-    ob.observe(loadingRef.current);
-    return () => {
-      ob.disconnect();
-    };
-  }, []);
+  // 优化后的 IntersectionObserver 监听
+  useIntersectionObserver(loadingRef, async () => {
+    if (pageRef.current > getMoviePageInfo().pageCount) return;
+    await infiniteHandler(pageRef.current);
+    pageRef.current = pageRef.current + 1;
+  }, { root: null, threshold: 0.5 });
 
   useEffect(() => {
     getSiteList().then((result) => {
@@ -387,7 +365,7 @@ const Movie = ({ className }) => {
   return (
     <div
       ref={pageMainRef}
-      className={className ? "pageMain " + className : "pageMain"}
+      className="pageMain"
     >
       <div className="panel">
         {osType.toLowerCase().includes("mobile") && (
@@ -458,38 +436,38 @@ const Movie = ({ className }) => {
             gutter={10}
             tipMessage={tipMessage}
             initYzb={10}
+            breakpoints={{
+              1400: {
+                //当屏幕宽度小于等于1200
+                rowPerView: 6,
+              },
+              1200: {
+                //当屏幕宽度小于等于1200
+                rowPerView: 5,
+              },
+              1000: {
+                //当屏幕宽度小于等于1200
+                rowPerView: 4,
+              },
+              800: {
+                //当屏幕宽度小于等于800
+                rowPerView: 3,
+              },
+              500: {
+                //当屏幕宽度小于等于500
+                rowPerView: 2,
+              },
+            }}
           >
             <MovieCard
               site={currentSite}
-              breakpoints={{
-                1400: {
-                  //当屏幕宽度小于等于1200
-                  rowPerView: 6,
-                },
-                1200: {
-                  //当屏幕宽度小于等于1200
-                  rowPerView: 5,
-                },
-                1000: {
-                  //当屏幕宽度小于等于1200
-                  rowPerView: 4,
-                },
-                800: {
-                  //当屏幕宽度小于等于800
-                  rowPerView: 3,
-                },
-                500: {
-                  //当屏幕宽度小于等于500
-                  rowPerView: 2,
-                },
-              }}
             />
           </Waterfall>
         </div>
       </div>
-      <div ref={loadingRef} className="loading">
+      {movieFilteredList.length > 0 && <div ref={loadingRef} className="loading">
         <Spin indicator={<LoadingOutlined spin />} />
-      </div>
+      </div>}
     </div>
   );
 };

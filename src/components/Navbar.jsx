@@ -52,7 +52,7 @@ const Navbar = memo(({ children }) => {
   const go = (where) => {};
 
   return (
-    <div className="navBar">
+    <div id="contentBody" className="navBar">
       <nav className="nav">
         <div className="navigationButtons">
           <ButtonIcon

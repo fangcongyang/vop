@@ -1,70 +1,102 @@
 import memoizeOne from 'memoize-one';
 
+// 优化getItemWidth函数，使用纯函数模式避免副作用
 const getItemWidth = (breakpoints, gutter, hasAroundGutter, width, wrapperWidth) => {
+    // 参数验证
+    if (!wrapperWidth || wrapperWidth <= 0) return width;
+    if (!breakpoints || Object.keys(breakpoints).length === 0) return width;
+    
     // 获取升序尺寸集合
-    const sizeList = Object.keys(breakpoints).map((key) => { return Number(key) }).sort((a, b) => a - b)
+    const sizeList = Object.keys(breakpoints)
+        .map(key => Number(key))
+        .sort((a, b) => a - b);
 
     // 获取当前的可用宽度
     let validSize = wrapperWidth;
-    let breakpoint = false
+    let breakpoint = false;
     for (const size of sizeList) {
         if (wrapperWidth <= size) {
-            validSize = size
-            breakpoint = true
-            break
+            validSize = size;
+            breakpoint = true;
+            break;
         }
     }
 
     // 非断点，返回设置的宽度
     if (!breakpoint)
-        return width
+        return width;
 
     // 断点模式，计算当前断点下的宽度
-    const col = breakpoints[validSize]?.rowPerView
+    const col = breakpoints[validSize]?.rowPerView || 1; // 添加默认值防止除零错误
     if (hasAroundGutter)
-        return (wrapperWidth - gutter) / col - gutter
+        return (wrapperWidth - gutter) / col - gutter;
     else
-        return (wrapperWidth - (col - 1) * gutter) / col
+        return (wrapperWidth - (col - 1) * gutter) / col;
 }
 
 const memoizedGetItemWidth = memoizeOne(getItemWidth);
 
 export const calculateCols = (breakpoints, gutter, hasAroundGutter, width, align, wrapperWidth) => {
-    if (localStorage.getItem(wrapperWidth.current + '_' + gutter)) {
-        return JSON.parse(localStorage.getItem(wrapperWidth.current))
+    // 参数验证
+    if (!wrapperWidth || !wrapperWidth.current) {
+        return { colWidth: width, cols: 1, offsetX: 0 };
     }
+    
+    // 创建缓存键
+    const cacheKey = `waterfall_${wrapperWidth.current}_${gutter}_${width}_${align}`;
+    
+    // 尝试从缓存获取
+    try {
+        const cachedData = localStorage.getItem(cacheKey);
+        if (cachedData) {
+            const parsed = JSON.parse(cachedData);
+            if (parsed && parsed.colWidth && parsed.cols && parsed.offsetX !== undefined) {
+                return parsed;
+            }
+        }
+    } catch (e) {
+        // 忽略localStorage错误，继续计算
+        console.warn('Failed to get layout from cache:', e);
+    }
+    
     // 列实际宽度
     const colWidth = memoizedGetItemWidth(breakpoints, gutter, hasAroundGutter, width, wrapperWidth.current);
 
-    // 列
-    const colsFun = memoizeOne(() => {
-        const offset = hasAroundGutter ? -gutter : gutter
-        return Math.floor((wrapperWidth.current + offset) / (colWidth + gutter))
-    })
+    // 列数计算
+    const offset = hasAroundGutter ? -gutter : gutter;
+    const cols = Math.max(1, Math.floor((wrapperWidth.current + offset) / (colWidth + gutter)));
 
-    const cols = colsFun();
-
-    // 偏移
-    const offsetXFun = memoizeOne(() => {
+    // 偏移计算
+    let offsetX = 0;
+    
+    if (align === 'left') {
         // 左对齐
-        if (align === 'left') {
-            return 0
-        }
-        else if (align === 'center') {
+        offsetX = 0;
+    } else {
+        // 居中或右对齐
+        const offset = hasAroundGutter ? gutter : -gutter;
+        const contextWidth = cols * (colWidth + gutter) + offset;
+        
+        if (align === 'center') {
             // 居中
-            const offset = hasAroundGutter ? gutter : -gutter
-            const contextWidth = cols * (colWidth + gutter) + offset
-            return (wrapperWidth.current - contextWidth) / 2
+            offsetX = (wrapperWidth.current - contextWidth) / 2;
+        } else {
+            // 右对齐
+            offsetX = (wrapperWidth.current - contextWidth);
         }
-        else {
-            const offset = hasAroundGutter ? gutter : -gutter
-            const contextWidth = cols * (colWidth + gutter) + offset
-            return (wrapperWidth.current - contextWidth)
-        }
-    })
+    }
 
-    const offsetX = offsetXFun();
+    // 结果对象
+    const result = { colWidth, cols, offsetX };
+    
+    // 尝试缓存结果
+    try {
+        localStorage.setItem(cacheKey, JSON.stringify(result));
+    } catch (e) {
+        // 忽略localStorage错误
+        console.warn('Failed to cache layout:', e);
+    }
+    
+    return result;
 
-    localStorage.setItem(wrapperWidth.current + '_' + gutter, JSON.stringify({ colWidth, cols, offsetX }))
-    return { colWidth, cols, offsetX }
 }
