@@ -82,7 +82,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                     "get_download_info_by_queue" => {
                         let queue = DOWNLOAD_QUEUE.lock().unwrap();
                         let download_info = queue.pop();
-                        socket.send(tungstenite::Message::Text(
+                        socket.send(tungstenite::Message::text(
                             serde_json::to_string(&json!({
                                 "id": request.id.clone(),
                                 "downloadInfo": download_info,
@@ -103,7 +103,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                         cache.insert(uq_key.clone(), x);
                         if x >= 3 {
                             cache.remove(uq_key.as_str());
-                            socket.send(tungstenite::Message::Text(
+                            socket.send(tungstenite::Message::text(
                                 serde_json::to_string(&json!({
                                     "id": download_info.id,
                                     "download_status": "downloadFail",

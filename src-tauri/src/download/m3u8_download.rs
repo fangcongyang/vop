@@ -64,10 +64,10 @@ pub async fn download_m3u8(
     }
     // 程序报错直接修改任务状态为失败
     if result.is_ok() {
-        socket.send(tungstenite::Message::Text(result?))?;
+        socket.send(tungstenite::Message::text(result?))?;
     } else {
         error!("下载m3u8失败，失败原因:{}", result.unwrap_err());
-        socket.send(tungstenite::Message::Text(
+        socket.send(tungstenite::Message::text(
             serde_json::to_string(&json!({
                 "id": download_info_context.id,
                 "status": download_info_context.status,
@@ -266,7 +266,7 @@ async fn download_slice(
                     .write((file_name + "\r\n").as_bytes())
                     .await?;
 
-                socket.send(tungstenite::Message::Text(serde_json::to_string(&json!({
+                socket.send(tungstenite::Message::text(serde_json::to_string(&json!({
                     "id": download_info_context.id,
                     "download_count": download_count1,
                     "mes_type": "progress",

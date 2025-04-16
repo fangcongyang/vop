@@ -184,12 +184,12 @@ const Site = (props) => {
         columns={columns}
         dataSource={siteList}
       ></Table>
-      <SiteModal
+      { openSiteModal && <SiteModal
         siteInfo={siteInfo}
         open={openSiteModal}
         onClose={() => setOpenSiteModal(false)}
         onSubmit={handleSubmit}
-      />
+      />}
     </div>
   );
 };
