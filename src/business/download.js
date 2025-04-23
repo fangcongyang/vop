@@ -60,7 +60,6 @@ export class DownloadBus {
                 return;
             }
 
-            let isNeedSeed = false;
             if (dataObj?.status) {
                 this.downloadRequest.downloadInfo.status = dataObj.status;
             }
@@ -73,7 +72,6 @@ export class DownloadBus {
                 case "parseSourceError":
                 case "downloadSliceEnd":
                 case "checkSourceEnd":
-                    isNeedSeed = true;
                     if (dataObj.mes_type === "parseSourceEnd") {
                         this.downloadRequest.downloadInfo.count = dataObj.count;
                     }
@@ -88,10 +86,6 @@ export class DownloadBus {
 
             await updateDownloadById(this.downloadRequest.downloadInfo);
             this.updateDownloadInfoEvent(this.downloadRequest.downloadInfo);
-
-            if (isNeedSeed && this.isWsOpen()) {
-                this.ws.send(JSON.stringify(this.downloadRequest));
-            }
 
             if (dataObj.mes_type === "end") {
                 this.intervalGetDownloadInfo();

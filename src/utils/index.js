@@ -1,9 +1,19 @@
 export default {
     trimAll(ele) {
         if (typeof ele === "string") {
-            return ele.split(/[\t\r\f\n\s]*/g).join("");
+            ele = this.removeWhitespace(ele);
+            return ele.replace(/[\t\r\f\n\s.]+/g, '');
         } else {
             console.error("`${type of ele}` is not a string");
+        }
+    },
+
+    removeWhitespace(str) {
+        if (typeof str === "string") {
+            return str.replace(/\s+/g, '');
+        } else {
+            console.error("`${typeof str}` is not a string");
+            return str; // Or return an empty string, depending on desired behavior for non-strings
         }
     },
 

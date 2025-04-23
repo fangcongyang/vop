@@ -93,11 +93,13 @@ pub struct DownloadInfoQueueDetail {
     pub m3u8_encrypt_key: Arc<M3u8EncryptKey>,
 }
 
+#[derive(PartialEq)]
 pub enum DownloadOperation {
     ParseSource,
     DownloadSlice,
     CheckSource,
     Merger,
+    DownloadEnd,
     UnsupportedOperation,
 }
 
@@ -107,6 +109,19 @@ pub fn parse_operation_name(name: &str) -> DownloadOperation {
         "downloadSlice" => DownloadOperation::DownloadSlice,
         "checkSource" => DownloadOperation::CheckSource,
         "merger" => DownloadOperation::Merger,
+        "downloadEnd" => DownloadOperation::DownloadEnd,
         _ => DownloadOperation::UnsupportedOperation,
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DownloadInfoResponse {
+    pub id: i32,
+    // parseSource 解析资源 downloadSlice 下载切片  checkSouce 检查资源完整性 merger 合并资源  downloadEnd 下载完成
+    pub status: String,
+    pub download_count: Option<i32>,
+    pub count: Option<usize>,
+    // wait 等待下载 downloading 下载中 downloadFail 下载失败 downloadSuccess 下载成功
+    pub download_status: Option<String>,
+    pub mes_type: String,
 }

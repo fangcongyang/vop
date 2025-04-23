@@ -93,7 +93,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
             const downloadInfos = res.downloadUrls.map((url) => ({
                 movie_name: util.trimAll(url.name),
                 url: url.url,
-                sub_title_name: url.subTitleName,
+                sub_title_name: util.trimAll(url.subTitleName),
                 status: "parseSource",
                 download_count: 0,
                 count: 0,

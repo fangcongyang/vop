@@ -1,6 +1,7 @@
 use crossbeam::queue::SegQueue;
-use log::error;
+use log::{error, info};
 use m3u8_rs::{MediaPlaylist, Playlist};
+use moka::sync::Cache;
 use serde_json::json;
 use std::{
     fs::create_dir_all,
@@ -18,10 +19,11 @@ use tauri::http::StatusCode;
 use tauri_plugin_http::reqwest;
 use tokio::{
     fs::{remove_dir_all, remove_file, File, OpenOptions},
-    io::{AsyncWriteExt, BufWriter},
+    io::{AsyncWriteExt, BufReader, BufWriter},
     sync::{mpsc, Semaphore},
     time,
 };
+use tokio::io::AsyncBufReadExt;
 use tungstenite::WebSocket;
 
 use crate::utils;
@@ -31,58 +33,105 @@ use super::{
     m3u8_encrypt_key::{KeyType, M3u8EncryptKey},
     types::{
         parse_operation_name, DownloadInfoContext, DownloadInfoDetail, DownloadInfoQueueDetail,
-        DownloadOperation, DownloadSourceInfo,
+        DownloadInfoResponse, DownloadOperation, DownloadSourceInfo,
     },
     util::download_request,
 };
 
-pub async fn download_m3u8(
-    download_info: &mut DownloadInfo,
-    socket: &mut WebSocket<TcpStream>,
-) -> anyhow::Result<(), Box<dyn std::error::Error>> {
-    let mut download_info_context = DownloadInfoContext::new(download_info)?;
-    let result;
+pub struct M3u8Download {
+    pub download_info_context: DownloadInfoContext,
+    pub cache: Cache<String, i32>,
+    pub uq_key: String,
+}
 
-    let operation = parse_operation_name(&download_info_context.status[..]);
+impl M3u8Download {
+    pub fn new(download_info: &mut DownloadInfo) -> Result<Self, Box<dyn std::error::Error>> {
+        let download_info_context = DownloadInfoContext::new(download_info)?;
+        Ok(M3u8Download {
+            download_info_context: download_info_context.clone(),
+            cache: Cache::builder()
+                .max_capacity(1024)
+                .time_to_live(Duration::from_secs(1 * 60 * 60))
+                .build(),
+            uq_key: format!(
+                "{}_{}",
+                download_info_context.url.as_str(),
+                download_info_context.movie_name.clone()
+            )
+        })
+    }
 
-    match operation {
-        DownloadOperation::ParseSource => {
-            result = parse_source(&mut download_info_context).await;
-        }
-        DownloadOperation::DownloadSlice => {
-            result = download_slice(&mut download_info_context, socket).await;
-        }
-        DownloadOperation::CheckSource => {
-            result = check_source(&mut download_info_context).await;
-        }
-        DownloadOperation::Merger => {
-            result = merger(&mut download_info_context).await;
-        }
-        DownloadOperation::UnsupportedOperation => {
-            result = Err(Box::from("不支持的操作"));
+    pub async fn start_download(
+        &mut self,
+        socket: &mut WebSocket<TcpStream>,
+    ) {
+        let mut result;
+
+        let mut operation = parse_operation_name(&self.download_info_context.status[..]);
+
+        loop {
+            match operation {
+                DownloadOperation::ParseSource => {
+                    result = parse_source(&mut self.download_info_context).await;
+                }
+                DownloadOperation::DownloadSlice => {
+                    result = download_slice(&mut self.download_info_context, socket).await;
+                }
+                DownloadOperation::CheckSource => {
+                    result = check_source(&mut self.download_info_context).await;
+                }
+                DownloadOperation::Merger => {
+                    result = merger(&mut self.download_info_context).await;
+                }
+                DownloadOperation::UnsupportedOperation => {
+                    result = Err(Box::from("不支持的操作"));
+                }
+                DownloadOperation::DownloadEnd => break,
+            }
+            let mut out_limit_num = false;
+            // 程序报错直接修改任务状态为失败
+            let rs_sucess = result.is_ok();
+            if rs_sucess {
+                let rl = result.unwrap();
+                let r = serde_json::to_string(&rl).unwrap();
+                let m = socket.send(tungstenite::Message::text(r));
+                if m.is_err() {
+                    info!("发送消息失败");
+                }
+                operation = parse_operation_name(&rl.status[..]);
+                if operation == DownloadOperation::DownloadSlice {
+                    let entry = self.cache.entry(self.uq_key.clone()).or_insert(0);
+                    let x = entry.value() + 1;
+                    self.cache.insert(self.uq_key.clone(), x);
+                    if x > 5 {
+                        info!("下载影片：{}, 超过重试阈值", self.uq_key.clone());
+                        out_limit_num = true;
+                    }
+                }
+            } else {
+                error!("下载m3u8失败，失败原因:{}", result.unwrap_err());
+            }
+            if !rs_sucess || out_limit_num {
+                let m = socket.send(tungstenite::Message::text(
+                    serde_json::to_string(&json!({
+                        "id": self.download_info_context.id,
+                        "status": self.download_info_context.status,
+                        "download_status": "downloadFail",
+                        "mes_type": "end"
+                    })).unwrap(),
+                ));
+                if m.is_err() {
+                    info!("发送消息失败");
+                }
+                break;
+            }
         }
     }
-    // 程序报错直接修改任务状态为失败
-    if result.is_ok() {
-        socket.send(tungstenite::Message::text(result?))?;
-    } else {
-        error!("下载m3u8失败，失败原因:{}", result.unwrap_err());
-        socket.send(tungstenite::Message::text(
-            serde_json::to_string(&json!({
-                "id": download_info_context.id,
-                "status": download_info_context.status,
-                "download_status": "downloadFail",
-                "mes_type": "end"
-            }))
-            .expect("Failed to serialize JSON"),
-        ))?
-    }
-    Ok(())
 }
 
 async fn parse_source(
     download_info_context: &mut DownloadInfoContext,
-) -> anyhow::Result<String, Box<dyn std::error::Error>> {
+) -> anyhow::Result<DownloadInfoResponse, Box<dyn std::error::Error>> {
     let media_play_list = parse_m3u8(download_info_context).await?;
     let count = media_play_list.segments.len();
     let mut download_source_info = DownloadSourceInfo::new();
@@ -134,15 +183,14 @@ async fn parse_source(
         .await?;
     json_file.write_all(v.as_bytes()).await?;
 
-    let r_json = json!({
-        "id": download_info_context.id,
-        "status": "downloadSlice",
-        "count": count,
-        "download_status": "downloading",
-        "mes_type": "parseSourceEnd",
-    });
-    let result = serde_json::to_string(&r_json)?;
-    Ok(result)
+    Ok(DownloadInfoResponse {
+        id: download_info_context.id,
+        status: "downloadSlice".to_string(),
+        download_count: None,
+        count: Some(count),
+        download_status: Some("downloading".to_string()),
+        mes_type: "parseSourceEnd".to_string(),
+    })
 }
 
 async fn parse_m3u8(
@@ -181,7 +229,7 @@ async fn parse_m3u8(
 async fn download_slice(
     download_info_context: &mut DownloadInfoContext,
     socket: &mut WebSocket<TcpStream>,
-) -> anyhow::Result<String, Box<dyn std::error::Error>> {
+) -> anyhow::Result<DownloadInfoResponse, Box<dyn std::error::Error>> {
     let download_count = AtomicI32::new(download_info_context.download_count);
     let v = std::fs::read_to_string(&download_info_context.json_path)?;
     let mut download_source_info = serde_json::from_str::<DownloadSourceInfo>(&v)?;
@@ -218,7 +266,7 @@ async fn download_slice(
                                     Ok(Some(data1)) => {
                                         data = data1;
                                     }
-                                    Ok(None) => success = false,
+                                    Ok(_none) => success = false,
                                     Err(_) => success = false,
                                 };
                             }
@@ -287,15 +335,15 @@ async fn download_slice(
         .open(&download_info_context.json_path)
         .await?;
     json_file.write_all(v.as_bytes()).await?;
-
-    let r_json = json!({
-        "id": download_info_context.id,
-        "download_count": download_count.load(Ordering::Relaxed),
-        "status": "checkSource",
-        "mes_type": "downloadSliceEnd",
-    });
-    let result = serde_json::to_string(&r_json)?;
-    Ok(result)
+    download_info_context.download_count = download_count.load(Ordering::Relaxed);
+    Ok(DownloadInfoResponse {
+        id: download_info_context.id,
+        status: "checkSource".to_string(),
+        download_count: Some(download_info_context.download_count),
+        count: None,
+        download_status: None,
+        mes_type: "downloadSliceEnd".to_string(),
+    })
 }
 
 pub fn read_data_to_queue(
@@ -338,7 +386,7 @@ pub async fn downloaded_file_save(p: DownloadInfoDetail) -> anyhow::Result<(), t
 
 async fn check_source(
     download_info_context: &mut DownloadInfoContext,
-) -> anyhow::Result<String, Box<dyn std::error::Error>> {
+) -> anyhow::Result<DownloadInfoResponse, Box<dyn std::error::Error>> {
     let mut downloaded = true;
     let v = std::fs::read_to_string(download_info_context.json_path.clone())?;
     let download_source_info = serde_json::from_str::<DownloadSourceInfo>(&v)?;
@@ -351,21 +399,24 @@ async fn check_source(
         status = "merger".to_string();
     }
 
-    let r_json = json!({
-        "id": download_info_context.id,
-        "status": status,
-        "mes_type": "checkSourceEnd",
-    });
-    let result = serde_json::to_string(&r_json)?;
-    Ok(result)
+    Ok(DownloadInfoResponse {
+        id: download_info_context.id,
+        status,
+        download_count: None,
+        count: None,
+        download_status: None,
+        mes_type: "checkSourceEnd".to_string(),
+    })
 }
 
 pub async fn merger(
     download_info_context: &mut DownloadInfoContext,
-) -> anyhow::Result<String, Box<dyn std::error::Error>> {
+) -> anyhow::Result<DownloadInfoResponse, Box<dyn std::error::Error>> {
     let index_str = utils::get_path_name(&download_info_context.index_path);
+    clear_download_fail_ts(index_str.clone()).await?;
     let mv_str = index_str.replace("txt", "mp4");
     File::create(Path::new(&mv_str)).await?;
+    info!("开始合并视频, index:{}", index_str.clone());
     let mut cmd = Command::new("ffmpeg");
     let output = cmd
         .args([
@@ -384,24 +435,74 @@ pub async fn merger(
         ])
         .output()?;
     if output.status.success() {
-        let r_json = json!({
-            "id": download_info_context.id,
-            "status": "downloadEnd".to_string(),
-            "download_status": "downloadSuccess".to_string(),
-            "mes_type": "end",
-        });
-
         tokio::spawn(delete_m3u8_tmp_file(
             index_str,
             download_info_context.sub_title_name.clone(),
         ));
 
-        let result = serde_json::to_string(&r_json)?;
-        Ok(result)
+        Ok(DownloadInfoResponse {
+            id: download_info_context.id,
+            status: "downloadEnd".to_string(),
+            download_count: None,
+            count: None,
+            download_status: Some("downloadSuccess".to_string()),
+            mes_type: "end".to_string(),
+        })
     } else {
         let s = String::from_utf8_lossy(&output.stderr);
+        error!("合并视频错误：{}", s);
         return Err(Box::from(s));
     }
+}
+
+async fn clear_download_fail_ts(index_str: String) -> anyhow::Result<(), tokio::io::Error> {
+    let index_path = PathBuf::from(&index_str); // Use reference for path creation
+    let mut valid_lines = Vec::new();
+
+    // First pass: Read index file and collect valid lines/paths
+    { // Scope for reader to release the file lock
+        let f = File::open(&index_path).await?;
+        let mut reader = BufReader::new(f);
+        let mut line = String::new();
+        while reader.read_line(&mut line).await? > 0 {
+            let current_line_trimmed = line.trim();
+            if current_line_trimmed.is_empty() {
+                line.clear();
+                continue;
+            }
+            let file_path_str = if current_line_trimmed.starts_with("file ") {
+                current_line_trimmed.trim_start_matches("file ").trim()
+            } else {
+                current_line_trimmed // Assume it's just the path if no "file " prefix
+            };
+            let path = PathBuf::from(file_path_str);
+            // Check if file exists asynchronously
+            if tokio::fs::metadata(&path).await.is_ok() {
+                 // Store the original line with newline character
+                valid_lines.push(line.clone());
+            } else {
+                // File doesn't exist, implicitly remove the line by not adding it
+                info!("Index line skipped (file not found): {}", file_path_str);
+            }
+            line.clear();
+        }
+    } // Reader goes out of scope here
+
+    // Second pass: Rewrite the index file with only valid lines
+    { // Scope for writer
+        let mut index_file_writer = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .create(true) // Create if it doesn't exist (though it should)
+            .open(&index_path)
+            .await?;
+        for valid_line in valid_lines {
+            index_file_writer.write_all(valid_line.as_bytes()).await?;
+        }
+        index_file_writer.flush().await?; // Ensure all data is written
+    }
+
+    Ok(())
 }
 
 async fn delete_m3u8_tmp_file(

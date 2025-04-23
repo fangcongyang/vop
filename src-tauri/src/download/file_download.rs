@@ -1,23 +1,15 @@
 use crossbeam::queue::SegQueue;
 use lazy_static::lazy_static;
-use moka::sync::Cache;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
-    net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread, time::Duration
+    net::{TcpListener, TcpStream}, sync::Mutex, thread
 };
 
-use log::{error, info};
+use log::error;
 use tungstenite::{accept, handshake::HandshakeRole, Error, HandshakeError, Message, Result};
 
-use crate::download::m3u8_download::download_m3u8;
-
-lazy_static! {
-    pub static ref CACHE: Mutex<Arc<Cache<String, i32>>> = Mutex::new(Arc::new(Cache::builder()
-    .max_capacity(2 * 1024 * 1024)
-    .time_to_live(Duration::from_secs(1 * 60 * 60))
-    .build()));
-}
+use crate::download::m3u8_download::M3u8Download;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DownloadInfo {
@@ -91,31 +83,9 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                         ))?
                     }
                     "downloadVideo" => {
-                        let mut download_info = request.downloadInfo.unwrap();
-                        let uq_key = &format!(
-                            "{}_{}",
-                            download_info.id, &download_info.status
-                        );
-                        let cache = CACHE.lock().unwrap();
-                        let entry = cache.entry(uq_key.clone()).or_insert(0);
-                        info!("下载主键：{}, 重试次数：{}", uq_key, entry.value());
-                        let x = entry.value() + 1;
-                        cache.insert(uq_key.clone(), x);
-                        if x >= 3 {
-                            cache.remove(uq_key.as_str());
-                            socket.send(tungstenite::Message::text(
-                                serde_json::to_string(&json!({
-                                    "id": download_info.id,
-                                    "download_status": "downloadFail",
-                                    "mes_type": "end"
-                                })).expect("Failed to serialize json"),
-                            ))?
-                        }
-                        let _ = download_m3u8(
-                            &mut download_info,
-                            &mut socket,
-                        )
-                        .await;
+                        let download_info = request.downloadInfo.unwrap();
+                        let mut m3u8_download = M3u8Download::new(&mut download_info.clone()).unwrap();
+                        m3u8_download.start_download( &mut socket).await;
                     }
                     _ => {}
                 }
