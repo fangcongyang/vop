@@ -1,4 +1,13 @@
-## 0.0.1 (2025-05-03)
+## [0.0.2](https://github.com/fangcongyang/vop/compare/v0.0.1...v0.0.2) (2025-05-03)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* bug修复 ([](https://github.com/fangcongyang/vop/commit/c373179))
+
+
+
+## [0.0.1](https://github.com/fangcongyang/vop/compare/0.0.1...v0.0.1) (2025-05-03)
 
 
 ### ✨ Features | 新功能
