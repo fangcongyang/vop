@@ -26,8 +26,8 @@ import {
   clearSearchRecord,
 } from "@/db";
 import { uniqBy } from "lodash";
-import { AutoComplete, message } from "antd";
-import { LoadingOutlined } from "@ant-design/icons";
+import { AutoComplete, message, Button } from "antd";
+import { LoadingOutlined, UpOutlined, DownOutlined } from "@ant-design/icons";
 import { Flex, Spin } from "antd";
 import { osType } from "@/utils/env";
 import utils from "@/utils";
@@ -80,13 +80,34 @@ const Movie = () => {
   const [tipMessage, setTipMessage] = useState("");
   const cancelSiteClassRequest = useRef(null);
   const loadingRef = useRef(null);
+  const [showBackTop, setShowBackTop] = useState(false);
 
   // 优化后的 IntersectionObserver 监听
   useIntersectionObserver(loadingRef, async () => {
-    if (pageRef.current > getMoviePageInfo().pageCount) return;
+    if (pageRef.current > getMoviePageInfo().pageCount) return messageApi.info("已加载全部");
     await infiniteHandler(pageRef.current);
     pageRef.current = pageRef.current + 1;
   }, { root: null, threshold: 0.5 });
+  
+  // 监听页面滚动，控制回到顶部按钮的显示和隐藏
+  useEffect(() => {
+    const handleScroll = () => {
+      if (pageMainRef.current) {
+        setShowBackTop(pageMainRef.current.scrollTop > 300);
+      }
+    };
+    
+    const pageMainElement = pageMainRef.current;
+    if (pageMainElement) {
+      pageMainElement.addEventListener('scroll', handleScroll);
+    }
+    
+    return () => {
+      if (pageMainElement) {
+        pageMainElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     getSiteList().then((result) => {
@@ -303,7 +324,6 @@ const Movie = () => {
         messageApi.error("获取资源列表失败");
       }
     } catch (error) {
-      console.log(error);
       messageApi.error("获取资源列表失败");
     } finally {
       movieInfo.movieRequestList = false;
@@ -360,6 +380,26 @@ const Movie = () => {
       setKeywords("");
       return;
     });
+  };
+  
+  // 回到顶部功能
+  const scrollToTop = () => {
+    if (pageMainRef.current) {
+      pageMainRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+  
+  // 滚动到底部功能
+  const scrollToBottom = () => {
+    if (pageMainRef.current) {
+      pageMainRef.current.scrollTo({
+        top: pageMainRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   return (
@@ -468,6 +508,28 @@ const Movie = () => {
       {movieFilteredList.length > 0 && <div ref={loadingRef} className="loading">
         <Spin indicator={<LoadingOutlined spin />} />
       </div>}
+      
+      {/* 回到顶部按钮 */}
+      {showBackTop && (
+        <Button 
+          className="back-to-top-btn" 
+          type="primary" 
+          shape="circle" 
+          icon={<UpOutlined />} 
+          onClick={scrollToTop} 
+        />
+      )}
+      
+      {/* 滚动到底部按钮 */}
+      {showBackTop && (
+        <Button 
+          className="scroll-to-bottom-btn" 
+          type="primary" 
+          shape="circle" 
+          icon={<DownOutlined />} 
+          onClick={scrollToBottom} 
+        />
+      )}
     </div>
   );
 };

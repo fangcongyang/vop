@@ -1,0 +1,128 @@
+name: Release
+ 
+on:
+  push:
+    branches: [ master ]
+    tags-ignore: [ updater ]
+
+permissions: write-all
+ 
+jobs:
+  change-version:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.outputstep.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install git
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git
+      - id: outputstep
+        run: |
+          echo "VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')" >> "$GITHUB_OUTPUT"
+      - name: Change Version for Windows
+        run: |
+          jq ".version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"" package.json > package.json.tmp && mv package.json.tmp package.json
+
+          jq ".version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+
+          sed -i "s/version = \"0.0.0\"/version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/Cargo.toml
+          
+          echo $(git describe --tags | sed 's/-[0-9]*-.*//g')
+
+      - name: Upload Artifacts for Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: source
+          path: ./*
+          include-hidden-files: true
+          if-no-files-found: error
+  build:
+    needs: change-version
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            args: '--target x86_64-pc-windows-msvc'
+          - platform: 'windows-latest'
+            args: '--target i686-pc-windows-msvc'
+          - platform: 'windows-latest'
+            args: '--target aarch64-pc-windows-msvc'
+          - platform: 'macos-latest' # for Arm based macs (M1 and above).
+            args: '--target aarch64-apple-darwin'
+          - platform: 'macos-latest' # for Intel based macs.
+            args: '--target x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: source
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - name: install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        # webkitgtk 4.0 is for Tauri v1 - webkitgtk 4.1 is for Tauri v2.
+      - name: install dependencies (windows only)
+        if: matrix.platform == 'windows-latest' # This must match the platform value defined above.
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          choco install openssl -y --no-progress
+          $opensslPath = "${env:ProgramFiles}\OpenSSL\bin"
+          echo "OPENSSL_HOME=${env:ProgramFiles}\OpenSSL" >> $env:GITHUB_ENV
+          echo "$opensslPath" >> $env:GITHUB_PATH
+          rustup target add aarch64-pc-windows-msvc
+      - name: install dependencies (macos only)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          brew install openssl@3 pkg-config
+          OPENSSL_PREFIX=$(brew --prefix openssl@3)
+          echo "OPENSSL_DIR=$OPENSSL_PREFIX" >> $GITHUB_ENV
+          echo "OPENSSL_ROOT_DIR=$OPENSSL_PREFIX" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$OPENSSL_PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+          echo "LDFLAGS=-L$OPENSSL_PREFIX/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$OPENSSL_PREFIX/include" >> $GITHUB_ENV
+      - name: install frontend dependencies
+        run: |
+          npm install pnpm -g
+          pnpm install --no-frozen-lockfile
+      - name: 提取 CHANGELOG 最新内容
+        id: changelog
+        run: |
+          awk '/^#+ \[/{if(NR!=1)exit;print;next}NR!=1{print}' CHANGELOG.md > LATEST_CHANGELOG.md
+          echo "CHANGELOG_BODY<<EOF" >> $GITHUB_ENV
+          cat LATEST_CHANGELOG.md >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          releaseName: 'v__VERSION__'
+          releaseBody: ${{ env.CHANGELOG_BODY }}
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

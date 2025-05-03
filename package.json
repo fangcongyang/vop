@@ -44,6 +44,7 @@
   "devDependencies": {
     "@tauri-apps/cli": "2.5.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "conventional-changelog-cli": "^5.0.0",
     "fast-glob": "^3.3.2",
     "internal-ip": "^7.0.0",
     "sass": "^1.72.0",

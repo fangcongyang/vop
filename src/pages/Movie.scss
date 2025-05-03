@@ -99,3 +99,77 @@
     display: flex;
     justify-content: flex-end;
 }
+
+.back-to-top-btn {
+    position: fixed;
+    right: 30px;
+    bottom: 30px;
+    width: 44px !important;
+    height: 44px !important;
+    z-index: 100;
+    opacity: 0.85;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    
+    &:hover {
+        opacity: 1;
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    }
+    
+    &:active {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    @include responseTo('phonePortrait') {
+        right: 16px;
+        bottom: 80px; /* 在移动设备上，避免与底部导航栏重叠 */
+        width: 40px;
+        height: 40px;
+    }
+}
+
+.scroll-to-bottom-btn {
+    position: fixed;
+    right: 30px;
+    bottom: 90px; /* 位置在回到顶部按钮上方 */
+    width: 44px !important;
+    height: 44px !important;
+    z-index: 100;
+    opacity: 0.85;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    
+    &:hover {
+        opacity: 1;
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+    }
+    
+    &:active {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    @include responseTo('phonePortrait') {
+        right: 16px;
+        bottom: 140px; /* 在移动设备上，位置在回到顶部按钮上方 */
+        width: 40px;
+        height: 40px;
+    }
+}

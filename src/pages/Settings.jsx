@@ -10,10 +10,12 @@ import SettingsSwitch from "@/components/SettingsSwitch";
 import SettingsInputArray from "@/components/SettingsInputArray";
 import SettingButton from "@/components/SettingButton";
 import SettingsSelect from "@/components/SettingsSelect";
+import SettingsColorPicker from "@/components/SettingsColorPicker";
 import { closeAppOptionSelectData } from "@/static/settingsData";
 import { clearDB } from "@/db";
 import { useConfig } from "@/hooks";
 import { store } from "@/utils/store";
+import { applyTheme } from "@/theme";
 import _ from "lodash";
 import "./Settings.scss";
 
@@ -62,6 +64,8 @@ const Settings = (props) => {
     const [proxyProtocol, setProxyProtocol] = useConfig("proxyProtocol", "");
     const [proxyServer, setProxyServer] = useConfig("proxyServer", "");
     const [proxyPort, setProxyPort] = useConfig("proxyPort", "");
+    const [darkMode, setDarkMode] = useConfig("darkMode", false);
+    const [themeColor, setThemeColor] = useConfig("themeColor", "#335eea");
     const [clientUniqueId, setClientUniqueId] = useState("");
     const [dataUpload, setDataUpload] = useState(false);
 
@@ -144,6 +148,24 @@ const Settings = (props) => {
         setDataUpload(dataUpload);
         uploadData(dataUpload)
     };
+
+    const darkModeCallback = (darkMode) => {
+        setDarkMode(darkMode);
+        // 应用主题设置
+        applyTheme(darkMode, themeColor);
+    };
+
+    const themeColorCallback = (color) => {
+        setThemeColor(color);
+        // 应用主题设置
+        applyTheme(darkMode, color);
+    };
+
+    // 初始化主题设置
+    useEffect(() => {
+        applyTheme(darkMode, themeColor);
+    }, []);
+
 
     return (
         <div
@@ -287,6 +309,24 @@ const Settings = (props) => {
                         更新代理
                     </button>
                 </div>
+                {/* 主题设置 */}
+                <h3>主题设置</h3>
+                <SettingsSwitch
+                    title="暗色模式"
+                    initValue={darkMode}
+                    fieldKey="darkMode"
+                    callback={(switchValue) =>
+                        darkModeCallback(switchValue)
+                    }
+                />
+                <SettingsColorPicker
+                    title="主题色"
+                    initValue={themeColor}
+                    fieldKey="themeColor"
+                    description="自定义应用的主题颜色"
+                    callback={(color) => themeColorCallback(color)}
+                />
+                
                 {/* 其他 */}
                 <h3>其他</h3>
                 <SettingsSwitch

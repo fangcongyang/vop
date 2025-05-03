@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { pageActiveStore, togglePageActive } from "@/store/coreSlice";
 import { updateDownloadProcess } from "@/store/movieSlice";
+import { applyTheme } from "./theme";
+import { store } from "./utils/store";
 import Navbar from "./components/Navbar";
 import WinTool from "./components/WinTool";
 import BottomNav from "./components/BottomNav";
@@ -37,6 +39,15 @@ function App() {
                 downloadBusArr = [];
             };
         }
+        
+        // 初始化主题设置
+        const initTheme = async () => {
+            const darkMode = await store.get("darkMode") || false;
+            const themeColor = await store.get("themeColor") || "#335eea";
+            applyTheme(darkMode, themeColor);
+        };
+        
+        initTheme();
     }, []);
 
     const initDownloadWebsocket = () => {

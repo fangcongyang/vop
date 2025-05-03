@@ -26,13 +26,14 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { Transition } from "react-transition-group";
 import movieApi from "@/api/movies";
 import SvgIcon from "@/components/SvgIcon";
-import { message } from "antd";
+import { message, QRCode, Modal, Button, Tooltip } from "antd";
 import { fmtMSS } from "@/utils/common";
 import _ from "lodash";
 import date from "@/utils/date";
 import { toggleScreenOrientation } from "tauri-plugin-vop-api";
 import { osType } from "@/utils/env";
 import "./Play.scss";
+import { QrcodeOutlined } from "@ant-design/icons";
 
 let player;
 let playPage = {
@@ -58,6 +59,8 @@ const Play = (props) => {
     const [playMode, setPlayMode] = useState("local");
     const [playing, setPlaying] = useState(false);
     const [episodesButtonMaxWidth, setEpisodesButtonMaxWidth] = useState(0);
+    const [qrCodeVisible, setQrCodeVisible] = useState(false);
+    const [currentPlayUrl, setCurrentPlayUrl] = useState("");
     const [playerInfo, setPlayerInfo] = useState({
         searchTxt: "",
         skipendStatus: false,
@@ -195,6 +198,10 @@ const Play = (props) => {
                 const url = playlist[index].includes("$")
                     ? playlist[index].split("$")[1]
                     : playlist[index];
+                
+                // 保存当前播放URL用于二维码显示
+                setCurrentPlayUrl(url);
+                
                 if (
                     playlist.every((e) =>
                         e.includes("$")
@@ -209,6 +216,8 @@ const Play = (props) => {
                             movieParseUrlInfo.value.vipPlay = true;
                             playInfo.value.movie.onlineUrl =
                                 movieParseUrl.websiteParseUrl + url;
+                            // 更新在线解析URL用于二维码
+                            setCurrentPlayUrl(movieParseUrl.websiteParseUrl + url);
                         } else {
                             playInfo.value.movie.onlineUrl = url;
                         }
@@ -603,8 +612,19 @@ const Play = (props) => {
         }
     };
 
+    // 显示二维码弹窗
+    const showQRCode = () => {
+        setQrCodeVisible(true);
+    };
+
+    // 关闭二维码弹窗
+    const closeQRCode = () => {
+        setQrCodeVisible(false);
+    };
+
     return (
         <div className={props.className ? "play " + props.className : "play"}>
+            {contextHolder}
             <div className="box">
                 <div className="title">
                     {playing ? (
@@ -619,6 +639,16 @@ const Play = (props) => {
                             <span className="span-one-line">
                                 {playInfo.name}
                             </span>
+                            {currentPlayUrl && (
+                                <Tooltip title="显示播放链接二维码">
+                                    <Button 
+                                        type="text" 
+                                        icon={<QrcodeOutlined />} 
+                                        onClick={showQRCode} 
+                                        style={{ marginLeft: '8px' }}
+                                    />
+                                </Tooltip>
+                            )}
                         </>
                     ) : (
                         historyList.length > 0 &&
@@ -722,6 +752,33 @@ const Play = (props) => {
                     }
                 </div>
             </div>
+
+            {/* 二维码弹窗 */}
+            <Modal
+                title="播放链接二维码"
+                open={qrCodeVisible}
+                onCancel={closeQRCode}
+                footer={[
+                    <Button key="close" onClick={closeQRCode}>
+                        关闭
+                    </Button>
+                ]}
+                centered
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px' }}>
+                    <p style={{ marginBottom: '20px' }}>扫描二维码在移动设备上继续观看</p>
+                    {currentPlayUrl && (
+                        <QRCode
+                            value={currentPlayUrl}
+                            size={200}
+                            bordered={false}
+                        />
+                    )}
+                    <p style={{ marginTop: '20px', fontSize: '12px', color: '#999' }}>
+                        链接有效期可能有限，请及时扫码
+                    </p>
+                </div>
+            </Modal>
         </div>
     );
 };

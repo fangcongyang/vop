@@ -49,20 +49,10 @@ const Navbar = memo(({ children }) => {
     });
   };
 
-  const go = (where) => {};
-
   return (
     <div id="contentBody" className="navBar">
       <nav className="nav">
         <div className="navigationButtons">
-          <ButtonIcon
-            onClick={() => go("back")}
-            children={<SvgIcon name="arrow-left" title="后退" />}
-          />
-          <ButtonIcon
-            children={<SvgIcon name="arrow-right" title="前进" />}
-            onClick={() => go("forward")}
-          />
         </div>
         <div className="navigationLinks">
           <a
