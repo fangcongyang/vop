@@ -1,0 +1,109 @@
+import React, { useState, useEffect } from "react";
+import { Modal, Button, Space, Progress } from "antd"; // 使用antd的Modal、Button、Space和Progress组件
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+import styles from "./UpdateModal.module.scss";
+import { invoke } from "@tauri-apps/api/core";
+import { marked } from "marked";
+
+const UpdateModal = ({
+  show,
+  currentVersion,
+  onClose,
+}) => {
+  const [latestVersion, setLatestVersion] = useState("");
+  const [body, setBody] = useState("");
+  const [isStarted, setIsStarted] = useState(false); // Add isStarted
+  const [progress, setProgress] = useState(0); // Add progres
+
+  useEffect(() => {
+    invoke("github_repos_info_version", {
+      owner: "fangcongyang",
+      repo: "vop",
+    }).then((githubLatestReleaseInfo) => {
+      if (!githubLatestReleaseInfo) {
+        setBody(marked.parse("# 获取最新版本信息失败"));
+        return;
+      }
+      setLatestVersion(githubLatestReleaseInfo.tag_name);
+      setBody(marked.parse(githubLatestReleaseInfo.body));
+    });
+  }, []);
+
+  if (!show) {
+    return null;
+  }
+
+  const doUpdate = async () => {
+    const update = await check();
+    if (update) {
+      let downloaded = 0;
+      let contentLength = 0;
+      // alternatively we could also call update.download() and update.install() separately
+      await update.downloadAndInstall((event) => {
+        switch (event.event) {
+          case "Started":
+            contentLength = event.data.contentLength;
+            setIsStarted(true);
+            break;
+          case "Progress":
+            downloaded += event.data.chunkLength;
+            setProgress(
+              parseFloat(((downloaded / contentLength) * 100).toFixed(2))
+            );
+            break;
+          case "Finished":
+            setIsStarted(false);
+            break;
+        }
+      });
+
+      await relaunch();
+    }
+  };
+
+  return (
+    <Modal
+      title="检查更新"
+      open={show}
+      onCancel={onClose}
+      maskClosable={false}
+      footer={null}
+      className={styles.updateModal}
+    >
+      <h2>
+        新版本:{latestVersion}
+      </h2>
+      <div className={styles.changelog}>
+        <h3>更新日志</h3>
+        <div dangerouslySetInnerHTML={{ __html: body }} />
+      </div>
+      <Space style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+        {isStarted && (
+          <>
+            <div style={{ width: "100%", marginRight: 8 }}>
+              <Progress percent={progress} status="active" />
+            </div>
+            <div style={{ minWidth: 35 }}>
+              <span style={{ fontSize: 14, color: 'rgba(0, 0, 0, 0.45)' }}>
+                {`${Math.round(progress)}%`}
+              </span>
+            </div>
+          </>
+        )}
+      </Space>
+      <div className={styles.actions}>
+        {latestVersion !== currentVersion && (
+          <Button type="primary" onClick={doUpdate}>
+            立即更新
+          </Button>
+        )}
+        <Button onClick={onClose}>
+          取消
+        </Button>
+      </div>
+    </Modal>
+  );
+};
+
+export default UpdateModal;

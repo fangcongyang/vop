@@ -1,26 +1,23 @@
 use log::{info, warn};
 use serde_json::{json, Value};
-use tauri::{path::BaseDirectory, Manager, Wry};
-use tauri_plugin_store::{Store, StoreExt};
-use std::sync::{Arc, Mutex};
+use std::path::PathBuf;
+use tauri::{path::BaseDirectory, Manager};
+use tauri_plugin_store::StoreExt;
 
 use crate::{utils, APP};
 
-// pub const BUY_COFFEE: &str = "https://www.buymeacoffee.com/lencx";
-
-pub struct StoreWrapper(pub Mutex<Arc<Store<Wry>>>);
-
-pub fn init_config(app: &mut tauri::App) {
+fn get_path(app: &tauri::AppHandle) -> PathBuf {
     let config_path = app.path().resolve("", BaseDirectory::AppConfig).unwrap();
-    let config_path = config_path.join("config.json");
+    config_path.join("vop.json")
+}
+
+pub fn init_config(app: &mut tauri::AppHandle) {
+    let config_path = get_path(app);
     let _ = utils::create_dir_if_not_exists(&config_path);
     info!("Load config from: {:?}", config_path);
-    let store = app.store(config_path);
-    match store {
-        Ok(store) => {
-            info!("Config loaded");
-            app.manage(StoreWrapper(Mutex::new(store)));
-        },
+
+    match app.store(config_path) {
+        Ok(_) => info!("Config loaded"),
         Err(e) => {
             warn!("Config load error: {:?}", e);
             info!("Config not found, creating new config");
@@ -30,26 +27,44 @@ pub fn init_config(app: &mut tauri::App) {
 
 #[allow(unused)]
 pub fn get(key: &str) -> Option<Value> {
-  let state = APP.get().unwrap().state::<StoreWrapper>();
-  let store = state.0.lock().unwrap();
-  match store.get(key) {
-      Some(value) => Some(value.clone()),
-      _none => None,
-  }
+    let app = APP.get().unwrap();
+    let store = app.get_store(get_path(app)).unwrap();
+    match store.get(key) {
+        Some(value) => Some(value.clone()),
+        _none => None,
+    }
+}
+
+pub fn get_string(key: &str) -> String {
+    let app = APP.get().unwrap();
+    let store = app.get_store(get_path(app)).unwrap();
+    match store.get(key) {
+        Some(value) => {
+            // 尝试将值转换为字符串
+            match value {
+                // 如果值是字符串
+                Value::String(s) => s.clone(),
+                // 如果值是数字
+                Value::Number(n) => n.to_string(),
+                // 其他类型可以根据需要处理
+                _ => "".to_owned(),
+            }
+        }
+        _none => "".to_owned(),
+    }
 }
 
 pub fn set<T: serde::ser::Serialize>(key: &str, value: T) {
-  let state = APP.get().unwrap().state::<StoreWrapper>();
-  let store = state.0.lock().unwrap();
-  store.set(key.to_string(), json!(value));
-  store.save().unwrap();
+    let app = APP.get().unwrap();
+    let store = app.get_store(get_path(app)).unwrap();
+    store.set(key.to_string(), json!(value));
+    store.save().unwrap();
 }
 
-
 pub fn is_first_run() -> bool {
-  let state = APP.get().unwrap().state::<StoreWrapper>();
-  let store = state.0.lock().unwrap();
-  store.length() == 0
+    let app = APP.get().unwrap();
+    let store = app.get_store(get_path(app)).unwrap();
+    store.length() == 0
 }
 
 pub fn init_config_value() {
@@ -59,22 +74,26 @@ pub fn init_config_value() {
         return;
     }
     let init_config_value: Value = serde_json::from_str(&init_config_value_str).unwrap();
-    init_config_value.as_object().unwrap().iter().for_each(|(k, v)| {
-        set(k, v.clone());
-    })
+    init_config_value
+        .as_object()
+        .unwrap()
+        .iter()
+        .for_each(|(k, v)| {
+            set(k, v.clone());
+        })
 }
 
 pub mod cmd {
-    use tauri::Manager;
+    use tauri_plugin_store::StoreExt;
 
     use crate::APP;
 
-    use super::StoreWrapper;
+    use super::get_path;
 
     #[tauri::command]
     pub fn reload_store() {
-        let state = APP.get().unwrap().state::<StoreWrapper>();
-        let store = state.0.lock().unwrap();
+        let app = APP.get().unwrap();
+        let store = app.get_store(get_path(app)).unwrap();
         store.reload().unwrap();
     }
 }

@@ -102,7 +102,8 @@ const Navbar = memo(({ children }) => {
             }}
             allowClear
             options={searchList}
-            onChange={(value) => {
+            onChange={(value) => setKeywords(value)}
+            onSelect={(value) => {
                 if (value === "清除搜索记录") {
                   onClearSearchRecord();
                   return;

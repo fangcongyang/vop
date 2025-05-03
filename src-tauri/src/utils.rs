@@ -1,10 +1,13 @@
 use std::{
-    path::{ Path, PathBuf },
-    fs::{ self, read_to_string, File},
-    env
+    env,
+    fs::{self, read_to_string, File},
+    path::{Path, PathBuf},
 };
 
 use anyhow::Result;
+use tauri_plugin_http::reqwest::{self, ClientBuilder};
+
+use crate::conf::get_string;
 
 pub fn app_install_root() -> PathBuf {
     env::current_exe().expect("failed to get current exe path")
@@ -17,8 +20,7 @@ pub fn read_init_data_file(data_name: &str) -> String {
     if !exists(&path) {
         return "[]".to_string();
     }
-    let contents = read_to_string(path)
-    .expect("Should have been able to read the file");
+    let contents = read_to_string(path).expect("Should have been able to read the file");
     contents
 }
 
@@ -32,7 +34,7 @@ pub fn is_empty(path: &Path) -> bool {
 
 pub fn create_file(path: &Path) -> Result<File> {
     if let Some(p) = path.parent() {
-      fs::create_dir_all(p)?
+        fs::create_dir_all(p)?
     }
     File::create(path).map_err(Into::into)
 }
@@ -70,13 +72,28 @@ pub fn get_path_name<P: AsRef<Path>>(p: P) -> String {
     }
 }
 
+pub fn create_request_builder() -> ClientBuilder {
+    let client_builder = ClientBuilder::new();
+    if get_string("proxyProtocol") == "noProxy" || get_string("proxyProtocol") == "" {
+        client_builder.no_proxy()
+    } else {
+        let proxy_url = format!(
+            "{}://{}:{}",
+            get_string("proxyProtocol"),
+            get_string("proxyServer"),
+            get_string("proxyPort")
+        );
+        client_builder.proxy(reqwest::Proxy::http(proxy_url).unwrap())
+    }
+}
+
 pub mod cmd {
     use super::*;
     use log::error;
-    use tauri::command;
-    use serde::{Serialize, Deserialize};
-    use url::Url;
+    use serde::{Deserialize, Serialize};
     use std::process::Command;
+    use tauri::command;
+    use url::Url;
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Site {
@@ -104,7 +121,7 @@ pub mod cmd {
             site.position = Some(position_num);
             position_num += 20.0;
         });
-    
+
         sites
     }
 
@@ -131,20 +148,14 @@ pub mod cmd {
     pub async fn calculate_ping_latency(host: String) -> Result<f64, String> {
         // 构建 ping 命令
         let issue_list_url = Url::parse(&host).map_err(|e| format!("URL 解析失败: {}", e))?;
-        
+
         let output = Command::new("ping")
-            .args([
-                "-n",
-                "3",
-                "-w",
-                "3",
-                issue_list_url.host_str().unwrap()
-            ])
-            .env("LANG", "C") 
+            .args(["-n", "3", "-w", "3", issue_list_url.host_str().unwrap()])
+            .env("LANG", "C")
             .env("chcp", "437")
             .output()
             .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
-    
+
         if output.status.success() {
             // 解析 ping 命令的输出
             let output_str = encoding_rs::GBK.decode(&output.stdout).0;
@@ -156,19 +167,23 @@ pub mod cmd {
             ))
         }
     }
-    
+
     fn extract_latency(output: &str) -> Result<f64, String> {
         // 使用正则表达式提取丢包数
-        let lose_time_re = regex::Regex::new(r"丢失 = (\d+)").map_err(|e| format!("正则表达式编译失败: {}", e))?;
+        let lose_time_re =
+            regex::Regex::new(r"丢失 = (\d+)").map_err(|e| format!("正则表达式编译失败: {}", e))?;
         // 使用正则表达式提取平均时间
-        let waste_time_re = regex::Regex::new(r"平均 = (\d+)ms").map_err(|e| format!("正则表达式编译失败: {}", e))?;
+        let waste_time_re = regex::Regex::new(r"平均 = (\d+)ms")
+            .map_err(|e| format!("正则表达式编译失败: {}", e))?;
         // 匹配丢包数
         let lose_time: Vec<_> = lose_time_re.captures_iter(output).collect();
         // 当匹配到丢失包信息失败,默认为三次请求全部丢包,丢包数lose赋值为3
         let lose = if lose_time.is_empty() {
             3
         } else {
-            lose_time[0][1].parse::<i32>().map_err(|e| format!("解析丢包数失败: {}", e))?
+            lose_time[0][1]
+                .parse::<i32>()
+                .map_err(|e| format!("解析丢包数失败: {}", e))?
         };
 
         // 如果丢包数目大于2个,则认为连接超时,返回平均耗时1000ms
@@ -182,7 +197,9 @@ pub mod cmd {
         if average.is_empty() {
             Ok(1000.0)
         } else {
-            let average_time = average[0][1].parse::<f64>().map_err(|e| format!("解析平均耗时失败: {}", e))?;
+            let average_time = average[0][1]
+                .parse::<f64>()
+                .map_err(|e| format!("解析平均耗时失败: {}", e))?;
             // 返回平均耗时
             Ok(average_time)
         }

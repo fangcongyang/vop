@@ -1,0 +1,34 @@
+{
+    "identifier": "com.tauri.vop",
+    "bundle": {
+        "windows": {
+            "allowDowngrades": true,
+            "certificateThumbprint": null,
+            "digestAlgorithm": null,
+            "nsis": {
+                "displayLanguageSelector": true,
+                "installerIcon": "icons/icon.ico",
+                "installMode": "both",
+                "languages": ["SimpChinese", "TradChinese", "English"]
+            },
+            "wix": {
+                "bannerPath": "icons/icon.ico",
+                "dialogImagePath": "icons/icon.ico",
+                "language": ["zh-CN", "zh-TW", "en-US"]
+            },
+            "timestampUrl": null,
+            "tsp": false,
+            "webviewInstallMode": {
+                "silent": true,
+                "type": "downloadBootstrapper"
+            }
+        }
+    },
+    "plugins": {
+        "updater": {
+          "windows": {
+            "installMode": "basicUi"
+          }
+        }
+    }
+}

@@ -8,6 +8,7 @@ mod cache;
 mod conf;
 mod download;
 mod utils;
+mod app;
 
 use download::file_download;
 use tauri_plugin_log::{Target, TargetKind};
@@ -20,6 +21,7 @@ pub static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
@@ -41,17 +43,14 @@ pub fn run() {
         .setup(move |app| {
             // Global AppHandle
             APP.get_or_init(|| app.handle().clone());
-            // Init Config
-            #[cfg(not(any(target_os = "macos")))]
-            {
-                info!("Init Config Store");
-                init_config(app);
-                // Check First Run
-                if is_first_run() {
-                    // Open Config Window
-                    info!("First Run, opening config window");
-                    init_config_value();
-                }
+            info!("Init Config Store");
+            let mut app_handle = app.handle().clone();
+            init_config(&mut app_handle);
+            // Check First Run
+            if is_first_run() {
+                // Open Config Window
+                info!("First Run, opening config window");
+                init_config_value();
             }
             let create_window_result = create_window(app);
             if create_window_result.is_err() {
@@ -73,6 +72,9 @@ pub fn run() {
             conf::cmd::reload_store,
             file_download::cmd::retry_download,
             file_download::cmd::movie_merger,
+            app::cmds::open_devtools,
+            app::cmds::download_file_task,
+            app::cmds::github_repos_info_version,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -83,7 +85,8 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
         tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()));
     #[cfg(not(target_os = "android"))]
     {
-        webview_window = webview_window.title("vop")
+        webview_window = webview_window
+            .title("vop")
             .center()
             .inner_size(1440f64, 840f64)
             .fullscreen(false)
@@ -95,7 +98,7 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
     let mut proxy_protocol: Option<Value> = None;
     #[cfg(not(any(target_os = "android", target_os = "macos")))]
     {
-        proxy_protocol = get("proxyProtocol"); 
+        proxy_protocol = get("proxyProtocol");
     }
     match proxy_protocol {
         Some(proxy_protocol) => {
@@ -105,8 +108,10 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
                 let proxy_server_str = proxy_server.as_str().unwrap();
                 let proxy_port = get("proxyPort").unwrap_or(json!(10809));
                 let proxy_port_num = proxy_port.as_u64().unwrap();
-                webview_window = webview_window
-                .proxy_url(Url::parse(&format!("{}://{}:{}", pp, proxy_server_str, proxy_port_num)).unwrap());
+                webview_window = webview_window.proxy_url(
+                    Url::parse(&format!("{}://{}:{}", pp, proxy_server_str, proxy_port_num))
+                        .unwrap(),
+                );
             }
             return Ok(webview_window.build()?);
         }

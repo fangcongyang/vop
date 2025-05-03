@@ -3,7 +3,9 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
-    net::{TcpListener, TcpStream}, sync::Mutex, thread
+    net::{TcpListener, TcpStream},
+    sync::Mutex,
+    thread,
 };
 
 use log::error;
@@ -34,7 +36,7 @@ lazy_static! {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DownloadRequest {
     pub id: String,
-    pub messageType: String, 
+    pub messageType: String,
     pub downloadInfo: Option<DownloadInfo>,
 }
 
@@ -68,8 +70,8 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
     loop {
         match socket.read()? {
             msg @ Message::Text(_) | msg @ Message::Binary(_) => {
-                let request =
-                    serde_json::from_str::<DownloadRequest>(&msg.into_text()?).expect("Resolve json error");
+                let request = serde_json::from_str::<DownloadRequest>(&msg.into_text()?)
+                    .expect("Resolve json error");
                 match request.messageType.as_str() {
                     "get_download_info_by_queue" => {
                         let queue = DOWNLOAD_QUEUE.lock().unwrap();
@@ -79,13 +81,15 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                                 "id": request.id.clone(),
                                 "downloadInfo": download_info,
                                 "messageType": "get_download_info_by_queue"
-                            })).expect("Failed to serialize json"),
+                            }))
+                            .expect("Failed to serialize json"),
                         ))?
                     }
                     "downloadVideo" => {
                         let download_info = request.downloadInfo.unwrap();
-                        let mut m3u8_download = M3u8Download::new(&mut download_info.clone()).unwrap();
-                        m3u8_download.start_download( &mut socket).await;
+                        let mut m3u8_download =
+                            M3u8Download::new(&mut download_info.clone()).unwrap();
+                        m3u8_download.start_download(&mut socket).await;
                     }
                     _ => {}
                 }
@@ -109,14 +113,15 @@ pub mod cmd {
 
     #[command]
     pub async fn movie_merger(mut download: DownloadInfo) -> Result<DownloadInfo, String> {
-        let mut download_info_context = DownloadInfoContext::new(&mut download).map_err(|e| format!("创建视频下载对象失败: {}", e))?;
+        let mut download_info_context = DownloadInfoContext::new(&mut download)
+            .map_err(|e| format!("创建视频下载对象失败: {}", e))?;
         let result = merger(&mut download_info_context).await;
         match result {
             Ok(_) => {
                 download.download_status = "downloadSuccess".to_string();
                 download.status = "downloadEnd".to_string();
                 return Ok(download);
-            },
+            }
             Err(_) => Ok(download),
         }
     }

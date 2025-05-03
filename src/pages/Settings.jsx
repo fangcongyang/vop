@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { settingsStore, togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
@@ -11,6 +12,7 @@ import SettingsInputArray from "@/components/SettingsInputArray";
 import SettingButton from "@/components/SettingButton";
 import SettingsSelect from "@/components/SettingsSelect";
 import SettingsColorPicker from "@/components/SettingsColorPicker";
+import UpdateModal from "@/components/UpdateModal";
 import { closeAppOptionSelectData } from "@/static/settingsData";
 import { clearDB } from "@/db";
 import { useConfig } from "@/hooks";
@@ -68,6 +70,7 @@ const Settings = (props) => {
     const [themeColor, setThemeColor] = useConfig("themeColor", "#335eea");
     const [clientUniqueId, setClientUniqueId] = useState("");
     const [dataUpload, setDataUpload] = useState(false);
+    const [isCheckingUpdate, setIsCheckingUpdate] = useState(false); // 添加状态
 
     useEffect(() => {
         const fetchConfig = async (key, setter) => {
@@ -159,6 +162,9 @@ const Settings = (props) => {
         setThemeColor(color);
         // 应用主题设置
         applyTheme(darkMode, color);
+    };
+    const openDevTools = () => {
+      invoke("open_devtools");
     };
 
     // 初始化主题设置
@@ -355,13 +361,33 @@ const Settings = (props) => {
                     placeholder="同步站点"
                     callback={() => syncSite()}
                 />
+                <div className="item">
+                  <div className="left">
+                    <div className="title">打开开发者工具</div>
+                  </div>
+                  <div className="right">
+                    <button onClick={openDevTools}>开发者工具</button>
+                  </div>
+                </div>
                 {osType == "desktop" && (
-                    <SettingsSelect
-                        title="关闭主面板时..."
-                        initValue={settings.closeAppOption}
-                        fieldKey="closeAppOption"
-                        selectData={closeAppOptionSelectData()}
-                    />
+                    <>
+                        <SettingsSelect
+                            title="关闭主面板时..."
+                            initValue={settings.closeAppOption}
+                            fieldKey="closeAppOption"
+                            selectData={closeAppOptionSelectData()}
+                        />
+                        <div className="item">
+                          <div className="left">
+                            <div className="title">检测更新</div>
+                          </div>
+                          <div className="right">
+                            <button onClick={() => setIsCheckingUpdate(true)}>
+                              更新
+                            </button>
+                          </div>
+                        </div>
+                    </>
                 )}
                 <SettingButton
                     title="软件重置"
@@ -383,6 +409,13 @@ const Settings = (props) => {
                     <p className="version">v {appVersion}</p>
                 </div>
             </div>
+            {isCheckingUpdate ? (
+                <UpdateModal
+                    show={isCheckingUpdate}
+                    currentVersion={appVersion}
+                    onClose={() => setIsCheckingUpdate(false)}
+                />
+            ) : null}
         </div>
     );
 };

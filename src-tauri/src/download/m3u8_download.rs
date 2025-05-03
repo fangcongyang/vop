@@ -17,13 +17,13 @@ use std::{
 };
 use tauri::http::StatusCode;
 use tauri_plugin_http::reqwest;
+use tokio::io::AsyncBufReadExt;
 use tokio::{
     fs::{remove_dir_all, remove_file, File, OpenOptions},
     io::{AsyncWriteExt, BufReader, BufWriter},
     sync::{mpsc, Semaphore},
     time,
 };
-use tokio::io::AsyncBufReadExt;
 use tungstenite::WebSocket;
 
 use crate::utils;
@@ -57,14 +57,11 @@ impl M3u8Download {
                 "{}_{}",
                 download_info_context.url.as_str(),
                 download_info_context.movie_name.clone()
-            )
+            ),
         })
     }
 
-    pub async fn start_download(
-        &mut self,
-        socket: &mut WebSocket<TcpStream>,
-    ) {
+    pub async fn start_download(&mut self, socket: &mut WebSocket<TcpStream>) {
         let mut result;
 
         let mut operation = parse_operation_name(&self.download_info_context.status[..]);
@@ -118,7 +115,8 @@ impl M3u8Download {
                         "status": self.download_info_context.status,
                         "download_status": "downloadFail",
                         "mes_type": "end"
-                    })).unwrap(),
+                    }))
+                    .unwrap(),
                 ));
                 if m.is_err() {
                     info!("发送消息失败");
@@ -460,7 +458,8 @@ async fn clear_download_fail_ts(index_str: String) -> anyhow::Result<(), tokio::
     let mut valid_lines = Vec::new();
 
     // First pass: Read index file and collect valid lines/paths
-    { // Scope for reader to release the file lock
+    {
+        // Scope for reader to release the file lock
         let f = File::open(&index_path).await?;
         let mut reader = BufReader::new(f);
         let mut line = String::new();
@@ -478,7 +477,7 @@ async fn clear_download_fail_ts(index_str: String) -> anyhow::Result<(), tokio::
             let path = PathBuf::from(file_path_str);
             // Check if file exists asynchronously
             if tokio::fs::metadata(&path).await.is_ok() {
-                 // Store the original line with newline character
+                // Store the original line with newline character
                 valid_lines.push(line.clone());
             } else {
                 // File doesn't exist, implicitly remove the line by not adding it
@@ -489,7 +488,8 @@ async fn clear_download_fail_ts(index_str: String) -> anyhow::Result<(), tokio::
     } // Reader goes out of scope here
 
     // Second pass: Rewrite the index file with only valid lines
-    { // Scope for writer
+    {
+        // Scope for writer
         let mut index_file_writer = OpenOptions::new()
             .write(true)
             .truncate(true)
