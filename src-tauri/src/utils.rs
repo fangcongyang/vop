@@ -148,13 +148,18 @@ pub mod cmd {
     pub async fn calculate_ping_latency(host: String) -> Result<f64, String> {
         // 构建 ping 命令
         let issue_list_url = Url::parse(&host).map_err(|e| format!("URL 解析失败: {}", e))?;
-
-        let output = Command::new("ping")
+        
+        // 使用 spawn 在后台运行 ping 命令
+        let child = Command::new("ping")
             .args(["-n", "3", "-w", "3", issue_list_url.host_str().unwrap()])
             .env("LANG", "C")
             .env("chcp", "437")
-            .output()
+            .spawn()
             .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
+            
+        // 等待命令完成并获取输出
+        let output = child.wait_with_output()
+            .map_err(|e| format!("等待 ping 命令完成失败: {}", e))?;
 
         if output.status.success() {
             // 解析 ping 命令的输出

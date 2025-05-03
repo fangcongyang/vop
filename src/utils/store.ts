@@ -57,7 +57,7 @@ export class TauriDataStore implements DataStore, StoreSubject {
 
     async _init() {
         const appConfigDirPath = await appConfigDir();
-        const appConfigPath = await join(appConfigDirPath, "config.json");
+        const appConfigPath = await join(appConfigDirPath, "vop.json");
         this._store = await load(appConfigPath, { autoSave: false })
     }
 
