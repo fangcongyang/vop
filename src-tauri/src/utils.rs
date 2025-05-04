@@ -155,6 +155,7 @@ pub mod cmd {
         // 使用 tokio::spawn 创建一个真正的后台任务
         let handle = tokio::spawn(async move {
             // 在新的任务中执行 ping 命令
+            #[cfg(target_os = "windows")]
             let output = Command::new("ping")
                 .args(["-n", "3", "-w", "3", &host_str])
                 .env("LANG", "C")
@@ -162,6 +163,11 @@ pub mod cmd {
                 .creation_flags(0x08000000) // 添加CREATE_NO_WINDOW标志，防止弹出cmd窗口
                 .output()
                 .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
+            #[cfg(not(target_os = "windows"))]
+            let output = Command::new("ping")
+               .args(["-c", "3", "-W", "3", &host_str])
+               .output()
+               .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
 
             if output.status.success() {
                 // 解析 ping 命令的输出
