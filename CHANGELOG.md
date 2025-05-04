@@ -1,14 +1,11 @@
-## [0.0.4](https://github.com/fangcongyang/vop/compare/v0.0.3...v0.0.4) (2025-05-04)
-
-
-
-## [0.0.3](https://github.com/fangcongyang/vop/compare/v0.0.1...v0.0.3) (2025-05-03)
+## [0.0.4](https://github.com/fangcongyang/vop/compare/v0.0.1...v0.0.4) (2025-05-04)
 
 
 ### 🐛 Bug Fixes | Bug 修复
 
 * 更新Tauri配置文件中的公钥 ([](https://github.com/fangcongyang/vop/commit/650a477))
 * bug修复 ([](https://github.com/fangcongyang/vop/commit/c373179))
+* **utils:** 修复ping命令在不同操作系统下的参数问题 ([](https://github.com/fangcongyang/vop/commit/c00d332))
 
 
 
