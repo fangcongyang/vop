@@ -2,7 +2,6 @@ use std::{
     env,
     fs::{self, read_to_string, File},
     path::{Path, PathBuf},
-    os::windows::process::CommandExt,
 };
 
 use anyhow::Result;
@@ -151,36 +150,54 @@ pub mod cmd {
         // 构建 ping 命令
         let issue_list_url = Url::parse(&host).map_err(|e| format!("URL 解析失败: {}", e))?;
         let host_str = issue_list_url.host_str().unwrap().to_string();
-        
+
         // 使用 tokio::spawn 创建一个真正的后台任务
         let handle = tokio::spawn(async move {
             // 在新的任务中执行 ping 命令
             #[cfg(target_os = "windows")]
-            let output = Command::new("ping")
-                .args(["-n", "3", "-w", "3", &host_str])
-                .env("LANG", "C")
-                .env("chcp", "437")
-                .creation_flags(0x08000000) // 添加CREATE_NO_WINDOW标志，防止弹出cmd窗口
-                .output()
-                .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
-            #[cfg(not(target_os = "windows"))]
-            let output = Command::new("ping")
-               .args(["-c", "3", "-W", "3", &host_str])
-               .output()
-               .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
+            {
+                use std::os::windows::process::CommandExt;
 
-            if output.status.success() {
-                // 解析 ping 命令的输出
-                let output_str = encoding_rs::GBK.decode(&output.stdout).0;
-                extract_latency(&output_str)
-            } else {
-                Err(format!(
-                    "ping 命令失败: {}",
-                    String::from_utf8_lossy(&output.stderr)
-                ))
+                let output = Command::new("ping")
+                    .args(["-n", "3", "-w", "3", &host_str])
+                    .env("LANG", "C")
+                    .env("chcp", "437")
+                    .creation_flags(0x08000000) // 添加CREATE_NO_WINDOW标志，防止弹出cmd窗口
+                    .output()
+                    .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
+
+                if output.status.success() {
+                    // 解析 ping 命令的输出
+                    let output_str = encoding_rs::GBK.decode(&output.stdout).0;
+                    extract_latency(&output_str)
+                } else {
+                    Err(format!(
+                        "ping 命令失败: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    ))
+                }
+            }
+            
+            #[cfg(not(target_os = "windows"))]  
+            {
+                let output = Command::new("ping")
+                    .args(["-c", "3", "-W", "3", &host_str])
+                    .output()
+                    .map_err(|e| format!("执行 ping 命令失败: {}", e))?;
+
+                if output.status.success() {
+                    // 解析 ping 命令的输出
+                    let output_str = encoding_rs::GBK.decode(&output.stdout).0;
+                    extract_latency(&output_str)
+                } else {
+                    Err(format!(
+                        "ping 命令失败: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    ))
+                }
             }
         });
-        
+
         // 等待后台任务完成并获取结果
         match handle.await {
             Ok(result) => result,
@@ -192,8 +209,8 @@ pub mod cmd {
         #[cfg(target_os = "windows")]
         {
             // 使用正则表达式提取丢包数
-            let lose_time_re =
-                regex::Regex::new(r"丢失 = (\d+)").map_err(|e| format!("正则表达式编译失败: {}", e))?;
+            let lose_time_re = regex::Regex::new(r"丢失 = (\d+)")
+                .map_err(|e| format!("正则表达式编译失败: {}", e))?;
             // 使用正则表达式提取平均时间
             let waste_time_re = regex::Regex::new(r"平均 = (\d+)ms")
                 .map_err(|e| format!("正则表达式编译失败: {}", e))?;
@@ -226,12 +243,12 @@ pub mod cmd {
                 Ok(average_time)
             }
         }
-        
+
         #[cfg(not(target_os = "windows"))]
         {
             // 使用正则表达式提取丢包数
-            let lose_time_re =
-                regex::Regex::new(r"(\d+)% packet loss").map_err(|e| format!("正则表达式编译失败: {}", e))?;
+            let lose_time_re = regex::Regex::new(r"(\d+)% packet loss")
+                .map_err(|e| format!("正则表达式编译失败: {}", e))?;
             // 使用正则表达式提取平均时间
             let waste_time_re = regex::Regex::new(r"avg = [\d\.]+/(\d+\.?\d*)/[\d\.]+")
                 .map_err(|e| format!("正则表达式编译失败: {}", e))?;
@@ -244,7 +261,11 @@ pub mod cmd {
                 let loss_percentage = lose_time[0][1]
                     .parse::<i32>()
                     .map_err(|e| format!("解析丢包率失败: {}", e))?;
-                if loss_percentage >= 100 { 3 } else { (3 * loss_percentage) / 100 }
+                if loss_percentage >= 100 {
+                    3
+                } else {
+                    (3 * loss_percentage) / 100
+                }
             };
 
             // 如果丢包数目大于2个,则认为连接超时,返回平均耗时1000ms
