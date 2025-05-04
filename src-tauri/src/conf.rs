@@ -68,7 +68,7 @@ pub fn is_first_run() -> bool {
 }
 
 pub fn init_config_value() {
-    let init_config_value_str = utils::read_init_data_file("config.json");
+    let init_config_value_str = utils::read_init_data_file("vop.json");
     if init_config_value_str == "[]" {
         set("appName", "vop");
         return;

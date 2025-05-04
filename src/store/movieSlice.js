@@ -29,16 +29,6 @@ export const movieSlice = createSlice({
                 }, {})
             }
         },
-        updateSite(state, action) {
-            const site = action.payload;
-            const index = state.siteList.findIndex(item => item.site_key === site.site_key);
-            if (index !== -1) {
-                state.siteList[index] = site; // 更新现有站点
-            } else {
-                state.siteList.push(site); // 添加新站点
-            }
-            state.siteList = state.siteList
-        },
         toggleCurrentSite(state, action) {
             state.currentSite = action.payload;
         },
@@ -77,7 +67,7 @@ export const movieSlice = createSlice({
 })
 
 export const { storeSiteList, toggleCurrentSite, updateDownloadProcess, storeHistoryList, storeDownloadList, 
-    updateSearchKeyword, updateDetailInfo, updateSite} = movieSlice.actions
+    updateSearchKeyword, updateDetailInfo} = movieSlice.actions
 
 export const siteListStore = (state) => state.movie.siteList
 

@@ -31,7 +31,7 @@ const SiteModal = ({ siteInfo, open, onClose, onSubmit }) => {
   }
 
   const handleSubmit = (values) => {
-    const id = siteInfo?.id || "";
+    const id = siteInfo?.id || undefined;
     onSubmit({id, ...values});
     handleClose();
   };

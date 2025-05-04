@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { pageActiveStore, updatePlayInfo } from "@/store/coreSlice";
 import {
   downloadListStore,
   storeDownloadList,
   storeSiteList,
-  updateSite,
   siteListStore,
 } from "@/store/movieSlice";
 import { getSiteList, deleteSite, saveSite } from "@/db";
@@ -29,27 +28,23 @@ const Site = (props) => {
 
   const init = () => {
     getSiteList().then((res) => {
-      let allPing = [];
-      res.forEach((element) => {
-        invoke("calculate_ping_latency", { host: element.api }).then(
-          (result) => {
-            let site = { ...element, ping: result };
-            dispatch(updateSite(site));
-          }
-        ).catch((err) => {
-          let site = {...element, ping: 10000 };
-          dispatch(updateSite(site));
-        });
-      });
       dispatch(storeSiteList({ siteList: res, forceRefresh: true }));
     });
   };
 
   const getStatus = (record) => {
     if (record.status == "不可用") {
-        return <Tag color="red" bordered={false}>不可用</Tag>;
+      return (
+        <Tag color="red" bordered={false}>
+          不可用
+        </Tag>
+      );
     }
-    return <Tag color="cyan" bordered={false}>可用</Tag>;
+    return (
+      <Tag color="cyan" bordered={false}>
+        可用
+      </Tag>
+    );
   };
 
   const columns = [
@@ -83,7 +78,7 @@ const Site = (props) => {
       title: "网络状态",
       dataIndex: "ping",
       key: "ping",
-      render: (ping) => <WifiSignal delay={ping} />,
+      render: (_, record) => <WifiSignal api={record.api} />,
     },
     {
       title: "操作",
@@ -91,7 +86,6 @@ const Site = (props) => {
       key: "operation",
       render: (_, record) => (
         <Space size="middle">
-          <a onClick={() => retryEvent(record)}>检测</a>
           <a
             onClick={() => {
               setSiteInfo(record);
@@ -106,13 +100,6 @@ const Site = (props) => {
     },
   ];
 
-  const retryEvent = async (siteInfo) => {
-    invoke("calculate_ping_latency", { host: siteInfo.api }).then((result) => {
-      let site = { ...siteInfo, ping: result };
-      dispatch(updateSite(site));
-    });
-  };
-
   const onDeleteSite = async (site) => {
     deleteSite(site.id).then(() => {
       init();
@@ -125,19 +112,35 @@ const Site = (props) => {
     });
   };
 
-  const WifiSignal = ({ delay }) => {
-    let signalLevel = 0;
+  const WifiSignal = ({ api }) => {
+    const [delay, setDelay] = useState(10000);
 
-    // 根据延迟设置信号格数
-    if (delay < 50) {
-      signalLevel = 4;
-    } else if (delay < 150) {
-      signalLevel = 3;
-    } else if (delay < 300) {
-      signalLevel = 2;
-    } else {
-      signalLevel = 1;
-    }
+    useEffect(() => {
+      invoke("calculate_ping_latency", { host: api })
+        .then((result) => {
+          setDelay(result);
+        })
+        .catch((err) => {
+          setDelay(10000);
+        });
+    }, [api]);
+
+    const signalLevel = useMemo(() => {
+      let signalLevel = 0;
+
+      // 根据延迟设置信号格数
+      if (delay < 50) {
+        signalLevel = 4;
+      } else if (delay < 150) {
+        signalLevel = 3;
+      } else if (delay < 300) {
+        signalLevel = 2;
+      } else {
+        signalLevel = 1;
+      }
+
+      return signalLevel;
+    });
 
     // 渲染 Wi-Fi 信号图标，使用不同的类名来控制显示层数
     return (
@@ -184,12 +187,14 @@ const Site = (props) => {
         columns={columns}
         dataSource={siteList}
       ></Table>
-      { openSiteModal && <SiteModal
-        siteInfo={siteInfo}
-        open={openSiteModal}
-        onClose={() => setOpenSiteModal(false)}
-        onSubmit={handleSubmit}
-      />}
+      {openSiteModal && (
+        <SiteModal
+          siteInfo={siteInfo}
+          open={openSiteModal}
+          onClose={() => setOpenSiteModal(false)}
+          onSubmit={handleSubmit}
+        />
+      )}
     </div>
   );
 };
