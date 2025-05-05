@@ -1,4 +1,13 @@
 // 主题管理工具
+import { theme as antdTheme } from 'antd';
+
+// 全局Ant Design主题配置对象
+export let antdThemeConfig = {
+  algorithm: antdTheme.defaultAlgorithm,
+  token: {
+    colorPrimary: '#335eea',
+  },
+};
 
 /**
  * 应用主题设置
@@ -31,4 +40,31 @@ export const applyTheme = (darkMode, themeColor) => {
     document.documentElement.style.setProperty('--color-primary-bg', `rgba(${r}, ${g}, ${b}, 0.1)`);
     document.documentElement.style.setProperty('--color-primary-bg-for-transparent', `rgba(${r}, ${g}, ${b}, 0.28)`);
   }
+
+  // 更新Ant Design主题配置
+  updateAntdTheme(darkMode, themeColor);
+};
+
+/**
+ * 更新Ant Design主题配置
+ * @param {boolean} darkMode - 是否启用暗色模式
+ * @param {string} themeColor - 主题色（十六进制颜色值）
+ */
+const updateAntdTheme = (darkMode, themeColor) => {
+  // 创建新的主题配置对象（深拷贝），确保引用变化
+  const newThemeConfig = {
+    algorithm: darkMode 
+      ? antdTheme.darkAlgorithm 
+      : antdTheme.defaultAlgorithm,
+    token: {
+      colorPrimary: themeColor || antdThemeConfig.token.colorPrimary,
+    }
+  };
+  
+  // 更新全局配置对象
+  antdThemeConfig = newThemeConfig;
+
+  // 触发主题更新事件，以便应用中的组件可以响应主题变化
+  // 传递新对象的引用，确保React能检测到变化
+  window.dispatchEvent(new CustomEvent('antd-theme-update', { detail: newThemeConfig }));
 };

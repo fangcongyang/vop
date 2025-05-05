@@ -33,7 +33,7 @@ import date from "@/utils/date";
 import { toggleScreenOrientation } from "tauri-plugin-vop-api";
 import { osType } from "@/utils/env";
 import "./Play.scss";
-import { QrcodeOutlined } from "@ant-design/icons";
+import { QrcodeOutlined, FullscreenOutlined, FullscreenExitOutlined } from "@ant-design/icons";
 
 let player;
 let playPage = {
@@ -69,6 +69,13 @@ const Play = (props) => {
             type: "",
         },
         isLive: false,
+    });
+    
+    // 短剧模式状态 - 只在桌面端生效
+    const [shortVideoMode, setShortVideoMode] = useState(() => {
+        // 从本地存储中获取用户偏好，但只在桌面端生效
+        const savedMode = localStorage.getItem('shortVideoMode');
+        return savedMode === 'true' && osType.startsWith('desktop');
     });
 
     // 自动关闭播发器
@@ -649,6 +656,22 @@ const Play = (props) => {
                                     />
                                 </Tooltip>
                             )}
+                            {/* 只在桌面端显示短剧模式切换按钮 */}
+                            {osType.startsWith('desktop') && (
+                                <Tooltip title={shortVideoMode ? "切换到正常模式" : "切换到短剧模式"}>
+                                    <Button 
+                                        type="text" 
+                                        icon={shortVideoMode ? <FullscreenOutlined /> : <FullscreenExitOutlined />} 
+                                        onClick={() => {
+                                            const newMode = !shortVideoMode;
+                                            setShortVideoMode(newMode);
+                                            // 保存用户偏好到本地存储
+                                            localStorage.setItem('shortVideoMode', newMode.toString());
+                                        }} 
+                                        style={{ marginLeft: '8px' }}
+                                    />
+                                </Tooltip>
+                            )}
                         </>
                     ) : (
                         historyList.length > 0 &&
@@ -689,7 +712,11 @@ const Play = (props) => {
                 </div>
                 <div
                     className={
-                        playMode !== "online" ? "player" : "player hidden"
+                        playMode !== "online" 
+                            ? shortVideoMode 
+                                ? "player short-video-mode" 
+                                : "player" 
+                            : "player hidden"
                     }
                 >
                     <div id="dpplayer"></div>
@@ -697,7 +724,9 @@ const Play = (props) => {
                 <div
                     className={
                         playMode === "online"
-                            ? "iframePlayer"
+                            ? shortVideoMode 
+                                ? "iframePlayer short-video-mode" 
+                                : "iframePlayer"
                             : "iframePlayer hidden"
                     }
                 >
@@ -711,18 +740,14 @@ const Play = (props) => {
                     ></iframe>
                 </div>
                 <div
-                    className="play-episodes-section pb-3"
+                    className={`play-episodes-section pb-3 ${shortVideoMode ? 'short-video-episodes' : ''}`}
                     style={{ display: movieList.length == 0 ? "none" : "" }}
                 >
                     <h2>剧集选择</h2>
                     {movieList.map((i, j) => (
                         <div
                             key={j}
-                            className={
-                                playInfo.movie.index === j
-                                    ? "play-episode-btn active"
-                                    : "play-episode-btn"
-                            }
+                            className="play-episode-btn"
                             onClick={() => listItemEvent(j)}
                             style={{
                                 width:
@@ -731,7 +756,12 @@ const Play = (props) => {
                                         : `${episodesButtonMaxWidth}px`,
                             }}
                         >
-                            <div>
+                            <div 
+                            className={
+                                playInfo.movie.index === j
+                                    ? "play-episode-btn-active"
+                                    : ""
+                            }>
                                 <span>{ftName(i)}</span>
                             </div>
                         </div>

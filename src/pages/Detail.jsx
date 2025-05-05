@@ -265,7 +265,7 @@ const Detail = (props) => {
                                 info.videoList.map((i, j) => (
                                     <div
                                         key={j}
-                                        className={`episode-btn ${selectedEpisode === j ? 'active' : ''}`}
+                                        className="episode-btn"
                                         onClick={() => {
                                             setSelectedEpisode(j);
                                             playEvent(j);
@@ -277,7 +277,9 @@ const Detail = (props) => {
                                                     : `${maxWidth}px`,
                                         }}
                                     >
-                                        <div>
+                                        <div
+                                            className={`${selectedEpisode === j ? 'active' : ''}`}
+                                        >
                                             <span>{ftName(i, j)}</span>
                                         </div>
                                     </div>

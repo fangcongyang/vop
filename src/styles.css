@@ -10,24 +10,9 @@
     --color-primary-bg: #eaeffd;
     --color-primary-bg-for-transparent: rgba(189, 207, 255, 0.28);
     --color-secondary-bg-for-transparent: rgba(209, 209, 214, 0.28);
-
-    --l-c-2: #823aa022;
-    --l-c-3: #823aa033;
-    --l-c-5: #823aa055;
-    --l-c-8: #823aa088;
-    --l-fc-1: #808695;
-    --l-fc-2: #332f5c;
-    --l-fc-3: #823aa0;
-    --l-bgc-1: #ffffff;
-    --l-bgc-2: #f2f6f9;
-    --l-bgc-3: #f9fbfc;
+    
     --l-bsc: 0 1px 3px #8e8da233, 0 1px 2px #8e8da244;
     --l-bsc-hover: 0 14px 28px #8e8da255, 0 10px 10px #8e8da244;
-    --l-bsc-scroll: inset 0 0 5px #823aa000;
-
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    -webkit-text-size-adjust: 100%;
 }
 
 html,

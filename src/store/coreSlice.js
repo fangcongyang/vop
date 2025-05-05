@@ -7,9 +7,6 @@ const initialState = {
     settings: {
         title: "vop",
         closeAppOption: "exit",
-        proxyProtocol: "noProxy",
-        proxyServer: "",
-        proxyPort: 0,
         enableGlobalShortcut: true,
         shortcuts: [
             {
@@ -91,11 +88,6 @@ const initialState = {
         autoChangeSourceWhenIptvStalling: true,
         waitingTimeInSec: 5,
         forwardTimeInSec: 5,
-    },
-    toast: {
-        show: false,
-        text: "",
-        timer: null,
     },
 };
 
@@ -193,10 +185,6 @@ export const coreSlice = createSlice({
             state.playerConf[key] = value;
         },
 
-        setToast: (state, action) => {
-            state.toast = action.payload;
-        },
-
         togglePageActive: (state, action) => {
             state.pageActive = action.payload;
         },
@@ -226,7 +214,6 @@ export const coreSlice = createSlice({
 
 export const {
     enableMainScrolling,
-    setToast,
     updatePlayInfo,
     togglePageActive,
     updateplayerConf,
@@ -245,7 +232,5 @@ export const playInfoStore = (state) => state.core.playInfo;
 export const playerConfStore = (state) => state.core.playerConf;
 
 export const pageActiveStore = (state) => state.core.pageActive;
-
-export const toastStore = (state) => state.core.toast;
 
 export default coreSlice.reducer;

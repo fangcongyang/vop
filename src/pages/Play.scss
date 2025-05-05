@@ -1,148 +1,243 @@
-@import '../Base.scss';
+@import "../Base.scss";
 
 .play {
+  height: 100%;
+  overflow: auto;
+  padding: 0;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  @include responseTo("desktop") {
+    border-radius: 5px;
+    background-color: var(--color-secondary-bg);
+    box-shadow: var(--l-bsc);
+  }
+  
+  // 清除浮动
+  .clearfix:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+
+  .box {
+    border-radius: 5px;
+    color: var(--color-text);
     height: 100%;
-    overflow: auto;
-    padding: 0;
-
-    &::-webkit-scrollbar {
-        width: 0;
-        height: 0;
+    
+    &:after {
+      content: "";
+      display: table;
+      clear: both;
     }
 
-    @include responseTo('desktop') {
-        border-radius: 5px;
-        background-color: var(--l-bgc-1);
-        box-shadow: var(--l-bsc);
+    @include responseTo("desktop") {
+      padding: 0 10px;
     }
 
-    .box {
-        border-radius: 5px;
-        color: var(--l-fc-1);
+    .title {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 40px;
+
+      .span-one-line {
+        line-height: 40px;
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .right {
+        margin-left: auto;
+        font-size: 0;
+        float: right;
+
+        svg {
+          stroke: var(--color-text);
+          stroke-width: 1;
+          fill: none;
+          display: inline-block;
+          cursor: pointer;
+
+          &:hover {
+            stroke-width: 1.5;
+          }
+        }
+      }
+    }
+
+    .player {
+      width: 100%;
+      overflow: hidden;
+
+      .dplayer,
+      .iframePlayer {
         height: 100%;
+        width: 100%;
+      }
 
-        @include responseTo('desktop') {
-            padding: 0 10px;
+      @include responseTo("phonePortrait") {
+        height: 40%;
+      }
+
+      @include responseTo("phoneLandscape") {
+        height: 100%;
+      }
+
+      @include responseTo("desktop") {
+        height: calc(100% - 90px);
+      }
+      
+      &.short-video-mode {
+        @include responseTo("desktop") {
+          width: 40%;
+          height: calc(100% - 90px);
+          float: left;
+          margin-right: 20px;
+          border-radius: 8px;
+          box-shadow: var(--l-bsc);
         }
-
-        .title {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            height: 40px;
-
-            .span-one-line {
-                line-height: 40px;
-                display: inline-block;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            .right {
-                margin-left: auto;
-                font-size: 0;
-                float: right;
-
-                svg {
-                    stroke: var(--l-fc-1);
-                    stroke-width: 1;
-                    fill: none;
-                    display: inline-block;
-                    cursor: pointer;
-
-                    &:hover {
-                        stroke: var(--l-c-8);
-                        stroke-width: 1.5;
-                        fill: var(--l-c-2);
-                    }
-                }
-            }
+        
+        // 在移动设备上禁用短剧模式样式
+        @include responseTo("phonePortrait") {
+          height: 30%;
+          width: 100%;
+          margin-bottom: 10px;
+          float: none;
         }
-
-        .player {
-            width: 100%;
-            overflow: hidden;
-
-            .dplayer,
-            .iframePlayer {
-                height: 100%;
-                width: 100%;
-            }
-
-
-            @include responseTo('phonePortrait') {
-                height: 40%;
-            }
-
-            @include responseTo('phoneLandscape') {
-                height: 100%;
-            }
-
-            @include responseTo('desktop') {
-                height: calc(100% - 90px);
-            }
+        
+        @include responseTo("tablet") {
+          // 在平板设备上也禁用短剧模式
+          width: 100%;
+          height: calc(100% - 90px);
+          float: none;
+          margin-right: 0;
         }
+      }
     }
+    
+    .iframePlayer {
+      width: 100%;
+      height: 100%;
+      
+      &.short-video-mode {
+        @include responseTo("desktop") {
+          width: 40%;
+          height: calc(100% - 90px);
+          float: left;
+          margin-right: 20px;
+          border-radius: 8px;
+          box-shadow: var(--l-bsc);
+        }
+        
+        // 在移动设备上禁用短剧模式样式
+        @include responseTo("phonePortrait") {
+          height: 30%;
+          width: 100%;
+          margin-bottom: 10px;
+          float: none;
+        }
+        
+        @include responseTo("tablet") {
+          // 在平板设备上也禁用短剧模式
+          width: 100%;
+          height: calc(100% - 90px);
+          float: none;
+          margin-right: 0;
+        }
+      }
+    }
+  }
 }
 
-  .play-episodes-section {
-    margin-top: 10px;
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap; // 允许换行
-    gap: 10px;
-    justify-content: space-between;
-
-    h2 {
-        line-height: 40px;
-        font-size: 1.2rem;
-        color: #333;
-        width: 100%;
+.play-episodes-section {
+  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap; // 允许换行
+  gap: 10px;
+  justify-content: space-between;
+  
+  &.short-video-episodes {
+    @include responseTo("desktop") {
+      width: calc(60% - 20px);
+      float: right;
+      margin-top: 0;
     }
+    
+    @include responseTo("phonePortrait") {
+      width: 100%;
+      float: none;
+      clear: both;
+    }
+    
+    @include responseTo("tablet") {
+      width: calc(55% - 15px);
+      float: right;
+      margin-top: 0;
+    }
+  }
+
+  h2 {
+    line-height: 40px;
+    font-size: 1.2rem;
+    color: var(--color-text);
+    width: 100%;
+  }
+
+  div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 
     div {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-sizing: border-box;
+      display: flex;
+      height: 2rem;
+      border-radius: 5px;
+      align-content: center;
+      padding: 6px 14px;
+      width: 100%;
+      box-sizing: border-box;
+      flex: 1 1 auto;
+      transition: background-color 0.3s ease, transform 0.2s;
+      background-color: var(--color-body-bg);
+      border: 1px solid;
+      align-content: center;
+      border-color: var(--color-primary-bg);
+      color: var(--color-text);
 
-        div {
-            display: flex;
-            height: 2rem;
-            border-radius: 5px;
-            align-content: center;
-            padding: 6px 14px;
-            width: 100%;
-            box-sizing: border-box;
-            flex: 1 1 auto;
-            transition: background-color 0.3s ease, transform 0.2s;
-            // background-color: #E6B8A2; 
-            border: 1px solid;
-            align-content: center;
-            border-color: var(--l-c-5);
+      span {
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+      }
 
-            span {
-                display: inline-block;
-                border: none;
-                cursor: pointer;
-            }
+      &:hover {
+        background-color: var(--color-primary-bg);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+        transform: translateY(-2px);
+        box-shadow: var(--l-bsc);
+      }
 
-            &:hover {
-                background-color: var(--l-c-5);
-                border-color: var(--l-c-5);
-            }
-        }
-
-        &.active {
-            background-color: var(--l-c-5);
-            border-color: var(--l-c-5);
-        }
+      &.play-episode-btn-active {
+        background-color: var(--color-primary-bg);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+        transform: translateY(-2px);
+        box-shadow: var(--l-bsc);
+      }
     }
+  }
 
-    .play-episode-btn.h1 {
-        height: 1px;
-        visibility: hidden
-    }
-
+  .play-episode-btn.h1 {
+    height: 1px;
+    visibility: hidden;
+  }
 }

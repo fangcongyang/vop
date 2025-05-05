@@ -1,27 +1,18 @@
-import { useAppDispatch } from "@/store/hooks";
-import { updateAppConf } from "@/store/coreSlice";
 import { isString } from "lodash";
 import styles from "./SettingsComponent.module.scss";
 
 const SettingsSelect = ({
     title= "",
     initValue= "",
-    fieldKey= "",
     selectData= [],
     converNumber= false,
     callback= undefined
 }) => {
-    const dispatch = useAppDispatch();
     
     const selectChange = (selectValue) => {
         if (converNumber && isString(selectValue)) {
             selectValue = parseInt(selectValue, 10);
         }
-        dispatch(updateAppConf({
-            confName: "settings",
-            key: fieldKey,
-            value: selectValue
-        }));
         if (callback) callback(selectValue)
     }
 

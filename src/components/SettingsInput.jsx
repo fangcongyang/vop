@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from 'react-i18next';
-import { useAppDispatch } from "@/store/hooks";
-import { updateAppConf } from "@/store/coreSlice";
 import { isString } from "lodash";
 import styles from "./SettingsComponent.module.scss";
 
@@ -10,21 +8,14 @@ const SettingsInput = ({
         titleStyle= {},
         description= "",
         initValue= "",
-        fieldKey= "",
         inputPlaceholder= "",
         callback= undefined
 }) => {
-    const dispatch = useAppDispatch();
     const { t } = useTranslation();
     const [inputValue, setInputValue] = useState(initValue);
     
     const inputBlur = () => {
         if (initValue === inputValue) return;
-        dispatch(updateAppConf({
-            confName: "settings",
-            key: fieldKey,
-            value: inputValue,
-        }));
         if (callback) callback(inputValue)
     }
 

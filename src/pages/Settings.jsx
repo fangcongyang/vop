@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { settingsStore, togglePageActive } from "@/store/coreSlice";
+import { togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { osType, appVersion } from "@/utils/env";
@@ -23,7 +23,6 @@ import "./Settings.scss";
 
 const Settings = (props) => {
     const dispatch = useAppDispatch();
-    const settings = useAppSelector(settingsStore);
     const [excludeR18Site, setExcludeR18Site] = useConfig(
         "excludeR18Site",
         true
@@ -71,6 +70,7 @@ const Settings = (props) => {
     const [clientUniqueId, setClientUniqueId] = useState("");
     const [dataUpload, setDataUpload] = useState(false);
     const [isCheckingUpdate, setIsCheckingUpdate] = useState(false); // 添加状态
+    const [closeAppOption, setCloseAppOption] = useConfig("closeAppOption", "ask"); // 添加状态
 
     useEffect(() => {
         const fetchConfig = async (key, setter) => {
@@ -277,7 +277,6 @@ const Settings = (props) => {
                         <SettingsSelect
                             title="代理协议"
                             initValue={proxyProtocol}
-                            fieldKey="proxyProtocol"
                             selectData={proxyProtocolSelectData()}
                             callback={(proxyProtocol) =>
                                 setProxyProtocol(proxyProtocol)
@@ -373,8 +372,7 @@ const Settings = (props) => {
                     <>
                         <SettingsSelect
                             title="关闭主面板时..."
-                            initValue={settings.closeAppOption}
-                            fieldKey="closeAppOption"
+                            initValue={closeAppOption}
                             selectData={closeAppOptionSelectData()}
                         />
                         <div className="item">
