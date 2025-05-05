@@ -365,7 +365,7 @@ const Settings = (props) => {
                     <div className="title">打开开发者工具</div>
                   </div>
                   <div className="right">
-                    <button onClick={openDevTools}>开发者工具</button>
+                    <button className="button" onClick={openDevTools}>开发者工具</button>
                   </div>
                 </div>
                 {osType == "desktop" && (
@@ -380,7 +380,7 @@ const Settings = (props) => {
                             <div className="title">检测更新</div>
                           </div>
                           <div className="right">
-                            <button onClick={() => setIsCheckingUpdate(true)}>
+                            <button className="button" onClick={() => setIsCheckingUpdate(true)}>
                               更新
                             </button>
                           </div>

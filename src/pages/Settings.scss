@@ -120,9 +120,10 @@
     .button {
         color: var(--color-text);
         background: var(--color-secondary-bg);
-        padding: 8px 12px 8px 12px;
+        padding: 8px 12px;
         font-weight: 600;
         border-radius: 8px;
+        min-width: 100px;
         transition: 0.2s;
 
         &:hover {
