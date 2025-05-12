@@ -6,7 +6,6 @@ const initialState = {
     mainEnableScrolling: true,
     settings: {
         title: "vop",
-        closeAppOption: "exit",
         enableGlobalShortcut: true,
         shortcuts: [
             {

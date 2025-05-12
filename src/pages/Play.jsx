@@ -40,7 +40,6 @@ let playPage = {
     isFirstPlay: true,
     movieList: [],
     movieIndex: 0,
-    historyTimer: null,
     currentHistory: null,
     playing: false,
     stallIptvTimeout: null,
@@ -55,6 +54,8 @@ const Play = (props) => {
     const historyList = useAppSelector(historyListStore);
     const pageActive = useAppSelector(pageActiveStore);
     const [movieList, setMovieList] = useState([]);
+    // 使用useRef来管理定时器ID，避免使用全局变量
+    const historyTimerRef = useRef(null);
     // localFile 本地文件 local 本地在线 online iframe网页
     const [playMode, setPlayMode] = useState("local");
     const [playing, setPlaying] = useState(false);
@@ -108,9 +109,9 @@ const Play = (props) => {
 
     const getUrls = async () => {
         if (!player || !player.dp) getPlayer();
-        if (playPage.historyTimer) {
-            clearInterval(playPage.historyTimer);
-            playPage.historyTimer = null;
+        if (historyTimerRef.current) {
+            clearInterval(historyTimerRef.current);
+            historyTimerRef.current = null;
         }
 
         if (playInfo.playType === "iptv") {
@@ -307,7 +308,14 @@ const Play = (props) => {
 
     // 定时更新历史记录时间
     const timerEvent = () => {
-        playPage.historyTimer = setInterval(async () => {
+        // 清理之前的定时器（如果存在）
+        if (historyTimerRef.current) {
+            clearInterval(historyTimerRef.current);
+            historyTimerRef.current = null;
+        }
+        
+        // 使用React的方式创建定时器
+        const updateHistory = async () => {
             if (!playPage.playing) {
                 return;
             }
@@ -317,9 +325,15 @@ const Play = (props) => {
                 historyInfo.play_time = player.currentTime();
                 historyInfo.duration = player.duration();
                 historyInfo.update_time = date.getDateTimeStr();
-                saveHistory(historyInfo);
+                await saveHistory(historyInfo);
             }
-        }, 10000);
+        };
+        
+        // 立即执行一次更新
+        updateHistory();
+        
+        // 创建定时器并保存引用到useRef中
+        historyTimerRef.current = setInterval(updateHistory, 10000);
     };
 
     const otherEvent = () => {
@@ -524,9 +538,14 @@ const Play = (props) => {
         getPlayer("", true);
 
         return () => {
-            if (playPage.historyTimer) clearInterval(playPage.historyTimer);
-            if (playPage.stallIptvTimeout)
+            // 使用useRef清理定时器
+            if (historyTimerRef.current) {
+                clearInterval(historyTimerRef.current);
+                historyTimerRef.current = null;
+            }
+            if (playPage.stallIptvTimeout) {
                 clearTimeout(playPage.stallIptvTimeout);
+            }
         };
     }, []);
 
@@ -537,7 +556,7 @@ const Play = (props) => {
     }, [pageActive]);
 
     useEffect(() => {
-        if (!movieList) {
+        if (playInfo.playState !== "newPlay" && !movieList) {
             return;
         }
         // 获取所有具有指定类名的节点
