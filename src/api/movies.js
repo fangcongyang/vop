@@ -1,7 +1,3 @@
-import fetch from "./fetch";
-import { getUrlType } from "@/business/play";
-import { invoke } from "@tauri-apps/api/core";
-import { storeSiteList } from "@/store/movieSlice";
 import { getCacheData, cacheData } from "@/business/cache";
 import htmlParseStrategy from "@/business/htmlParseStrategy";
 import { siteService } from "./siteService";
@@ -11,7 +7,7 @@ export default {
         try {
             const cls = await this.getSiteClass(site);
             return !!cls;
-        } catch (e) {
+        } catch {
             return false;
         }
     },
@@ -51,7 +47,7 @@ export default {
                         cacheData(cacheKey, res);
                         resolve(res.fullList);
                     },
-                    err => reject()
+                    _err => reject()
                 );
             }
         });
@@ -65,7 +61,7 @@ export default {
                         const dataParser = htmlParseStrategy[site.parse_mode];
                         dataParser.doParserDownload(resolve, reject, data);
                     },
-                    err => reject({ info: "无法获取到下载链接，请通过播放页面点击\"调试\"按钮获取" })
+                    _err => reject({ info: "无法获取到下载链接，请通过播放页面点击\"调试\"按钮获取" })
                 );
             } else {
                 this.detail(site, id).then(
@@ -86,7 +82,7 @@ export default {
                             reject({ info: "下载链接不存在" });
                         }
                     },
-                    err => reject({ info: "无法获取到下载链接，请通过播放页面点击\"调试\"按钮获取" })
+                    _err => reject({ info: "无法获取到下载链接，请通过播放页面点击\"调试\"按钮获取" })
                 );
             }
         });

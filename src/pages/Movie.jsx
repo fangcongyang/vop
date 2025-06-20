@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import {
   pageActiveStore,
   togglePageActive,
-  settingsStore,
 } from "@/store/coreSlice";
 import {
   storeSiteList,
   siteListStore,
   toggleCurrentSite,
   currentSiteStore,
-  searchKeywordStore,
   updateSearchKeyword,
 } from "@/store/movieSlice";
 import MovieCard from "@/components/MovieCard";
@@ -21,14 +19,13 @@ import {
   getSiteClassList,
   cacheSiteClassList,
   getSiteList,
-  getAllSearchList,
   addSearchRecord,
   clearSearchRecord,
 } from "@/db";
 import { uniqBy } from "lodash";
 import { AutoComplete, message, Button } from "antd";
 import { LoadingOutlined, UpOutlined, DownOutlined } from "@ant-design/icons";
-import { Flex, Spin } from "antd";
+import { Spin } from "antd";
 import { osType } from "@/utils/env";
 import utils from "@/utils";
 import NProgress from "nprogress";
@@ -47,23 +44,22 @@ let movieInfo = {
 
 const Movie = () => {
   const dispatch = useAppDispatch();
-  const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi] = message.useMessage();
   const pageActive = useAppSelector(pageActiveStore);
   const siteList = useAppSelector(siteListStore);
   const currentSite = useAppSelector(currentSiteStore);
-  const settings = useAppSelector(settingsStore);
-  const [excludeR18Site, setExcludeR18Site, getExcludeR18Site] = useConfig(
+  const [excludeR18Site] = useConfig(
     "excludeR18Site",
     true
   );
   const [excludeRootClasses] = useConfig("excludeRootClasses", true);
   const [rootClassFilter] = useConfig("rootClassFilter", []);
 
-  const [excludeR18Classes, setExcludeR18Classes] = useConfig(
+  const [excludeR18Classes] = useConfig(
     "excludeR18Classes",
     false
   );
-  const [r18ClassFilter, setR18ClassFilter] = useConfig("r18ClassFilter", []);
+  const [r18ClassFilter] = useConfig("r18ClassFilter", []);
   const [classList, setClassList] = useState([]);
   const [currentClass, setCurrentClass] = useState({ id: -1, name: "" });
   const movieListRef = useRef([]);
@@ -71,7 +67,7 @@ const Movie = () => {
   const pageMainRef = useRef(null);
   const [searchList, setSearchList] = useState([]);
   const [keywords, setKeywords] = useState("");
-  const [moviePageInfo, setMoviePageInfo, getMoviePageInfo] = useGetState({
+  const [_moviePageInfo, setMoviePageInfo, getMoviePageInfo] = useGetState({
     totalPageCount: 0,
     pageCount: 0,
     recordcount: 0,
@@ -177,7 +173,7 @@ const Movie = () => {
 
       setClassList(classList);
       classClick(classType);
-    } catch (err) {
+    } catch {
       messageApi.error("获取分类资源失败");
       movieListRef.current = [];
     }
@@ -253,7 +249,7 @@ const Movie = () => {
           pageRef.current = pageRef.current + 1;
         }
       })
-      .catch((err) => {
+      .catch(() => {
         setTipMessage("获取数据失败");
         messageApi.error("获取分类资源失败");
       })
@@ -323,7 +319,7 @@ const Movie = () => {
       } else {
         messageApi.error("获取资源列表失败");
       }
-    } catch (error) {
+    } catch {
       messageApi.error("获取资源列表失败");
     } finally {
       movieInfo.movieRequestList = false;

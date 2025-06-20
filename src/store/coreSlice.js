@@ -121,7 +121,7 @@ export const updateShortcut = createAsyncThunk(
             state.core.settings.shortcuts.find((s) => s.id === data.id)
         );
         newShortcut[data.type] = data.shortcut;
-        let shortcuts = state.core.settings.shortcuts.map((sny) => {
+        let shortcuts = state.core.settings.shortcuts.map((s) => {
             if (s.id !== data.id) return s;
             return newShortcut;
         });
@@ -147,7 +147,7 @@ export const coreSlice = createSlice({
             }
         },
 
-        resetPlayInfo: (state, action) => {
+        resetPlayInfo: (state, _action) => {
             state.playInfo = {
                 playState: "noPlay",
                 playStateTime: 0,

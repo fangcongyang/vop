@@ -10,11 +10,10 @@ import { fmtMSS } from "@/utils/common";
 import util from "@/utils";
 import moviesApi from "@/api/movies";
 import "./MovieCard.scss";
-import { get } from "lodash";
 
 const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDelete }) => {
     const dispatch = useAppDispatch();
-    const [messageApi, contextHolder] = message.useMessage();
+    const [messageApi, _contextHolder] = message.useMessage();
     const siteMap = useAppSelector(siteMapStore);
 
     const imgLoad = () => layoutHandle();

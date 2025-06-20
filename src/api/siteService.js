@@ -58,7 +58,7 @@ class SiteService {
                     const dataParser = htmlParseStrategy[site.parse_mode];
                     dataParser.doParserSearch(resolve, reject, data, wd);
                 },
-                (err) => reject("搜索资源失败")
+                (_err) => reject("搜索资源失败")
             );
         });
     }
