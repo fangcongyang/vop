@@ -8,7 +8,45 @@ on:
 permissions: write-all
  
 jobs:
+  change-version:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.outputstep.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install git
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git
+      - id: outputstep
+        run: |
+          echo "VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')" >> "$GITHUB_OUTPUT"
+      - name: Change Version for Windows
+        run: |
+          jq ".version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"" package.json > package.json.tmp && mv package.json.tmp package.json
+
+          jq ".version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+
+          sed -i "s/version = \"0.0.0\"/version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/Cargo.toml
+          
+          echo $(git describe --tags | sed 's/-[0-9]*-.*//g')
+
+      - name: Upload Artifacts for Windows
+        uses: actions/upload-artifact@v4
+        with:
+          name: source
+          path: |
+            .
+            !.git
+            !.git/**
+          include-hidden-files: true
+          if-no-files-found: error
   build:
+    needs: change-version
     permissions:
       contents: write
     strategy:
@@ -29,38 +67,9 @@ jobs:
             args: ''
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-      - name: Change Version (Ubuntu)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git jq
-          VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')
-          jq ".version = \"$VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
-          jq ".version = \"$VERSION\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
-          sed -i "s/version = \"0.0.0\"/version = \"$VERSION\"/g" src-tauri/Cargo.toml
-      - name: Change Version (macOS)
-        if: matrix.platform == 'macos-latest'
-        run: |
-          brew install jq
-          VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')
-          jq ".version = \"$VERSION\"" package.json > package.json.tmp && mv package.json.tmp package.json
-          jq ".version = \"$VERSION\"" src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp && mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
-          sed -i "s/version = \"0.0.0\"/version = \"$VERSION\"/g" src-tauri/Cargo.toml
-      - name: Change Version (Windows)
-        if: matrix.platform == 'windows-latest'
-        run: |
-          $VERSION = git describe --tags | ForEach-Object { $_ -replace '-[0-9]*-.*', '' }
-          $packageJson = Get-Content package.json | ConvertFrom-Json
-          $packageJson.version = $VERSION
-          $packageJson | ConvertTo-Json -Depth 100 | Set-Content package.json
-          $tauriConf = Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json
-          $tauriConf.version = $VERSION
-          $tauriConf | ConvertTo-Json -Depth 100 | Set-Content src-tauri/tauri.conf.json
-          (Get-Content src-tauri/Cargo.toml) -replace 'version = "0.0.0"', "version = `"$VERSION`"" | Set-Content src-tauri/Cargo.toml
+          name: source
       - name: setup node
         uses: actions/setup-node@v4
         with:
