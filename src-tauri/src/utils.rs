@@ -29,8 +29,11 @@ pub fn exists(path: &Path) -> bool {
     Path::new(path).exists()
 }
 
-pub fn is_empty(path: &Path) -> bool {
-    Path::new(path).read_dir().unwrap().next().is_none()
+pub fn is_empty_safe(path: &Path) -> bool {
+    match Path::new(path).read_dir() {
+        Ok(mut entries) => entries.next().is_none(),
+        Err(_) => false, // 如果无法读取目录，认为不为空（或不存在）
+    }
 }
 
 pub fn create_file(path: &Path) -> Result<File> {
@@ -136,11 +139,11 @@ pub mod cmd {
             });
         }
 
-        // 如果父文件空则删除件
+        // 如果父文件夹存在且为空则删除
         path.pop();
-        if is_empty(&path) {
+        if exists(&path) && is_empty_safe(&path) {
             fs::remove_dir_all(path).unwrap_or_else(|err| {
-                error!("删除失败: {}", err);
+                error!("删除父目录失败: {}", err);
             });
         }
     }
