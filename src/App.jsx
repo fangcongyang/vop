@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
-import { listen, TauriEvent } from '@tauri-apps/api/event';
 import { ask } from "@tauri-apps/plugin-dialog";
 import { exit } from '@tauri-apps/plugin-process';
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -42,27 +41,6 @@ function App() {
     useEffect(() => {
         if (osType === "desktop") {
             initDownloadWebsocket();
-            getCurrentWindow().onCloseRequested(async (event) => {
-                event.preventDefault();
-                if (closeAppOption === "ask") {
-                    const ok = await ask("是否退出程序？", {
-                        kind: "error",
-                        title: "退出",
-                    })
-                    if (ok) {
-                        exit(0);
-                    }
-                } else if (closeAppOption === "close") {
-                    exit(0);
-                } else {
-                    await getCurrentWindow().minimize();
-                }
-            }).then((unlisten) => {
-                if (exitUnlistenFn.current) {
-                    exitUnlistenFn.current();
-                }
-                exitUnlistenFn.current = unlisten;
-            });
         }
         
         // 初始化主题设置
@@ -85,14 +63,45 @@ function App() {
                     item.compulsionClose();
                 });
                 downloadBusArr = [];
+            }
+            window.removeEventListener('antd-theme-update', handleAntdThemeUpdate);
+        };
+    }, []);
+
+    // 监听配置更新
+    useEffect(() => {
+        if (osType === "desktop") {
+            getCurrentWindow().onCloseRequested(async (event) => {
+                event.preventDefault();
+                if (closeAppOption === "ask") {
+                    const ok = await ask("是否退出程序？", {
+                        kind: "error",
+                        title: "退出",
+                    })
+                    if (ok) {
+                        exit(0);
+                    }
+                } else if (closeAppOption === "close") {
+                    exit(0);
+                } else {
+                    await getCurrentWindow().minimize();
+                }
+            }).then((unlisten) => {
+                if (exitUnlistenFn.current) {
+                    exitUnlistenFn.current();
+                }
+                exitUnlistenFn.current = unlisten;
+            });
+        }
+        return () => {
+            if (osType === "desktop") {
                 if (exitUnlistenFn.current) {
                     exitUnlistenFn.current();
                     exitUnlistenFn.current = null;
                 }
             }
-            window.removeEventListener('antd-theme-update', handleAntdThemeUpdate);
         };
-    }, []);
+    }, [closeAppOption]);
 
     const initDownloadWebsocket = () => {
         for (var i = 0; i < downloadWebsocketNum; i++) {

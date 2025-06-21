@@ -128,7 +128,7 @@ class LocalDataStore implements DataStore, StoreSubject {
 
     notifyObservers(
         eventName: string,
-        observerName: String,
+        observerName: string,
         value: any
     ): void {
         Array.from(this._observers)

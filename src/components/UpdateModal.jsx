@@ -26,7 +26,13 @@ const UpdateModal = ({
         return;
       }
       setLatestVersion(githubLatestReleaseInfo.tag_name);
-      setBody(marked.parse(githubLatestReleaseInfo.body));
+      // 手动处理换行符，然后解析Markdown
+      // 先将连续的多个换行符转换为单个换行符，再添加Markdown换行语法
+      let bodyWithBreaks = githubLatestReleaseInfo.body.replace(/"/g, '');
+      bodyWithBreaks = bodyWithBreaks
+        .replace(/\\n+/g, '\\n')  // 将连续的多个\n转换为单个\n
+        .replace(/\\n/g, '\n'); // 添加Markdown强制换行语法
+      setBody(marked.parse(bodyWithBreaks));
     });
   }, []);
 
@@ -93,7 +99,7 @@ const UpdateModal = ({
         )}
       </Space>
       <div className={styles.actions}>
-        {latestVersion !== currentVersion && (
+        {latestVersion !== `v${currentVersion}` && (
           <Button type="primary" onClick={doUpdate}>
             立即更新
           </Button>

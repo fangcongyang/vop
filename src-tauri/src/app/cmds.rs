@@ -2,12 +2,15 @@ use std::time::Duration;
 
 use futures::TryStreamExt;
 use serde_json::{Map, Value};
+use tauri::http::header::USER_AGENT;
+use tauri::http::HeaderMap;
 use tauri::Manager;
 use tauri::Emitter;
 use tauri_plugin_http::reqwest;
 use tokio::{io::AsyncWriteExt, sync::watch, time::interval};
 use serde::{Deserialize, Serialize};
 
+use crate::utils::choose_user_agent;
 use crate::utils::{self, create_request_builder};
 
 #[tauri::command]
@@ -182,7 +185,18 @@ pub async fn github_repos_info_version(owner: String, repo: String) -> Option<Gi
         "https://api.github.com/repos/{}/{}/releases/latest",
         owner, repo
     );
-    let client_builder = create_request_builder();
+    let mut client_builder = create_request_builder();
+    let mut headers: HeaderMap = HeaderMap::new();
+    headers.insert(
+        USER_AGENT,
+        serde_json::to_value(choose_user_agent("pc"))
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap(),
+    );
+    client_builder = client_builder.default_headers(headers);
     let client = client_builder.build().unwrap();
     let response = client.get(url).send().await.unwrap();
     match response.text().await {

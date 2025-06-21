@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import { togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { osType, appVersion } from "@/utils/env";
-import { getSiteList, getSystemConfByKey, initDB, uploadData } from "@/db";
+import { getSystemConfByKey, initDB, uploadData } from "@/db";
 import logo from "@/assets/logo.png";
 import SettingsSwitch from "@/components/SettingsSwitch";
 import SettingsInputArray from "@/components/SettingsInputArray";
@@ -16,7 +16,6 @@ import UpdateModal from "@/components/UpdateModal";
 import { closeAppOptionSelectData } from "@/static/settingsData";
 import { clearDB } from "@/db";
 import { useConfig } from "@/hooks";
-import { store } from "@/utils/store";
 import { applyTheme } from "@/theme";
 import _ from "lodash";
 import "./Settings.scss";
@@ -374,6 +373,7 @@ const Settings = (props) => {
                             title="关闭主面板时..."
                             initValue={closeAppOption}
                             selectData={closeAppOptionSelectData()}
+                            callback={(value) => setCloseAppOption(value)}
                         />
                         <div className="item">
                           <div className="left">
