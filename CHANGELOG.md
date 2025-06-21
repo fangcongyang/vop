@@ -1,4 +1,18 @@
-## [0.0.6](https://github.com/fangcongyang/vop/compare/v0.0.5...v0.0.6) (2025-06-20)
+## [0.0.7](https://github.com/fangcongyang/vop/compare/v0.0.6...v0.0.7) (2025-06-21)
+
+
+### ✨ Features | 新功能
+
+* **播放页:** 添加片头片尾跳过功能并优化其他站点资源展示 ([](https://github.com/fangcongyang/vop/commit/e397544))
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* 修复更新模态框的Markdown解析和版本比较问题 ([](https://github.com/fangcongyang/vop/commit/f236fd5))
+
+
+
+## [0.0.6](https://github.com/fangcongyang/vop/compare/0.0.6...v0.0.6) (2025-06-20)
 
 
 ### ✨ Features | 新功能
