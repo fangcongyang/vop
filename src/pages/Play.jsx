@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
     playInfoStore,
@@ -23,10 +23,11 @@ import {
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getCacheData } from "@/business/cache";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { Transition } from "react-transition-group";
 import movieApi from "@/api/movies";
 import SvgIcon from "@/components/SvgIcon";
-import { message, QRCode, Modal, Button, Tooltip } from "antd";
+import Waterfall from "@/components/Waterfall";
+import MovieCard from "@/components/MovieCard";
+import { message, QRCode, Modal, Button, Tooltip, Input, Space } from "antd";
 import { fmtMSS } from "@/utils/common";
 import _ from "lodash";
 import date from "@/utils/date";
@@ -54,6 +55,11 @@ const Play = (props) => {
     const historyList = useAppSelector(historyListStore);
     const pageActive = useAppSelector(pageActiveStore);
     const [movieList, setMovieList] = useState([]);
+    
+    // 监听historyList变化，获取第一条历史记录
+    const firstHistoryItem = useMemo(() => {
+        return historyList && historyList.length > 0 ? historyList[0] : null;
+    }, [historyList]);
     // 使用useRef来管理定时器ID，避免使用全局变量
     const historyTimerRef = useRef(null);
     // localFile 本地文件 local 本地在线 online iframe网页
@@ -62,7 +68,7 @@ const Play = (props) => {
     const [episodesButtonMaxWidth, setEpisodesButtonMaxWidth] = useState(0);
     const [qrCodeVisible, setQrCodeVisible] = useState(false);
     const [currentPlayUrl, setCurrentPlayUrl] = useState("");
-    const [playerInfo, setPlayerInfo] = useState({
+    const [playerInfo, _setPlayerInfo] = useState({
         searchTxt: "",
         skipendStatus: false,
         right: {
@@ -70,6 +76,18 @@ const Play = (props) => {
             type: "",
         },
         isLive: false,
+    });
+    
+    // 创建moviesInfo响应对象
+    const [moviesInfo, setMoviesInfo] = useState({
+        currentTime: 0,
+        otherSiteMoviesSources: [],
+        startPosition: { min: "00", sec: "00" },
+        endPosition: { min: "00", sec: "00" },
+        isStar: false,
+        currentMoviesFullList: [],
+        moviesFullListIndex: 0,
+        exportablePlaylist: true
     });
     
     // 短剧模式状态 - 只在桌面端生效
@@ -129,46 +147,59 @@ const Play = (props) => {
             );
         } else {
             // iptvInfo.showChannelGroupList = false;
-            const key = playMovieUq;
+            const _key = playMovieUq;
             let time = undefined;
-            // moviesInfo.startPosition = { min: "00", sec: "00" };
-            // moviesInfo.endPosition = { min: "00", sec: "00" };
+            // 初始化片头片尾位置
+            setMoviesInfo(prev => ({
+                ...prev,
+                startPosition: { min: "00", sec: "00" },
+                endPosition: { min: "00", sec: "00" }
+            }));
+            
+            // 从localStorage恢复片头片尾设置
+            const timingKey = `timing_${_key}`;
+            const savedTiming = localStorage.getItem(timingKey);
+            if (savedTiming) {
+                try {
+                    const timing = JSON.parse(savedTiming);
+                    setMoviesInfo(prev => ({
+                        ...prev,
+                        startPosition: timing.startPosition || { min: "00", sec: "00" },
+                        endPosition: timing.endPosition || { min: "00", sec: "00" }
+                    }));
+                } catch (e) {
+                    console.warn('Failed to parse timing from localStorage:', e);
+                }
+            }
+            
             let currentHistory = playPage.currentHistory;
             if (currentHistory) {
                 if (currentHistory.index == playInfo.movie.index) {
                     time = currentHistory.play_time;
                 }
 
-                //     if (!videoDetailCache.value[key])
-                //         videoDetailCache.value[key] = {};
-                //     if (!playInfo.value.movie.videoFlag)
-                //         playInfo.value.movie.videoFlag =
-                //             currentHistory.value.videoFlag;
-                //     if (currentHistory.value.startPosition) {
-                //         // 数据库保存的时长通过快捷键设置时可能为小数, this.startPosition为object对应输入框分秒转化到数据库后肯定为整数
-                //         videoDetailCache.value[key].startPosition =
-                //             currentHistory.value.startPosition;
-                //         moviesInfo.startPosition = {
-                //             min:
-                //                 "" +
-                //                 parseInt(currentHistory.value.startPosition / 60),
-                //             sec:
-                //                 "" +
-                //                 parseInt(currentHistory.value.startPosition % 60),
-                //         };
-                //     }
-                //     if (currentHistory.value.endPosition) {
-                //         videoDetailCache.value[key].endPosition =
-                //             currentHistory.value.endPosition;
-                //         moviesInfo.endPosition = {
-                //             min:
-                //                 "" +
-                //                 parseInt(currentHistory.value.endPosition / 60),
-                //             sec:
-                //                 "" +
-                //                 parseInt(currentHistory.value.endPosition % 60),
-                //         };
-                //     }
+                // 从历史记录中恢复片头片尾设置（优先级高于localStorage）
+                if (currentHistory.start_position) {
+                    // 数据库保存的时长通过快捷键设置时可能为小数, startPosition为object对应输入框分秒转化到数据库后肯定为整数
+                    const startPos = currentHistory.start_position;
+                    setMoviesInfo(prev => ({
+                        ...prev,
+                        startPosition: {
+                            min: String(Math.floor(startPos / 60)).padStart(2, '0'),
+                            sec: String(Math.floor(startPos % 60)).padStart(2, '0')
+                        }
+                    }));
+                }
+                if (currentHistory.end_position) {
+                    const endPos = currentHistory.end_position;
+                    setMoviesInfo(prev => ({
+                        ...prev,
+                        endPosition: {
+                            min: String(Math.floor(endPos / 60)).padStart(2, '0'),
+                            sec: String(Math.floor(endPos % 60)).padStart(2, '0')
+                        }
+                    }));
+                }
             }
             const index = playInfo.movie.index || 0;
             playVideo(index, time);
@@ -194,7 +225,7 @@ const Play = (props) => {
                 // 如果设定了特定的video flag, 获取该flag下的视频列表
                 const videoFlag = playInfo.movie.videoFlag;
                 if (videoFlag) {
-                    fullList.forEach((x, index) => {
+                    fullList.forEach((x, _index) => {
                         if (x.flag == videoFlag) {
                             playlist = x.list;
                             // moviesInfo.moviesFullListIndex = index;
@@ -243,8 +274,14 @@ const Play = (props) => {
                         });
                         // bindOnceEvent();
                         getCacheData(key).then((data) => {
-                            const startTime = data?.startPosition || 0;
-                            player.dp.seek(time > startTime ? time : startTime);
+                            const cacheStartTime = data?.startPosition || 0;
+                            // 计算片头跳过时间
+                            const skipStartTime = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
+                            // 使用最大的开始时间（缓存时间或片头跳过时间）
+                            const finalStartTime = Math.max(time || 0, cacheStartTime, skipStartTime);
+                            if (finalStartTime > 0) {
+                                player.dp.seek(finalStartTime);
+                            }
                         });
                     }
                 videoPlaying();
@@ -253,15 +290,17 @@ const Play = (props) => {
             .catch((err) => {
                 console.log(err);
                 messageApi.error("播放地址可能已失效，请换源并调整收藏");
-                // otherEvent();
             });
     };
 
     const videoPlaying = async (isOnline) => {
         const videoFlag = playInfo.movie.videoFlag || "";
         let time, duration;
-        let startPosition = 0;
-        let endPosition = 0;
+        
+        // 计算片头片尾位置（秒）
+        const startPosition = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
+        const endPosition = parseInt(moviesInfo.endPosition.min) * 60 + parseInt(moviesInfo.endPosition.sec);
+        
         if (isOnline) {
             time = duration = 0;
         } else {
@@ -270,35 +309,37 @@ const Play = (props) => {
         }
         let currentHistory = playPage.currentHistory;
         if (!currentHistory) {
-            getCacheData(playMovieUq).then(async (detail) => {
-                const history = {
-                    history_name: playInfo.name,
-                    site_key: playInfo.movie.siteKey,
-                    ids: playInfo.movie.ids.toString(),
-                    index: playInfo.movie.index,
-                    play_time: time,
-                    duration: duration,
-                    start_position: startPosition,
-                    end_position: endPosition,
-                    detail: JSON.stringify(detail),
-                    online_play: isOnline ? playInfo.movie.onlineUrl : "",
-                    video_flag: videoFlag,
-                    has_update: "0",
-                    update_time: date.getDateTimeStr(),
-                };
-                saveHistory(history).then(() => {
-                    getCurrentHistory(
-                        playInfo.movie.siteKey,
-                        playInfo.movie.ids.toString()
-                    ).then((res) => {
-                        playPage.currentHistory = res;
-                    });
+            // 使用已缓存的详情数据
+            const detail = playPage.cachedDetail || {};
+            const history = {
+                history_name: playInfo.name,
+                site_key: playInfo.movie.siteKey,
+                ids: playInfo.movie.ids.toString(),
+                index: playInfo.movie.index,
+                play_time: time,
+                duration: duration,
+                start_position: startPosition,
+                end_position: endPosition,
+                detail: JSON.stringify(detail),
+                online_play: isOnline ? playInfo.movie.onlineUrl : "",
+                video_flag: videoFlag,
+                has_update: "0",
+                update_time: date.getDateTimeStr(),
+            };
+            saveHistory(history).then(() => {
+                getCurrentHistory(
+                    playInfo.movie.siteKey,
+                    playInfo.movie.ids.toString()
+                ).then((res) => {
+                    playPage.currentHistory = res;
                 });
             });
         }
         if (isOnline) {
             currentHistory.index = playPage.movieIndex;
             currentHistory.online_play = playInfo.movie.onlineUrl;
+            currentHistory.start_position = startPosition;
+            currentHistory.end_position = endPosition;
             currentHistory.update_time = date.getDateTimeStr();
             await saveHistory(currentHistory);
         } else {
@@ -321,9 +362,15 @@ const Play = (props) => {
             }
             let historyInfo = playPage.currentHistory;
             if (historyInfo) {
+                // 计算片头片尾位置（秒）
+                const startPosition = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
+                const endPosition = parseInt(moviesInfo.endPosition.min) * 60 + parseInt(moviesInfo.endPosition.sec);
+                
                 historyInfo.index = playPage.movieIndex;
                 historyInfo.play_time = player.currentTime();
                 historyInfo.duration = player.duration();
+                historyInfo.start_position = startPosition;
+                historyInfo.end_position = endPosition;
                 historyInfo.update_time = date.getDateTimeStr();
                 await saveHistory(historyInfo);
             }
@@ -336,18 +383,85 @@ const Play = (props) => {
         historyTimerRef.current = setInterval(updateHistory, 10000);
     };
 
-    const otherEvent = () => {
-        if (playInfo.playType != "iptv") {
-            playerInfo.right.type = "other";
-            getOtherSites();
-            moviesInfo.currentTime = player.dp
-                ? player.dp.video.currentTime
-                : 0;
-        } else {
-            playerInfo.right.type = "sources";
+    // 使用 useMemo 缓存活跃站点列表
+    const activeSites = useMemo(() => {
+        if (!playInfo.movie.siteKey) return [];
+        
+        const currentSite = getSite(playInfo.movie.siteKey);
+        if (!currentSite) return [];
+        
+        return siteList.filter(
+            (x) =>
+                x.is_active &&
+                x.site_group === currentSite.site_group &&
+                x.site_key !== playInfo.movie.siteKey
+        );
+    }, [playInfo.movie.siteKey, siteList]);
+    
+    // 获取其他站点资源的函数
+    const getOtherSiteMovies = useCallback(async () => {
+        // 检查必要条件
+        if (!playInfo.name || !playInfo.movie.siteKey || activeSites.length === 0) {
+            setMoviesInfo(prev => ({ ...prev, otherSiteMoviesSources: [] }));
+            return;
         }
-        playerInfo.right.show = true;
-    };
+        
+        // 重置其他站点资源
+        setMoviesInfo(prev => ({ ...prev, otherSiteMoviesSources: [] }));
+        
+        try {
+            // 统一处理搜索结果的函数
+            const normalizeResult = (item, siteItem) => ({
+                ...item,
+                key: siteItem.site_key,
+                site: siteItem,
+                site_key: siteItem.site_key,
+                site_name: siteItem.site_name
+            });
+            
+            // 并行搜索所有站点
+            const searchPromises = activeSites.map(async (siteItem) => {
+                try {
+                    const searchRes = await movieApi.search(
+                        siteItem, 
+                        playInfo.name || firstHistoryItem?.history_name
+                    );
+                    
+                    if (Array.isArray(searchRes)) {
+                        return searchRes.map(item => normalizeResult(item, siteItem));
+                    } else if (searchRes && typeof searchRes === 'object') {
+                        return [normalizeResult(searchRes, siteItem)];
+                    }
+                    return [];
+                } catch (error) {
+                    console.error(`搜索站点 ${siteItem.site_name} 失败:`, error);
+                    return [];
+                }
+            });
+            
+            const results = await Promise.all(searchPromises);
+            const allResults = results.flat();
+            
+            setMoviesInfo(prev => ({ 
+                ...prev, 
+                otherSiteMoviesSources: allResults 
+            }));
+        } catch (error) {
+            console.error('获取其他站点资源失败:', error);
+            setMoviesInfo(prev => ({ ...prev, otherSiteMoviesSources: [] }));
+        }
+    }, [playInfo.name, activeSites, firstHistoryItem?.history_name]);
+    
+    // 使用 useEffect 触发获取其他站点资源，添加防抖
+    useEffect(() => {
+        if (!playInfo.name || !playInfo.movie.siteKey) return;
+        
+        const timer = setTimeout(() => {
+            getOtherSiteMovies();
+        }, 300); // 300ms 防抖
+        
+        return () => clearTimeout(timer);
+    }, [getOtherSiteMovies, playInfo.name, playInfo.movie.siteKey]);
 
     // 播放下一集
     const prevNextEvent = (isReverse = false) => {
@@ -439,22 +553,21 @@ const Play = (props) => {
 
         dp.on("timeupdate", () => {
             if (dpConfig.isLive || !playInfo.movie.siteKey) return;
-            const key = playMovieUq;
-            getCacheData(key).then((data) => {
-                if (data && data.endPosition) {
-                    const time =
-                        dp.video.duration -
-                        data.endPosition -
-                        dp.video.currentTime;
-                    if (time > 0 && time < 0.3) {
-                        // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
-                        if (!playerInfo.skipendStatus) {
-                            playerInfo.skipendStatus = true;
-                            dp.ended();
-                        }
+
+            const detail = playPage.cachedDetail || {};
+            if (detail && detail.endPosition) {
+                const time =
+                    dp.video.duration -
+                    detail.endPosition -
+                    dp.video.currentTime;
+                if (time > 0 && time < 0.3) {
+                    // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
+                    if (!playerInfo.skipendStatus) {
+                        playerInfo.skipendStatus = true;
+                        dp.ended();
                     }
                 }
-            });
+            }
         });
 
         dp.on("play", async () => {
@@ -526,10 +639,10 @@ const Play = (props) => {
         });
     };
 
-    const selectAllHistory = () => {
+    const selectAllHistory = (forceRefresh = false) => {
         getAllHistory().then((res) => {
             dispatch(
-                storeHistoryList({ historyList: res, forceRefresh: false })
+                storeHistoryList({ historyList: res, forceRefresh: forceRefresh })
             );
         });
     };
@@ -586,8 +699,14 @@ const Play = (props) => {
                 playInfo.movie.ids.toString()
             ).then((res) => {
                 playPage.currentHistory = res;
+                // 在切换播放时获取缓存数据
+                getCacheData(playMovieUq).then(async (detail) => {
+                    // 缓存详情数据供后续使用
+                    playPage.cachedDetail = detail;
+                });
                 getUrls();
             });
+                
         } else {
             getUrls();
         }
@@ -598,7 +717,7 @@ const Play = (props) => {
     }, [playInfo.movie.onlineUrl]);
 
     const closePlayerAndInit = () => {
-        selectAllHistory();
+        selectAllHistory(true);
         dispatch(resetPlayInfo());
         playPage.isFirstPlay = true;
         playPage.movieList = [];
@@ -693,29 +812,28 @@ const Play = (props) => {
                             )}
                         </>
                     ) : (
-                        historyList.length > 0 &&
-                        historyList[0] && (
+                        firstHistoryItem && (
                             <div className="span-one-line">
                                 <strong>上次播放到:</strong> 【
-                                {historyList[0]?.site_key}】
-                                {historyList[0]?.history_name}第
-                                {historyList[0]?.index + 1}集
+                                {firstHistoryItem?.site_key}】
+                                {firstHistoryItem?.history_name}第
+                                {firstHistoryItem?.index + 1}集
                                 <span
                                     className={
-                                        historyList[0]?.time &&
-                                        historyList[0]?.duration
+                                        firstHistoryItem?.time &&
+                                        firstHistoryItem?.duration
                                             ? ""
                                             : "hidden"
                                     }
                                 >
-                                    {fmtMSS(historyList[0]?.time?.toFixed(0))}/
+                                    {fmtMSS(firstHistoryItem?.time?.toFixed(0))}/
                                     {fmtMSS(
-                                        historyList[0]?.duration?.toFixed(0)
+                                        firstHistoryItem?.duration?.toFixed(0)
                                     )}
                                 </span>
                                 <span
                                     className={
-                                        historyList[0]?.onlinePlay
+                                        firstHistoryItem?.onlinePlay
                                             ? ""
                                             : "hidden"
                                     }
@@ -758,6 +876,154 @@ const Play = (props) => {
                         allow="autoplay;fullscreen"
                     ></iframe>
                 </div>
+                
+                {/* 片头片尾设置 */}
+                {playing && (
+                    <div className={`play-timing-section pb-3 ${shortVideoMode ? 'short-video-timing' : ''}`}>
+                        <h2>片头片尾设置</h2>
+                        <div className="timing-controls">
+                            <Space size="large" wrap>
+                                <div className="timing-item">
+                                    <span className="timing-label">片头跳过：</span>
+                                    <Space.Compact>
+                                        <Input
+                                            style={{ width: 60 }}
+                                            value={moviesInfo.startPosition.min}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                                const newMoviesInfo = {
+                                                    ...moviesInfo,
+                                                    startPosition: { ...moviesInfo.startPosition, min: value || '00' }
+                                                };
+                                                setMoviesInfo(newMoviesInfo);
+                                                
+                                                // 实时保存到localStorage
+                                                const timingKey = `timing_${playMovieUq}`;
+                                                const timingData = {
+                                                    startPosition: newMoviesInfo.startPosition,
+                                                    endPosition: newMoviesInfo.endPosition,
+                                                    timestamp: Date.now()
+                                                };
+                                                localStorage.setItem(timingKey, JSON.stringify(timingData));
+                                            }}
+                                            placeholder="分"
+                                            maxLength={2}
+                                        />
+                                        <span style={{ padding: '0 8px', lineHeight: '32px' }}>分</span>
+                                        <Input
+                                            style={{ width: 60 }}
+                                            value={moviesInfo.startPosition.sec}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                                if (value === '' || parseInt(value) <= 59) {
+                                                    const newMoviesInfo = {
+                                                        ...moviesInfo,
+                                                        startPosition: { ...moviesInfo.startPosition, sec: value || '00' }
+                                                    };
+                                                    setMoviesInfo(newMoviesInfo);
+                                                    
+                                                    // 实时保存到localStorage
+                                                    const timingKey = `timing_${playMovieUq}`;
+                                                    const timingData = {
+                                                        startPosition: newMoviesInfo.startPosition,
+                                                        endPosition: newMoviesInfo.endPosition,
+                                                        timestamp: Date.now()
+                                                    };
+                                                    localStorage.setItem(timingKey, JSON.stringify(timingData));
+                                                }
+                                            }}
+                                            placeholder="秒"
+                                            maxLength={2}
+                                        />
+                                        <span style={{ padding: '0 8px', lineHeight: '32px' }}>秒</span>
+                                    </Space.Compact>
+                                </div>
+                                <div className="timing-item">
+                                    <span className="timing-label">片尾跳过：</span>
+                                    <Space.Compact>
+                                        <Input
+                                            style={{ width: 60 }}
+                                            value={moviesInfo.endPosition.min}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                                const newMoviesInfo = {
+                                                    ...moviesInfo,
+                                                    endPosition: { ...moviesInfo.endPosition, min: value || '00' }
+                                                };
+                                                setMoviesInfo(newMoviesInfo);
+                                                
+                                                // 实时保存到localStorage
+                                                const timingKey = `timing_${playMovieUq}`;
+                                                const timingData = {
+                                                    startPosition: newMoviesInfo.startPosition,
+                                                    endPosition: newMoviesInfo.endPosition,
+                                                    timestamp: Date.now()
+                                                };
+                                                localStorage.setItem(timingKey, JSON.stringify(timingData));
+                                            }}
+                                            placeholder="分"
+                                            maxLength={2}
+                                        />
+                                        <span style={{ padding: '0 8px', lineHeight: '32px' }}>分</span>
+                                        <Input
+                                            style={{ width: 60 }}
+                                            value={moviesInfo.endPosition.sec}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                                                if (value === '' || parseInt(value) <= 59) {
+                                                    const newMoviesInfo = {
+                                                        ...moviesInfo,
+                                                        endPosition: { ...moviesInfo.endPosition, sec: value || '00' }
+                                                    };
+                                                    setMoviesInfo(newMoviesInfo);
+                                                    
+                                                    // 实时保存到localStorage
+                                                    const timingKey = `timing_${playMovieUq}`;
+                                                    const timingData = {
+                                                        startPosition: newMoviesInfo.startPosition,
+                                                        endPosition: newMoviesInfo.endPosition,
+                                                        timestamp: Date.now()
+                                                    };
+                                                    localStorage.setItem(timingKey, JSON.stringify(timingData));
+                                                }
+                                            }}
+                                            placeholder="秒"
+                                            maxLength={2}
+                                        />
+                                        <span style={{ padding: '0 8px', lineHeight: '32px' }}>秒</span>
+                                    </Space.Compact>
+                                </div>
+                                <Button 
+                                    type="primary" 
+                                    size="small"
+                                    onClick={() => {
+                                        // 保存到localStorage
+                                        const timingKey = `timing_${playMovieUq}`;
+                                        const timingData = {
+                                            startPosition: moviesInfo.startPosition,
+                                            endPosition: moviesInfo.endPosition,
+                                            timestamp: Date.now()
+                                        };
+                                        localStorage.setItem(timingKey, JSON.stringify(timingData));
+                                        
+                                        // 立即保存设置到历史记录
+                                        if (playPage.currentHistory) {
+                                            const startPosition = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
+                                            const endPosition = parseInt(moviesInfo.endPosition.min) * 60 + parseInt(moviesInfo.endPosition.sec);
+                                            playPage.currentHistory.start_position = startPosition;
+                                            playPage.currentHistory.end_position = endPosition;
+                                            saveHistory(playPage.currentHistory);
+                                        }
+                                        
+                                        message.success('片头片尾设置已保存到本地和历史记录');
+                                    }}
+                                >
+                                    保存设置
+                                </Button>
+                            </Space>
+                        </div>
+                    </div>
+                )}
                 <div
                     className={`play-episodes-section pb-3 ${shortVideoMode ? 'short-video-episodes' : ''}`}
                     style={{ display: movieList.length == 0 ? "none" : "" }}
@@ -800,6 +1066,49 @@ const Play = (props) => {
                         ))
                     }
                 </div>
+                {/* 其他站点播放资源 */}
+                {moviesInfo.otherSiteMoviesSources && moviesInfo.otherSiteMoviesSources.length > 0 && (
+                    <div
+                        className={`play-other-sites-section pb-3 ${shortVideoMode ? 'short-video-other-sites' : ''}`}
+                    >
+                        <h2>其他站点资源</h2>
+                        <Waterfall
+                            list={moviesInfo.otherSiteMoviesSources}
+                            rowKey={["site_key", "id"]}
+                            gutter={10}
+                            tipMessage="暂无其他站点资源"
+                            initYzb={10}
+                            breakpoints={{
+                                1400: { rowPerView: 6 },
+                                1200: { rowPerView: 5 },
+                                1000: { rowPerView: 4 },
+                                800: { rowPerView: 3 },
+                                500: { rowPerView: 2 },
+                            }}
+                        >
+                            <MovieCard
+                                onItemClick={(item) => {
+                                    const playInfo = {
+                                        playState: "newPlay",
+                                        playType: "onlineMovie",
+                                        isLive: false,
+                                        name: item.name,
+                                        iptv: { channelGroupId: 0, channelActive: "" },
+                                        download: { downloadId: 0 },
+                                        movie: {
+                                            siteKey: item.site_key,
+                                            ids: item.id,
+                                            index: 0,
+                                            videoFlag: "",
+                                            onlineUrl: "",
+                                        },
+                                    };
+                                    dispatch(updatePlayInfo({ playInfo, toPlay: true }));
+                                }}
+                            />
+                        </Waterfall>
+                    </div>
+                )}
             </div>
 
             {/* 二维码弹窗 */}

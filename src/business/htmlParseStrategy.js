@@ -1,27 +1,27 @@
 import { XMLParser } from "fast-xml-parser";
 
 class HtmlParseStrategy {
-    getPageParams(params) {
+    getPageParams(_params) {
         // Implementation here
     }
-    doParserClass(resolve, reject, data) {
+    doParserClass(_resolve, _reject, _data) {
         // Implementation here
     }
-    doParserPage(resolve, reject, data) {
+    doParserPage(_resolve, _reject, _data) {
         // Implementation here
     }
-    doParserVideo(resolve, reject, data) {
+    doParserVideo(_resolve, _reject, _data) {
         // Implementation here
     }
-    doParserVideoDetail(resolve, reject, data) {
-        // Implementation here
-    }
-
-    doParserSearch(resolve, reject, data, wd) {
+    doParserVideoDetail(_resolve, _reject, _data) {
         // Implementation here
     }
 
-    doParserDownload(resolve, reject, data) {
+    doParserSearch(_resolve, _reject, _data, _wd) {
+        // Implementation here
+    }
+
+    doParserDownload(_resolve, _reject, _data) {
         // Implementation here
     }
 }
@@ -252,14 +252,19 @@ class SiteClassJsonParser extends HtmlParseStrategy {
         resolve(videoInfo);
     }
 
-    doParserSearch(resolve, reject, data, wd) {
+    doParserSearch(resolve, reject, data, _wd) {
         if (!data) return resolve([]);
-        const json = JSON.parse(data.replace("\n", ""));
-        const videoList = json.list;
-        if (videoList.length) {
-            resolve(videoList);
-        } else {
-            resolve([]);
+        try {
+            const json = JSON.parse(data.replace("\n", ""));
+            const videoList = json.list;
+            if (videoList.length) {
+                resolve(videoList);
+            } else {
+                resolve([]);
+            }
+        } catch (error) {
+            console.error('搜索失败:', error);
+            reject(error);
         }
     }
 

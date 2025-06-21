@@ -8,7 +8,6 @@ import "./WinTool.scss";
 const WinTool = () => {
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
   const settings = useAppSelector(settingsStore);
 
   const svgStyle = {
@@ -63,7 +62,7 @@ const WinTool = () => {
           <span className="max" onClick={handleWinMax2Min}>
             <SvgIcon
               name="wintool-max"
-              title={isMaximized ? "还原" : "最大化"}
+              title={fullscreen ? "还原" : "最大化"}
               style={svgStyle}
               color="#ffffff"
             ></SvgIcon>

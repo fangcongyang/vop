@@ -496,6 +496,7 @@ const Movie = () => {
             }}
           >
             <MovieCard
+              showSiteName={false}
               site={currentSite}
             />
           </Waterfall>

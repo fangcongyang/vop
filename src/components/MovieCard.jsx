@@ -11,7 +11,7 @@ import util from "@/utils";
 import moviesApi from "@/api/movies";
 import "./MovieCard.scss";
 
-const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDelete }) => {
+const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSiteName = true, onDelete }) => {
     const dispatch = useAppDispatch();
     const [messageApi, _contextHolder] = message.useMessage();
     const siteMap = useAppSelector(siteMapStore);
@@ -38,7 +38,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
             case "search":
                 return item.site.site_name;
             default:
-                return site.site_name;
+                return site?.site_name || item.site?.site_name;
         }
     };
 
@@ -179,7 +179,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", onDele
     return (
         <div key={key} className="card" onClick={onDetail}>
             <div className="img">
-                {viewMode !== "default" && (
+                {showSiteName  && (
                     <div className="site">
                         <span>{getSiteName()}</span>
                     </div>

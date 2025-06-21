@@ -8,7 +8,6 @@ import {
 import { getAllHistory, deleteHistory } from "@/db";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
-import { identity } from "lodash";
 import "./Movie.scss";
 
 const History = (props) => {
