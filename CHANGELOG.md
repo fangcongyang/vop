@@ -1,4 +1,13 @@
-## [0.0.7](https://github.com/fangcongyang/vop/compare/v0.0.6...v0.0.7) (2025-06-21)
+## [0.0.8](https://github.com/fangcongyang/vop/compare/v0.0.7...v0.0.8) (2025-06-22)
+
+
+### ✨ Features | 新功能
+
+* **下载:** 实现FFmpeg自动下载功能 ([](https://github.com/fangcongyang/vop/commit/de0b216))
+
+
+
+## [0.0.7](https://github.com/fangcongyang/vop/compare/0.0.7...v0.0.7) (2025-06-21)
 
 
 ### ✨ Features | 新功能
