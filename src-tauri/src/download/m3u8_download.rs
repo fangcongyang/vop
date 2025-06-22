@@ -242,7 +242,11 @@ async fn download_slice(
     ) = mpsc::channel(100);
 
     loop {
-        let detail = queue.pop().unwrap();
+        let queue_data = queue.pop();
+        if queue_data.is_none() {
+            break;
+        }
+        let detail = queue_data.unwrap();
         let semaphore = Arc::new(Semaphore::new(6));
         let tx1 = tx.clone();
         tokio::spawn(async move {
@@ -415,7 +419,14 @@ pub async fn merger(
     let mv_str = index_str.replace("txt", "mp4");
     File::create(Path::new(&mv_str)).await?;
     info!("开始合并视频, index:{}", index_str.clone());
-    let mut cmd = Command::new("ffmpeg");
+    let platform = tauri_plugin_os::platform();
+    let mut exe_path = utils::app_install_root().join("resources").join(platform);
+    if platform == "macos" {
+        exe_path = exe_path.join("ffmpeg_macos");
+    } else {
+        exe_path = exe_path.join("ffmpeg");
+    }
+    let mut cmd = Command::new(exe_path);
     let output = cmd
         .args([
             "-y",

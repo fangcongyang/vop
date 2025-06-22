@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
+import {
+    updateDownloadProcess,
+  } from "@/store/movieSlice";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { exit } from '@tauri-apps/plugin-process';
 import { getCurrentWindow } from "@tauri-apps/api/window";

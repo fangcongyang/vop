@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { type } from "@tauri-apps/plugin-os";
 import { useAppDispatch } from "@/store/hooks";
 import { togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
@@ -17,6 +18,7 @@ import { closeAppOptionSelectData } from "@/static/settingsData";
 import { clearDB } from "@/db";
 import { useConfig } from "@/hooks";
 import { applyTheme } from "@/theme";
+import { DownloadFileTask } from "@/business/DownloadFileTask";
 import _ from "lodash";
 import "./Settings.scss";
 
@@ -70,6 +72,12 @@ const Settings = (props) => {
     const [dataUpload, setDataUpload] = useState(false);
     const [isCheckingUpdate, setIsCheckingUpdate] = useState(false); // 添加状态
     const [closeAppOption, setCloseAppOption] = useConfig("closeAppOption", "ask"); // 添加状态
+    
+    // FFmpeg 下载相关状态
+    const [ffmpegDownloadStatus, setFfmpegDownloadStatus] = useState("idle"); // idle, begin, progress, end, error
+    const [ffmpegDownloadProgress, setFfmpegDownloadProgress] = useState(0);
+    const [ffmpegDownloadSpeed, setFfmpegDownloadSpeed] = useState(0);
+    const [ffmpegVersion, setFfmpegVersion] = useConfig("ffmpegVersion", "");
 
     useEffect(() => {
         const fetchConfig = async (key, setter) => {
@@ -171,6 +179,95 @@ const Settings = (props) => {
         applyTheme(darkMode, themeColor);
     }, []);
 
+    // FFmpeg 下载配置
+    const FFMPEG = {
+        downloadInfo: {
+            "windows-x64": {
+                url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
+                path: "ffmpeg.exe"
+            },
+            "windows-x86": {
+                url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win32-gpl.zip",
+                path: "ffmpeg.exe"
+            },
+            "linux": {
+                url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
+                path: "ffmpeg"
+            },
+            "macos": {
+                url: "https://evermeet.cx/ffmpeg/getrelease/zip",
+                path: "ffmpeg"
+            }
+        }
+    };
+
+    // 获取当前操作系统详细类型
+    const getOsDetailType = async () => {
+        try {
+            const osType = await type();
+            return osType;
+        } catch (e) {
+            console.error("获取操作系统类型失败:", e);
+            return "unknown";
+        }
+    };
+
+    // FFmpeg 下载功能
+    const downloadFfmpeg = async () => {
+        const osDetailType = await getOsDetailType();
+        
+        if (osDetailType in FFMPEG.downloadInfo) {
+            const ffmpegInfo = FFMPEG.downloadInfo[osDetailType];
+            const ffmpegDownloadTask = new DownloadFileTask({
+                event_id: "ffmpeg",
+                download_url: ffmpegInfo.url,
+                file_path: osDetailType + "/" + ffmpegInfo.path,
+            });
+            
+            ffmpegDownloadTask.on("begin", async (_data) => {
+                setFfmpegDownloadStatus("begin");
+            });
+            
+            ffmpegDownloadTask.on("progress", async (data) => {
+                setFfmpegDownloadStatus("progress");
+                setFfmpegDownloadProgress(data.progress || 0);
+                setFfmpegDownloadSpeed(data.speed || 0);
+            });
+            
+            ffmpegDownloadTask.on("end", async (_data) => {
+                setFfmpegDownloadStatus("end");
+                setFfmpegVersion("latest");
+            });
+            
+            ffmpegDownloadTask.on("error", async (_data) => {
+                setFfmpegDownloadStatus("error");
+            });
+            
+            ffmpegDownloadTask.startDownload();
+        } else {
+            console.error("不支持的操作系统类型:", osDetailType);
+            setFfmpegDownloadStatus("error");
+            // 可以考虑显示更详细的错误信息给用户
+            alert(`当前系统类型 "${osDetailType}" 暂不支持自动下载 FFmpeg，请手动下载安装。`);
+        }
+    };
+
+    // 获取 FFmpeg 下载按钮文本
+    const getFfmpegButtonText = () => {
+        switch (ffmpegDownloadStatus) {
+            case "begin":
+                return "准备下载...";
+            case "progress":
+                return `下载中 ${ffmpegDownloadProgress.toFixed(1)}% (${ffmpegDownloadSpeed.toFixed(1)} MB/s)`;
+            case "end":
+                return "下载完成";
+            case "error":
+                return "下载失败，点击重试";
+            default:
+                return ffmpegVersion ? "重新下载 FFmpeg" : "下载 FFmpeg";
+        }
+    };
+
 
     return (
         <div
@@ -268,6 +365,23 @@ const Settings = (props) => {
                                 downloadSavePathCallback(downloadSavePath)
                             }
                         />
+                        <div className="item">
+                            <div className="left">
+                                <div className="title">FFmpeg 工具</div>
+                                <div className="description">
+                                    {ffmpegVersion ? `已安装版本: ${ffmpegVersion}` : "用于视频处理的必要工具"}
+                                </div>
+                            </div>
+                            <div className="right">
+                                <button 
+                                    className="button" 
+                                    onClick={downloadFfmpeg}
+                                    disabled={ffmpegDownloadStatus === "begin" || ffmpegDownloadStatus === "progress"}
+                                >
+                                    {getFfmpegButtonText()}
+                                </button>
+                            </div>
+                        </div>
                     </>
                 )}
                 {!osType.startsWith("web") && (

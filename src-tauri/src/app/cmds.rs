@@ -1,6 +1,8 @@
 use std::time::Duration;
+use std::io::Read;
 
 use futures::TryStreamExt;
+use log::info;
 use serde_json::{Map, Value};
 use tauri::http::header::USER_AGENT;
 use tauri::http::HeaderMap;
@@ -9,6 +11,7 @@ use tauri::Emitter;
 use tauri_plugin_http::reqwest;
 use tokio::{io::AsyncWriteExt, sync::watch, time::interval};
 use serde::{Deserialize, Serialize};
+use zip::ZipArchive;
 
 use crate::utils::choose_user_agent;
 use crate::utils::{self, create_request_builder};
@@ -95,11 +98,14 @@ pub async fn download_file_task_async(
                 },
             )?;
 
-            // 打开文件用于写入
-            let mut path = utils::app_install_root();
-            path = path.join("resources").join(&download_task_info.file_path);
-            utils::create_dir_if_not_exists(&path)?;
-            let mut file = tokio::fs::File::create(path).await?;
+            // 打开文件用于写入 - 先保存为zip文件
+            let mut download_dir = utils::app_install_root();
+            download_dir = download_dir.join("resources");
+            let zip_file_name = format!("{}.zip", download_task_info.file_path.replace(".exe", ""));
+            let zip_path = download_dir.join(&zip_file_name);
+            info!("download zip file path: {:?}", zip_path);
+            utils::create_dir_if_not_exists(&zip_path)?;
+            let mut file = tokio::fs::File::create(&zip_path).await?;
             let mut stream = response.bytes_stream();
 
             let mut downloaded: u64 = 0;
@@ -144,6 +150,43 @@ pub async fn download_file_task_async(
             }
 
             progress_task.abort();
+            
+            // 解压ZIP文件
+            info!("Starting to extract zip file: {:?}", zip_path);
+            let zip_file = std::fs::File::open(&zip_path)?;
+            let mut archive = ZipArchive::new(zip_file)?;
+            
+            // 查找exe文件并解压
+            let target_exe_path = download_dir.join(&download_task_info.file_path);
+            let mut exe_found = false;
+            
+            for i in 0..archive.len() {
+                let mut file_in_zip = archive.by_index(i)?;
+                let file_name = file_in_zip.name();
+                
+                // 查找ffmpeg.exe文件（可能在子目录中）
+                if file_name.ends_with("ffmpeg.exe") || file_name.ends_with(&download_task_info.file_path) {
+                    info!("Found target exe file in zip: {}", file_name);
+                    
+                    let mut exe_content = Vec::new();
+                    file_in_zip.read_to_end(&mut exe_content)?;
+                    
+                    // 写入目标位置
+                    std::fs::write(&target_exe_path, exe_content)?;
+                    exe_found = true;
+                    info!("Extracted exe to: {:?}", target_exe_path);
+                    break;
+                }
+            }
+            
+            if !exe_found {
+                return Err(format!("Could not find {} in the downloaded zip file", download_task_info.file_path).into());
+            }
+            
+            // 删除临时zip文件
+            std::fs::remove_file(&zip_path).ok();
+            info!("Removed temporary zip file: {:?}", zip_path);
+            
             app.emit(
                 &download_task_info.event_id,
                 DownloadInfo {
@@ -153,6 +196,7 @@ pub async fn download_file_task_async(
                     content_length: Some(content_length),
                 },
             )?;
+            
             Ok::<(), Box<dyn std::error::Error>>(()) // 显式返回 Ok(())
         }
         .await

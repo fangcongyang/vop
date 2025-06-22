@@ -29,7 +29,9 @@ const USER_AGENT_LIST: [&str; 14] = [
 ];
 
 pub fn app_install_root() -> PathBuf {
-    env::current_exe().expect("failed to get current exe path")
+    let mut path = env::current_exe().expect("failed to get current exe path");
+    path.pop();
+    path
 }
 
 pub fn read_init_data_file(data_name: &str) -> String {
