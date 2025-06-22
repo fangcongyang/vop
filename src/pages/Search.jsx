@@ -27,7 +27,7 @@ const Search = (props) => {
 
   useEffect(() => {
     if (
-      osType != "mobile" &&
+      osType() != "mobile" &&
       pageActive === "search" &&
       searchKeyword != searchKeywordRef.current
     ) {
@@ -136,7 +136,7 @@ const Search = (props) => {
     <div
       className={props.className ? "pageMain " + props.className : "pageMain"}
     >
-      {osType.toLowerCase().includes("mobile") && (
+      {osType().toLowerCase().includes("mobile") && (
         <div style={{ marginTop: "10px" }}>
             <AutoComplete
               style={{

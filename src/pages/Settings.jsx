@@ -97,7 +97,7 @@ const Settings = (props) => {
 
     const resetApp = () => {
         clearDB().then(() => {
-            if (osType.startsWith("web")) return;
+            if (osType().startsWith("web")) return;
             relaunch();
         })
     };
@@ -173,11 +173,6 @@ const Settings = (props) => {
       invoke("open_devtools");
     };
 
-    // 初始化主题设置
-    useEffect(() => {
-        applyTheme(darkMode, themeColor);
-    }, []);
-
     // FFmpeg 下载配置
     const FFMPEG = {
         downloadInfo: {
@@ -198,7 +193,7 @@ const Settings = (props) => {
 
     // FFmpeg 下载功能
     const downloadFfmpeg = async () => {
-
+        let osDetailType = osDetailType();
         if (osDetailType in FFMPEG.downloadInfo) {
             const ffmpegInfo = FFMPEG.downloadInfo[osDetailType];
             const ffmpegDownloadTask = new DownloadFileTask({
@@ -335,7 +330,7 @@ const Settings = (props) => {
                     ""
                 )}
 
-                {osType == "desktop" && (
+                {osType() == "desktop" && (
                     <>
                         <h3>下载</h3>
                         <SettingButton
@@ -367,7 +362,7 @@ const Settings = (props) => {
                         </div>
                     </>
                 )}
-                {!osType.startsWith("web") && (
+                {!osType().startsWith("web") && (
                     <>
                         <h3>代理配置</h3>
                         <SettingsSelect
@@ -464,7 +459,7 @@ const Settings = (props) => {
                     <button className="button" onClick={openDevTools}>开发者工具</button>
                   </div>
                 </div>
-                {osType == "desktop" && (
+                {osType() == "desktop" && (
                     <>
                         <SettingsSelect
                             title="关闭主面板时..."
@@ -501,13 +496,13 @@ const Settings = (props) => {
                             fangcongyang
                         </a>
                     </p>
-                    <p className="version">v {appVersion}</p>
+                    <p className="version">v {appVersion()}</p>
                 </div>
             </div>
             {isCheckingUpdate ? (
                 <UpdateModal
                     show={isCheckingUpdate}
-                    currentVersion={appVersion}
+                    currentVersion={appVersion()}
                     onClose={() => setIsCheckingUpdate(false)}
                 />
             ) : null}

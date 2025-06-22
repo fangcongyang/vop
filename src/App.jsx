@@ -40,7 +40,7 @@ function App() {
   const [antdTheme, setAntdTheme] = useState({ ...antdThemeConfig });
 
   useEffect(() => {
-    if (osType === "desktop") {
+    if (osType() === "desktop") {
       initDownloadWebsocket();
     }
 
@@ -71,7 +71,7 @@ function App() {
 
   // 监听配置更新
   useEffect(() => {
-    if (osType === "desktop") {
+    if (osType() === "desktop") {
       getCurrentWindow()
         .onCloseRequested(async (event) => {
           event.preventDefault();
@@ -97,7 +97,7 @@ function App() {
         });
     }
     return () => {
-      if (osType === "desktop") {
+      if (osType() === "desktop") {
         if (exitUnlistenFn.current) {
           exitUnlistenFn.current();
           exitUnlistenFn.current = null;
@@ -119,9 +119,9 @@ function App() {
   return (
     <ConfigProvider theme={antdTheme}>
       <div className="main-body">
-        {osType == "desktop" && <WinTool />}
+        {osType() == "desktop" && <WinTool />}
         <main ref={main}>
-          {!osType.toLowerCase().includes("mobile") && (
+          {!osType().toLowerCase().includes("mobile") && (
             <>
               <Navbar>
                 <KeepAlive cacheKey="movie" active={pageActive === "movie"}>
@@ -136,7 +136,7 @@ function App() {
                 <KeepAlive cacheKey="star" active={pageActive === "star"}>
                   <Star />
                 </KeepAlive>
-                {osType === "desktop" && (
+                {osType() === "desktop" && (
                   <KeepAlive
                     cacheKey="download"
                     active={pageActive === "download"}
@@ -153,7 +153,7 @@ function App() {
               </Navbar>
             </>
           )}
-          {osType.toLowerCase().includes("mobile") && (
+          {osType().toLowerCase().includes("mobile") && (
             <>
               <KeepAlive cacheKey="movie" active={pageActive === "movie"}>
                 <Movie />

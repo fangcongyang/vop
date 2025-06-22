@@ -5,7 +5,7 @@ import fetch from '@/api/fetch';
 export const cacheData = async (key, value) => {
     if (!value) return;
     let params = { key, value };
-    if (osType.startsWith("web")) {
+    if (osType().startsWith("web")) {
         params.apiUrl = "/api/cache/cacheData";
         params.value = JSON.stringify(value);
         fetch.post("", params)
@@ -18,7 +18,7 @@ export const getCacheData = async (key) => {
     try {
         let params = { key };
         let data;
-        if (osType.startsWith("web")) {
+        if (osType().startsWith("web")) {
             params.apiUrl = "/api/cache/getCacheData";
             data = fetch.post("", params);
         } else {

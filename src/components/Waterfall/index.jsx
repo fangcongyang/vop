@@ -80,7 +80,7 @@ const Waterfall = memo(({
 
     // 初始y
     const initY = useCallback(() => {
-        posY.current = Array.from(cols.current).fill(
+        posY.current = new Array(cols.current).fill(
             hasAroundGutter ? gutter : initYzb
         );
     }, [cols, gutter, hasAroundGutter, initYzb]);

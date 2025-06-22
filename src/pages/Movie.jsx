@@ -249,7 +249,8 @@ const Movie = () => {
           pageRef.current = pageRef.current + 1;
         }
       })
-      .catch(() => {
+      .catch((e) => {
+        console.log(e);
         setTipMessage("获取数据失败");
         messageApi.error("获取分类资源失败");
       })
@@ -404,7 +405,7 @@ const Movie = () => {
       className="pageMain"
     >
       <div className="panel">
-        {osType.toLowerCase().includes("mobile") && (
+        {osType().toLowerCase().includes("mobile") && (
           <div className="movieSearch">
             <AutoComplete
               style={{

@@ -41,19 +41,20 @@ pub struct DownloadRequest {
 }
 
 pub async fn init() {
-    let server = TcpListener::bind("127.0.0.1:8000").unwrap();
-    for stream in server.incoming() {
-        thread::spawn(move || match stream {
-            Ok(stream) => {
-                if let Err(err) = handle_client(stream) {
-                    match err {
-                        Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
-                        e => error!("WebSocket handler business error: {}", e),
+    if let Ok(server) = TcpListener::bind("127.0.0.1:8000") {
+        for stream in server.incoming() {
+            thread::spawn(move || match stream {
+                Ok(stream) => {
+                    if let Err(err) = handle_client(stream) {
+                        match err {
+                            Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
+                            e => error!("WebSocket handler business error: {}", e),
+                        }
                     }
                 }
-            }
-            Err(e) => error!("Error accepting stream: {}", e),
-        });
+                Err(e) => error!("Error accepting stream: {}", e),
+            });
+        }
     }
 }
 

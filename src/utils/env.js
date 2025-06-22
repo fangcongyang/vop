@@ -6,8 +6,8 @@ import { useEffect, useState, useCallback } from "react";
 
 // 环境信息缓存
 let envCache = {
-    osType: null,
-    osDetailType: null,
+    osType: "",
+    osDetailType: "",
     appVersion: null,
     httpStrategy: null
 };
@@ -128,19 +128,15 @@ async function initOsType() {
     }
 }
 
+
+
 /**
  * 初始化详细操作系统类型
  * @returns {Promise<string>}
  */
 async function initOsDetailType() {
     try {
-        const platformType = await type();
-        
-        // 对于Windows，进一步检测架构
-        if (platformType === PLATFORM_TYPES.WINDOWS) {
-            return detectWindowsArchitecture();
-        }
-        
+        const platformType = await type(); // 修复：添加 await
         return platformType;
     } catch (error) {
         console.warn('Failed to detect detailed platform type:', error);
@@ -151,28 +147,6 @@ async function initOsDetailType() {
         }
         
         return detectMobileDevice() ? 'web-mobile' : 'web-desktop';
-    }
-}
-
-/**
- * 检测Windows架构类型
- * @returns {string}
- */
-function detectWindowsArchitecture() {
-    try {
-        const userAgent = navigator.userAgent.toLowerCase();
-        const platform = navigator.platform.toLowerCase();
-        
-        // 检测64位标识
-        const is64Bit = userAgent.includes('win64') || 
-                       userAgent.includes('x64') || 
-                       platform.includes('win64') ||
-                       platform.includes('x64');
-        
-        return is64Bit ? 'windows-x64' : 'windows-x86';
-    } catch (error) {
-        console.warn('Failed to detect Windows architecture:', error);
-        return 'windows'; // 默认返回通用Windows类型
     }
 }
 
@@ -223,8 +197,8 @@ export function getCachedEnvInfo(key) {
  */
 export function clearEnvCache() {
     envCache = {
-        osType: null,
-        osDetailType: null,
+        osType: "",
+        osDetailType: "",
         appVersion: null,
         httpStrategy: null
     };
@@ -237,13 +211,15 @@ export function clearEnvCache() {
 export async function initEnv() {
     try {
         // 并行初始化基础信息
-        const [osType, appVersion] = await Promise.all([
+        const [osType, osDetailType, appVersion] = await Promise.all([
             initOsType(),
+            initOsDetailType(), // 添加 osDetailType 初始化
             initAppVersion()
         ]);
         
         // 缓存基础信息
         envCache.osType = osType;
+        envCache.osDetailType = osDetailType; // 缓存 osDetailType
         envCache.appVersion = appVersion;
         
         // 初始化HTTP策略
@@ -254,6 +230,7 @@ export async function initEnv() {
         
         console.log('Environment initialized successfully:', {
             osType,
+            osDetailType, // 添加到日志输出
             appVersion,
             httpStrategy: envCache.httpStrategy.constructor.name
         });
@@ -265,7 +242,7 @@ export async function initEnv() {
 }
 
 // 向后兼容的导出
-export const httpStrategy = getHttpStrategy();
+export const httpStrategy = () => getHttpStrategy();
 export const osType = () => getCachedEnvInfo('osType');
 export const appVersion = () => getCachedEnvInfo('appVersion');
 export const osDetailType = () => getCachedEnvInfo('osDetailType');
