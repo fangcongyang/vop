@@ -23,6 +23,7 @@ const fillMode = prefixStyle("animation-fill-mode");
 
 const Waterfall = memo(({
     list= [],
+    domId="contentBody",
     rowKey= "id",
     width= 200,
     breakpoints= {
@@ -50,7 +51,7 @@ const Waterfall = memo(({
     afterRender
 }) => {
     const waterfallWrapper = useRef(null);
-    const contentBodySize = useContentBodySize();
+    const contentBodySize = useContentBodySize(domId);
     const wrapperWidth = useRef(0);
     const [wrapperHeight, setWrapperHeight] = useState(0);
     const colWidth = useRef(0);

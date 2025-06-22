@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 
-export function useContentBodySize() {
+export function useContentBodySize(domId) {
   const [size, setSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
 
   useEffect(() => {
-    const dom = document.getElementById("contentBody");
+    const dom = document.getElementById(domId);
     if (dom) {
       setSize({
         width: dom.clientWidth,

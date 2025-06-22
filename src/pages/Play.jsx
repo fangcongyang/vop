@@ -880,7 +880,7 @@ const Play = (props) => {
                 {/* 片头片尾设置 */}
                 {playing && (
                     <div className={`play-timing-section pb-3 ${shortVideoMode ? 'short-video-timing' : ''}`}>
-                        <h2>片头片尾设置</h2>
+                        <h2>片头片尾</h2>
                         <div className="timing-controls">
                             <Space size="large" wrap>
                                 <div className="timing-item">
@@ -1069,11 +1069,13 @@ const Play = (props) => {
                 {/* 其他站点播放资源 */}
                 {moviesInfo.otherSiteMoviesSources && moviesInfo.otherSiteMoviesSources.length > 0 && (
                     <div
+                        id="otherSiteMoviesSources"
                         className={`play-other-sites-section pb-3 ${shortVideoMode ? 'short-video-other-sites' : ''}`}
                     >
-                        <h2>其他站点资源</h2>
+                        <h2>其他站点</h2>
                         <Waterfall
                             list={moviesInfo.otherSiteMoviesSources}
+                            domId="otherSiteMoviesSources"
                             rowKey={["site_key", "id"]}
                             gutter={10}
                             tipMessage="暂无其他站点资源"

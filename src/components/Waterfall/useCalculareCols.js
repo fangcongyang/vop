@@ -1,5 +1,25 @@
 import memoizeOne from 'memoize-one';
 
+// 使用 sessionStorage 实现本次对话缓存
+const sessionCache = {
+    get: (key) => {
+        try {
+            const data = sessionStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            console.warn('Failed to get data from sessionStorage:', e);
+            return null;
+        }
+    },
+    set: (key, value) => {
+        try {
+            sessionStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+            console.warn('Failed to set data to sessionStorage:', e);
+        }
+    }
+};
+
 // 优化getItemWidth函数，使用纯函数模式避免副作用
 const getItemWidth = (breakpoints, gutter, hasAroundGutter, width, wrapperWidth) => {
     // 参数验证
@@ -45,18 +65,10 @@ export const calculateCols = (breakpoints, gutter, hasAroundGutter, width, align
     // 创建缓存键
     const cacheKey = `waterfall_${wrapperWidth.current}_${gutter}_${width}_${align}`;
     
-    // 尝试从缓存获取
-    try {
-        const cachedData = localStorage.getItem(cacheKey);
-        if (cachedData) {
-            const parsed = JSON.parse(cachedData);
-            if (parsed && parsed.colWidth && parsed.cols && parsed.offsetX !== undefined) {
-                return parsed;
-            }
-        }
-    } catch (e) {
-        // 忽略localStorage错误，继续计算
-        console.warn('Failed to get layout from cache:', e);
+    // 尝试从本次对话缓存获取
+    const cachedData = sessionCache.get(cacheKey);
+    if (cachedData && cachedData.colWidth && cachedData.cols && cachedData.offsetX !== undefined) {
+        return cachedData;
     }
     
     // 列实际宽度
@@ -89,13 +101,8 @@ export const calculateCols = (breakpoints, gutter, hasAroundGutter, width, align
     // 结果对象
     const result = { colWidth, cols, offsetX };
     
-    // 尝试缓存结果
-    try {
-        localStorage.setItem(cacheKey, JSON.stringify(result));
-    } catch (e) {
-        // 忽略localStorage错误
-        console.warn('Failed to cache layout:', e);
-    }
+    // 缓存结果到本次对话缓存
+    sessionCache.set(cacheKey, result);
     
     return result;
 
