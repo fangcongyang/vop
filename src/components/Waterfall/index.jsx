@@ -40,9 +40,6 @@ const Waterfall = memo(({
     animationEffect= "fadeIn",
     animationDuration= 1000,
     animationDelay= 300,
-    backgroundColor= "#fff",
-    lazyload= true,
-    crossOrigin= true,
     delay= 300,
     align="center",
     tipMessage= "暂无数据",
@@ -83,7 +80,7 @@ const Waterfall = memo(({
 
     // 初始y
     const initY = useCallback(() => {
-        posY.current = new Array(cols.current).fill(
+        posY.current = Array.from(cols.current).fill(
             hasAroundGutter ? gutter : initYzb
         );
     }, [cols, gutter, hasAroundGutter, initYzb]);

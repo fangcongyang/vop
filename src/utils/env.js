@@ -2,82 +2,270 @@ import { type } from "@tauri-apps/plugin-os";
 import { getVersion } from "@tauri-apps/api/app";
 import { initStore } from "./store";
 import { AxiosHttpStrategy, TauriHttpStrategy } from "./httpStrategy";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
-export let osType = "";
-export let appVersion = "";
+// 环境信息缓存
+let envCache = {
+    osType: null,
+    osDetailType: null,
+    appVersion: null,
+    httpStrategy: null
+};
 
-export function useOsType() {
-    const [osType, setOsType] = useState("");
+// 环境类型常量
+const OS_TYPES = {
+    DESKTOP: 'desktop',
+    MOBILE: 'mobile',
+    WEB: 'web',
+    WEB_MOBILE: 'webMobile'
+};
+
+const PLATFORM_TYPES = {
+    LINUX: 'linux',
+    WINDOWS: 'windows',
+    MACOS: 'macos',
+    ANDROID: 'android',
+    IOS: 'ios'
+};
+
+/**
+ * 通用的环境信息Hook
+ * @param {string} key - 环境信息的键名
+ * @param {Function} initFn - 初始化函数
+ * @returns {[any, boolean]} [value, isLoading]
+ */
+function useEnvInfo(key, initFn) {
+    const [value, setValue] = useState(envCache[key] || null);
+    const [isLoading, setIsLoading] = useState(!envCache[key]);
+
+    const initialize = useCallback(async () => {
+        if (envCache[key]) {
+            setValue(envCache[key]);
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const result = await initFn();
+            envCache[key] = result;
+            setValue(result);
+        } catch (error) {
+            console.error(`Failed to initialize ${key}:`, error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [key, initFn]);
 
     useEffect(() => {
-        initOsType().then((osType) => {
-            setOsType(osType);
-        });
-    }, []);
+        initialize();
+    }, [initialize]);
+
+    return [value, isLoading];
 }
 
+/**
+ * 获取操作系统类型的Hook
+ * @returns {[string, boolean]} [osType, isLoading]
+ */
+export function useOsType() {
+    return useEnvInfo('osType', initOsType);
+}
+
+/**
+ * 获取详细操作系统类型的Hook
+ * @returns {[string, boolean]} [osDetailType, isLoading]
+ */
+export function useOsDetailType() {
+    return useEnvInfo('osDetailType', initOsDetailType);
+}
+
+/**
+ * 检测是否为移动设备（Web环境）
+ * @returns {boolean}
+ */
+function detectMobileDevice() {
+    const portraitMobile = window.matchMedia(
+        "screen and (max-width: 760px) and (orientation: portrait)"
+    ).matches;
+    
+    const landscapeMobile = window.matchMedia(
+        "screen and (max-width: 1000px) and (orientation: landscape)"
+    ).matches;
+    
+    return portraitMobile || landscapeMobile;
+}
+
+/**
+ * 初始化操作系统类型
+ * @returns {Promise<string>}
+ */
 async function initOsType() {
     try {
-        let ot = type();
-        let newOsType;
-        switch (ot) {
-            case "linux":
-            case "windows":
-            case "macos":
-                newOsType = "desktop";
-                break;
-            case "android":
-            case "ios":
-                newOsType = "mobile";
-                break;
+        const platformType = await type();
+        
+        switch (platformType) {
+            case PLATFORM_TYPES.LINUX:
+            case PLATFORM_TYPES.WINDOWS:
+            case PLATFORM_TYPES.MACOS:
+                return OS_TYPES.DESKTOP;
+            case PLATFORM_TYPES.ANDROID:
+            case PLATFORM_TYPES.IOS:
+                return OS_TYPES.MOBILE;
             default:
-                newOsType = "desktop";
-                break;
+                console.warn(`Unknown platform type: ${platformType}, defaulting to desktop`);
+                return OS_TYPES.DESKTOP;
         }
-        osType = newOsType;
-    } catch (e) {
-        let isMobile = window.matchMedia(
-            "screen and (max-width: 760px) and (orientation : portrait)"
-        ).matches;
-        if (!isMobile) {
-            isMobile = window.matchMedia(
-                "screen and (max-width: 1000px) and (orientation : landscape)"
-            ).matches;
+    } catch (error) {
+        console.warn('Failed to detect platform via Tauri, falling back to web detection:', error);
+        
+        // Web环境回退检测
+        if (typeof window === 'undefined') {
+            return OS_TYPES.DESKTOP; // SSR环境
         }
-        if (isMobile) {
-            osType = "webMobile";
-        } else {
-            osType = "web";
-        }
+        
+        return detectMobileDevice() ? OS_TYPES.WEB_MOBILE : OS_TYPES.WEB;
     }
-    return osType;
 }
 
-async function initAppVersion() {
-    getVersion()
-        .then((v) => {
-            appVersion = v;
-        })
-        .catch(() => {
-            appVersion = import.meta.env.VITE_VOP_VERSION;
-        });
-}
-
-export let httpStrategy = new AxiosHttpStrategy();
-
-export function initEnv() {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const osType = await initOsType();
-            httpStrategy = osType.startsWith("web")
-                ? new AxiosHttpStrategy()
-                : new TauriHttpStrategy();
-            await initStore(osType);
-            await initAppVersion(); // 如果 initAppVersion 是异步的
-            resolve();
-        } catch (error) {
-            reject(error);
+/**
+ * 初始化详细操作系统类型
+ * @returns {Promise<string>}
+ */
+async function initOsDetailType() {
+    try {
+        const platformType = await type();
+        
+        // 对于Windows，进一步检测架构
+        if (platformType === PLATFORM_TYPES.WINDOWS) {
+            return detectWindowsArchitecture();
         }
-    });
+        
+        return platformType;
+    } catch (error) {
+        console.warn('Failed to detect detailed platform type:', error);
+        
+        // Web环境回退检测
+        if (typeof window === 'undefined') {
+            return 'unknown';
+        }
+        
+        return detectMobileDevice() ? 'web-mobile' : 'web-desktop';
+    }
 }
+
+/**
+ * 检测Windows架构类型
+ * @returns {string}
+ */
+function detectWindowsArchitecture() {
+    try {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const platform = navigator.platform.toLowerCase();
+        
+        // 检测64位标识
+        const is64Bit = userAgent.includes('win64') || 
+                       userAgent.includes('x64') || 
+                       platform.includes('win64') ||
+                       platform.includes('x64');
+        
+        return is64Bit ? 'windows-x64' : 'windows-x86';
+    } catch (error) {
+        console.warn('Failed to detect Windows architecture:', error);
+        return 'windows'; // 默认返回通用Windows类型
+    }
+}
+
+/**
+ * 初始化应用版本
+ * @returns {Promise<string>}
+ */
+async function initAppVersion() {
+    try {
+        const version = await getVersion();
+        return version;
+    } catch (error) {
+        console.warn('Failed to get app version via Tauri, using fallback:', error);
+        const fallbackVersion = import.meta.env.VITE_VOP_VERSION || '0.0.0';
+        return fallbackVersion;
+    }
+}
+
+/**
+ * 初始化HTTP策略
+ * @param {string} osType - 操作系统类型
+ * @returns {object}
+ */
+function initHttpStrategy(osType) {
+    const isWebEnvironment = osType.startsWith('web');
+    return isWebEnvironment ? new AxiosHttpStrategy() : new TauriHttpStrategy();
+}
+
+/**
+ * 获取HTTP策略
+ * @returns {object}
+ */
+export function getHttpStrategy() {
+    return envCache.httpStrategy || new AxiosHttpStrategy();
+}
+
+/**
+ * 获取缓存的环境信息
+ * @param {string} key - 环境信息键名
+ * @returns {any}
+ */
+export function getCachedEnvInfo(key) {
+    return envCache[key];
+}
+
+/**
+ * 清除环境信息缓存
+ */
+export function clearEnvCache() {
+    envCache = {
+        osType: null,
+        osDetailType: null,
+        appVersion: null,
+        httpStrategy: null
+    };
+}
+
+/**
+ * 初始化环境
+ * @returns {Promise<void>}
+ */
+export async function initEnv() {
+    try {
+        // 并行初始化基础信息
+        const [osType, appVersion] = await Promise.all([
+            initOsType(),
+            initAppVersion()
+        ]);
+        
+        // 缓存基础信息
+        envCache.osType = osType;
+        envCache.appVersion = appVersion;
+        
+        // 初始化HTTP策略
+        envCache.httpStrategy = initHttpStrategy(osType);
+        
+        // 初始化存储
+        await initStore(osType);
+        
+        console.log('Environment initialized successfully:', {
+            osType,
+            appVersion,
+            httpStrategy: envCache.httpStrategy.constructor.name
+        });
+        
+    } catch (error) {
+        console.error('Failed to initialize environment:', error);
+        throw new Error(`Environment initialization failed: ${error.message}`);
+    }
+}
+
+// 向后兼容的导出
+export const httpStrategy = getHttpStrategy();
+export const osType = () => getCachedEnvInfo('osType');
+export const appVersion = () => getCachedEnvInfo('appVersion');
+export const osDetailType = () => getCachedEnvInfo('osDetailType');

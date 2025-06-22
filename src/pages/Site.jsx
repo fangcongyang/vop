@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { pageActiveStore, updatePlayInfo } from "@/store/coreSlice";
+import { pageActiveStore } from "@/store/coreSlice";
 import {
-  downloadListStore,
-  storeDownloadList,
   storeSiteList,
   siteListStore,
 } from "@/store/movieSlice";
@@ -120,7 +118,7 @@ const Site = (props) => {
         .then((result) => {
           setDelay(result);
         })
-        .catch((err) => {
+        .catch(() => {
           setDelay(10000);
         });
     }, [api]);

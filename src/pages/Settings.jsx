@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { type } from "@tauri-apps/plugin-os";
 import { useAppDispatch } from "@/store/hooks";
 import { togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { osType, appVersion } from "@/utils/env";
+import { osType, appVersion, osDetailType } from "@/utils/env";
 import { getSystemConfByKey, initDB, uploadData } from "@/db";
 import logo from "@/assets/logo.png";
 import SettingsSwitch from "@/components/SettingsSwitch";
@@ -182,12 +181,8 @@ const Settings = (props) => {
     // FFmpeg 下载配置
     const FFMPEG = {
         downloadInfo: {
-            "windows-x64": {
+            "windows": {
                 url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
-                path: "ffmpeg.exe"
-            },
-            "windows-x86": {
-                url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win32-gpl.zip",
                 path: "ffmpeg.exe"
             },
             "linux": {
@@ -201,21 +196,9 @@ const Settings = (props) => {
         }
     };
 
-    // 获取当前操作系统详细类型
-    const getOsDetailType = async () => {
-        try {
-            const osType = await type();
-            return osType;
-        } catch (e) {
-            console.error("获取操作系统类型失败:", e);
-            return "unknown";
-        }
-    };
-
     // FFmpeg 下载功能
     const downloadFfmpeg = async () => {
-        const osDetailType = await getOsDetailType();
-        
+
         if (osDetailType in FFMPEG.downloadInfo) {
             const ffmpegInfo = FFMPEG.downloadInfo[osDetailType];
             const ffmpegDownloadTask = new DownloadFileTask({

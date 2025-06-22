@@ -1,5 +1,4 @@
 import Dexie from "dexie";
-import { systemConf } from "@/static/systemConf";
 import { invoke } from "@tauri-apps/api/core";
 import { AxiosHttpStrategy } from "@/utils/httpStrategy";
 import { unionWith, isEqual } from "lodash";

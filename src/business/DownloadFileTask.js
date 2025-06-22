@@ -1,13 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from '@tauri-apps/api/event';
 
-const eventNames = [
-    "begin",
-    "progress",
-    "end",
-    "error",
-];
-
 export class DownloadFileTask {
     constructor(downloadTaskInfo) {
         this.downloadTaskInfo = downloadTaskInfo;

@@ -10,7 +10,7 @@ const SettingsSwitch = ({
     callback= undefined,
     value
 }) => {
-    const [switchValue, setSwitchValue] = useState(value)
+    const [_switchValue, setSwitchValue] = useState(value)
     
     const switchChange = (switchValue) => {
         setSwitchValue(switchValue)
