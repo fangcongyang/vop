@@ -33,6 +33,9 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::default()
                 .level(LevelFilter::Info)
+                .max_file_size(50_000)
+                .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(15))
                 .targets([
                     Target::new(TargetKind::Stdout),
                     Target::new(TargetKind::LogDir { file_name: None }),
