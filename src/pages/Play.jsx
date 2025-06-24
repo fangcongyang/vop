@@ -94,7 +94,7 @@ const Play = (props) => {
     const [shortVideoMode, setShortVideoMode] = useState(() => {
         // 从本地存储中获取用户偏好，但只在桌面端生效
         const savedMode = localStorage.getItem('shortVideoMode');
-        return savedMode === 'true' && osType.startsWith('desktop');
+        return savedMode === 'true' && osType().startsWith('desktop');
     });
 
     // 自动关闭播发器
@@ -795,7 +795,7 @@ const Play = (props) => {
                                 </Tooltip>
                             )}
                             {/* 只在桌面端显示短剧模式切换按钮 */}
-                            {osType.startsWith('desktop') && (
+                            {osType().startsWith('desktop') && (
                                 <Tooltip title={shortVideoMode ? "切换到正常模式" : "切换到短剧模式"}>
                                     <Button 
                                         type="text" 

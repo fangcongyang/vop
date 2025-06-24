@@ -79,7 +79,7 @@ const Navbar = memo(({ children }) => {
           >
             收藏
           </a>
-          {osType === "desktop" && (
+          {osType() === "desktop" && (
             <a
               className={pageActive == "download" ? "active" : ""}
               onClick={() => dispatch(togglePageActive("download"))}

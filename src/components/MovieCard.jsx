@@ -203,7 +203,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
                                 收藏
                             </span>
                         )}
-                        {osType === "desktop" && (
+                        {osType() === "desktop" && (
                             <span className="o-star" onClick={downloadEvent}>
                                 下载
                             </span>
