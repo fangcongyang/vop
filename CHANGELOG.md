@@ -1,4 +1,13 @@
-## [0.0.8](https://github.com/fangcongyang/vop/compare/v0.0.7...v0.0.8) (2025-06-22)
+## [0.0.9](https://github.com/fangcongyang/vop/compare/v0.0.8...v0.0.9) (2025-06-24)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* 将osType比较改为函数调用形式 ([](https://github.com/fangcongyang/vop/commit/4273e02))
+
+
+
+## [0.0.8](https://github.com/fangcongyang/vop/compare/0.0.8...v0.0.8) (2025-06-22)
 
 
 ### ✨ Features | 新功能
