@@ -258,11 +258,9 @@ const Play = (props) => {
                         dispatch(updatePlayInfo({ playInfo: newPlayInfo, toPlay: true }));
                     }
                     player.destroy();
-                    setPlayMode("online");
                     videoPlaying("online");
                     return;
                 } else {
-                    setPlayMode("local");
                     const key = playMovieUq;
                     getPlayer(url, false);
                     player.dp.switchVideo({
@@ -655,6 +653,7 @@ const Play = (props) => {
         setEpisodesButtonMaxWidth(0);
         const initPlay = async () => {
             if (playInfo.playType == "onlineMovie") {
+                setPlayMode("local");
                 try {
                     let detail = await getMovieDetailCacheData(
                         getSite(playInfo.movie.siteKey),
@@ -674,7 +673,9 @@ const Play = (props) => {
                 }
             } else if (playInfo.playType == "iframePlay") {
                 setPlayMode("iframePlay");
-            } else {
+            } else if (playInfo.playType == "localMovie") {
+                setPlayMode("local");
+                setMovieList([]);
                 getUrls();
             }
         }
