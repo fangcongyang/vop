@@ -1,8 +1,18 @@
-## [0.0.9](https://github.com/fangcongyang/vop/compare/v0.0.8...v0.0.9) (2025-06-24)
+# [0.1.0](https://github.com/fangcongyang/vop/compare/v0.0.9...v0.1.0) (2025-06-27)
+
+
+### ✨ Features | 新功能
+
+* **播放页:** 重构播放逻辑并新增二维码组件 ([](https://github.com/fangcongyang/vop/commit/61fc8df))
+
+
+
+## [0.0.9](https://github.com/fangcongyang/vop/compare/0.0.9...v0.0.9) (2025-06-24)
 
 
 ### 🐛 Bug Fixes | Bug 修复
 
+* 将osType比较改为函数调用形式 ([](https://github.com/fangcongyang/vop/commit/24adb73))
 * 将osType比较改为函数调用形式 ([](https://github.com/fangcongyang/vop/commit/4273e02))
 
 
