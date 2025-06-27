@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { osType } from "@/utils/env";
+import movieApi from "@/api/movies";
 import fetch from '@/api/fetch';
 
 export const cacheData = async (key, value) => {
@@ -29,4 +30,15 @@ export const getCacheData = async (key) => {
         console.log(err);
         return null;
     }
+};
+
+export const getMovieDetailCacheData = async (site, id) => {
+    const cacheKey = `${site.site_key}@${id}`;
+    const cacheValue = await getCacheData(cacheKey);
+    if (cacheValue) {
+        return cacheValue;
+    }
+    const data = await movieApi.detail(site, id);
+    cacheData(cacheKey, data);
+    return data;
 };

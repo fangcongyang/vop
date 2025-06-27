@@ -4,6 +4,8 @@ import { AxiosHttpStrategy } from "@/utils/httpStrategy";
 import { unionWith, isEqual } from "lodash";
 import { generateUUID } from "@/utils/common";
 import { message } from "@tauri-apps/plugin-dialog";
+import date from "@/utils/date";
+
 class MopDatabase extends Dexie {
     site;
     siteClassList;
@@ -141,12 +143,41 @@ export async function saveHistory(history) {
     }
 }
 
-export async function getCurrentHistory(site_key, ids) {
-    return await db.history
+export async function getCurrentHistory(playInfo, detail) {
+    let oldHistory = await db.history
         .where("ids")
-        .equals(ids)
-        .and((item) => item.site_key == site_key)
+        .equals(playInfo.movie.ids)
+        .and((item) => item.site_key == playInfo.movie.siteKey)
         .first();
+    if (oldHistory) {
+        if (!oldHistory.detail) {
+            oldHistory.detail = detail;
+            oldHistory.update_time = date.getDateTimeStr();
+            await db.history.update(oldHistory.id, oldHistory);
+        }
+    } else {
+        const videoFlag = playInfo.movie.videoFlag || "";
+        const isOnline = playInfo.playType === "iptv";
+        const history = {
+            history_name: playInfo.name,
+            site_key: playInfo.movie.siteKey,
+            ids: playInfo.movie.ids.toString(),
+            index: playInfo.movie.index,
+            play_time: 0,
+            duration: 0,
+            start_position: 0,
+            end_position: 0,
+            detail: detail ? JSON.stringify(detail) : void 0,
+            online_play: isOnline ? playInfo.movie.onlineUrl : "",
+            video_flag: videoFlag,
+            has_update: "0",
+            update_time: date.getDateTimeStr(),
+        };
+        const id = await db.history.add(history);
+        history["id"] = id;
+        return history;
+    }
+    return oldHistory;
 }
 
 export async function deleteHistory(historyId) {

@@ -42,6 +42,7 @@ const UpdateModal = ({
 
   const doUpdate = async () => {
     const update = await check();
+    setIsStarted(true);
     if (update) {
       let downloaded = 0;
       let contentLength = 0;
@@ -50,7 +51,6 @@ const UpdateModal = ({
         switch (event.event) {
           case "Started":
             contentLength = event.data.contentLength;
-            setIsStarted(true);
             break;
           case "Progress":
             downloaded += event.data.chunkLength;
@@ -99,7 +99,7 @@ const UpdateModal = ({
         )}
       </Space>
       <div className={styles.actions}>
-        {latestVersion !== `v${currentVersion}` && (
+        {latestVersion !== `v${currentVersion}` && !isStarted && (
           <Button type="primary" onClick={doUpdate}>
             立即更新
           </Button>

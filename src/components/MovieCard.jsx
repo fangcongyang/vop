@@ -22,6 +22,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
         switch (viewMode) {
             case "history":
             case "star":
+            case "play":
                 return item.site_key;
             case "search":
                 return item.site.site_key;
