@@ -3,6 +3,7 @@ use std::io::Read;
 
 use futures::TryStreamExt;
 use log::info;
+use serde_json::json;
 use serde_json::{Map, Value};
 use tauri::http::header::USER_AGENT;
 use tauri::http::HeaderMap;
@@ -11,6 +12,7 @@ use tauri::Emitter;
 use tauri_plugin_http::reqwest;
 use tokio::{io::AsyncWriteExt, sync::watch, time::interval};
 use serde::{Deserialize, Serialize};
+use url::Url;
 use zip::ZipArchive;
 
 use crate::utils::choose_user_agent;
@@ -26,6 +28,89 @@ pub fn open_devtools(app_handle: tauri::AppHandle) {
         }
     }
 }
+
+#[tauri::command]
+pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_window: bool) -> Result<(), String> {
+    use crate::conf::get;
+    if !create_window {
+        if let Some(top_small_play_window) = app_handle.get_webview_window("topSmallPlay") {
+            match top_small_play_window.close() {
+                Ok(_) => log::info!("Small play window closed successfully"),
+                Err(e) => {
+                    log::error!("Failed to close small play window: {}", e);
+                    return Err(format!("Failed to close window: {}", e));
+                }
+            }
+        } else {
+            log::info!("Small play window not found when trying to close - window may already be closed");
+        }
+        return Ok(());
+    }
+    
+    // Check if window already exists
+    if let Some(_existing_window) = app_handle.get_webview_window("topSmallPlay") {
+        log::info!("Small play window already exists, bringing to front");
+        if let Err(e) = _existing_window.set_focus() {
+            log::warn!("Failed to bring existing window to front: {}", e);
+        }
+        return Ok(());
+    }
+    
+    let mut webview_window =
+        tauri::WebviewWindowBuilder::new(&app_handle, "topSmallPlay", tauri::WebviewUrl::App("index.html".into()));
+    #[cfg(not(target_os = "android"))]
+    {
+        let monitor = app_handle.primary_monitor().unwrap().unwrap();
+        let screen_size = monitor.size();
+        let scale_factor = monitor.scale_factor();
+        let logical_size = screen_size.to_logical::<f64>(scale_factor);
+        let screen_width = logical_size.width;
+        let screen_height = logical_size.height;
+        log::info!("Screen size: {:?}", screen_size);
+        webview_window = webview_window
+            .title("vop-small-play")
+            .inner_size(360f64, 210f64)
+            .position(
+                screen_width - 360.0 - 20.0,
+                screen_height - 210.0 - 60.0
+            )
+            .always_on_top(true)
+            .fullscreen(false)
+            .resizable(false)
+            .closable(true)
+            .devtools(true)
+            .decorations(false);
+    }
+
+    #[allow(unused_assignments)]
+    let mut proxy_protocol: Option<Value> = None;
+    #[cfg(not(any(target_os = "android", target_os = "macos")))]
+    {
+        proxy_protocol = get("proxyProtocol");
+    }
+    match proxy_protocol {
+        Some(proxy_protocol) => {
+            let pp = proxy_protocol.as_str().unwrap_or("http").to_lowercase();
+            if pp == "http" || pp == "socks5" {
+                let proxy_server = get("proxyServer").unwrap_or(json!("127.0.0.1".to_string()));
+                let proxy_server_str = proxy_server.as_str().unwrap();
+                let proxy_port = get("proxyPort").unwrap_or(json!(10809));
+                let proxy_port_num = proxy_port.as_u64().unwrap();
+                webview_window = webview_window.proxy_url(
+                    Url::parse(&format!("{}://{}:{}", pp, proxy_server_str, proxy_port_num))
+                        .unwrap(),
+                );
+            }
+
+            webview_window.build().map_err(|e| e.to_string())?;
+        }
+        _none => {
+            webview_window.build().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct DownloadTaskInfo {

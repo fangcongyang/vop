@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, Space, Progress } from "antd"; // 使用antd的Modal、Button、Space和Progress组件
+import { Modal, Button, Flex, Progress } from "antd"; // 使用antd的Modal、Button、Space和Progress组件
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import styles from "./UpdateModal.module.scss";
@@ -84,20 +84,11 @@ const UpdateModal = ({
         <h3>更新日志</h3>
         <div dangerouslySetInnerHTML={{ __html: body }} />
       </div>
-      <Space style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+      <Flex>
         {isStarted && (
-          <>
-            <div style={{ width: "100%", marginRight: 8 }}>
-              <Progress percent={progress} status="active" />
-            </div>
-            <div style={{ minWidth: 35 }}>
-              <span style={{ fontSize: 14, color: 'rgba(0, 0, 0, 0.45)' }}>
-                {`${Math.round(progress)}%`}
-              </span>
-            </div>
-          </>
+              <Progress style={{ width: '100%' }} percent={progress} status="active" />
         )}
-      </Space>
+      </Flex>
       <div className={styles.actions}>
         {latestVersion !== `v${currentVersion}` && !isStarted && (
           <Button type="primary" onClick={doUpdate}>

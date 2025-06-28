@@ -20,6 +20,7 @@ import {
     saveHistory,
     getDownloadById,
 } from "@/db";
+import { emit } from '@tauri-apps/api/event';
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getMovieDetailCacheData } from "@/business/cache";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -27,16 +28,17 @@ import movieApi from "@/api/movies";
 import SvgIcon from "@/components/SvgIcon";
 import Waterfall from "@/components/Waterfall";
 import MovieCard from "@/components/MovieCard";
-import { message, Modal, Button, Tooltip, Input, Space } from "antd";
+import { message, Button, Tooltip, Input, Space } from "antd";
 import QRCodeModal from "@/components/QRCodeModal";
 import { fmtMSS } from "@/utils/common";
 import { useGetState } from "@/hooks";
 import _ from "lodash";
 import date from "@/utils/date";
+import { invoke } from "@tauri-apps/api/core";
 import { toggleScreenOrientation } from "tauri-plugin-vop-api";
 import { osType } from "@/utils/env";
 import "./Play.scss";
-import { QrcodeOutlined, FullscreenOutlined, FullscreenExitOutlined } from "@ant-design/icons";
+import { QrcodeOutlined, FullscreenExitOutlined, FullscreenOutlined, PlayCircleOutlined, PoweroffOutlined } from "@ant-design/icons";
 
 let player;
 let playPage = {
@@ -46,6 +48,7 @@ let playPage = {
     currentHistory: null,
     playing: false,
     stallIptvTimeout: null,
+    cancelAutoPlay: false,
 };
 
 const Play = (props) => {
@@ -70,6 +73,7 @@ const Play = (props) => {
     const [episodesButtonMaxWidth, setEpisodesButtonMaxWidth] = useState(0);
     const [qrCodeVisible, setQrCodeVisible] = useState(false);
     const [currentPlayUrl, setCurrentPlayUrl] = useState("");
+    const [smallPlayVisible, setSmallPlayVisible] = useState(false);
     const [playerInfo, _setPlayerInfo] = useState({
         searchTxt: "",
         skipendStatus: false,
@@ -145,6 +149,13 @@ const Play = (props) => {
                         url: assetUrl,
                         type: "mp4",
                     });
+                    if (smallPlayVisible) {
+                        emit("smallPlayEvent", playInfo);
+                        playPage.cancelAutoPlay = true;
+                        const dp = player.dp;
+                        dp.pause();
+                        return;
+                    } 
                 }
             );
         } else {
@@ -261,7 +272,6 @@ const Play = (props) => {
                     videoPlaying("online");
                     return;
                 } else {
-                    const key = playMovieUq;
                     getPlayer(url, false);
                     player.dp.switchVideo({
                         url: url,
@@ -275,6 +285,13 @@ const Play = (props) => {
                     if (finalStartTime > 0) {
                         player.dp.seek(finalStartTime);
                     }
+                    if (smallPlayVisible) {
+                        emit("smallPlayEvent", playInfo);
+                        playPage.cancelAutoPlay = true;
+                        const dp = player.dp;
+                        dp.pause();
+                        return;
+                    } 
                 }
                 videoPlaying();
                 playerInfo.skipendStatus = false;
@@ -488,8 +505,10 @@ const Play = (props) => {
             setPlaying(true);
             stallCount = 0;
             clearTimeout(playPage.stallIptvTimeout);
-            if (dp.video.paused) {
+            if (!playPage.cancelAutoPlay && dp.video.paused) {
                 dp.play();
+            } else {
+                playPage.cancelAutoPlay = false;
             }
         });
         dp.on("destroy", () => {
@@ -682,7 +701,22 @@ const Play = (props) => {
         initPlay();
  }, [playInfo.playStateTime]);
 
+    useEffect(() => {
+        invoke("create_top_small_play_window", { createWindow: smallPlayVisible });
+        if (smallPlayVisible) {
+            setTimeout(() => {
+                let dp = player.dp;
+                dp.pause();
+                emit("smallPlayEvent", playInfo);
+            }, 2000);
+        }
+    }, [smallPlayVisible])
+
     const onlinePlayKey = useMemo(() => {
+        if (smallPlayVisible) {
+            emit("smallPlayEvent", playInfo);
+            return;
+        } 
         return playInfo.movie.onlineUrl ? new Date().getTime() : 0;
     }, [playInfo.movie.onlineUrl]);
 
@@ -776,6 +810,20 @@ const Play = (props) => {
                                             setShortVideoMode(newMode);
                                             // 保存用户偏好到本地存储
                                             localStorage.setItem('shortVideoMode', newMode.toString());
+                                        }} 
+                                        style={{ marginLeft: '8px' }}
+                                    />
+                                </Tooltip>
+                            )}
+                            {/* 只在桌面端显示短剧模式切换按钮 */}
+                            {osType().startsWith('desktop') && (
+                                <Tooltip title={smallPlayVisible ? "关闭小窗口播放" : "打开小窗口播放"}>
+                                    <Button 
+                                        type="text" 
+                                        icon={smallPlayVisible ? <PoweroffOutlined /> : <PlayCircleOutlined />} 
+                                        onClick={() => {
+                                            const newMode = !smallPlayVisible;
+                                            setSmallPlayVisible(newMode);
                                         }} 
                                         style={{ marginLeft: '8px' }}
                                     />

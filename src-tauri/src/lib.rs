@@ -78,6 +78,7 @@ pub fn run() {
             app::cmds::open_devtools,
             app::cmds::download_file_task,
             app::cmds::github_repos_info_version,
+            app::cmds::create_top_small_play_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
