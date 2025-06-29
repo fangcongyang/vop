@@ -30,7 +30,7 @@ pub fn open_devtools(app_handle: tauri::AppHandle) {
 }
 
 #[tauri::command]
-pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_window: bool) -> Result<(), String> {
+pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_window: bool, short_video_mode: bool) -> Result<(), String> {
     use crate::conf::get;
     if !create_window {
         if let Some(top_small_play_window) = app_handle.get_webview_window("topSmallPlay") {
@@ -49,7 +49,6 @@ pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_w
     
     // Check if window already exists
     if let Some(_existing_window) = app_handle.get_webview_window("topSmallPlay") {
-        log::info!("Small play window already exists, bringing to front");
         if let Err(e) = _existing_window.set_focus() {
             log::warn!("Failed to bring existing window to front: {}", e);
         }
@@ -64,15 +63,19 @@ pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_w
         let screen_size = monitor.size();
         let scale_factor = monitor.scale_factor();
         let logical_size = screen_size.to_logical::<f64>(scale_factor);
+        let window_size = if short_video_mode {
+            (280f64, 428f64)
+        } else {
+            (428f64, 240f64)
+        };
         let screen_width = logical_size.width;
         let screen_height = logical_size.height;
-        log::info!("Screen size: {:?}", screen_size);
         webview_window = webview_window
             .title("vop-small-play")
-            .inner_size(360f64, 210f64)
+            .inner_size(window_size.0, window_size.1)
             .position(
-                screen_width - 360.0 - 20.0,
-                screen_height - 210.0 - 60.0
+                screen_width - window_size.0 - 20.0,
+                screen_height - window_size.1 - 60.0
             )
             .always_on_top(true)
             .fullscreen(false)

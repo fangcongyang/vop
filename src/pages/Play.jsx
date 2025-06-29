@@ -20,7 +20,7 @@ import {
     saveHistory,
     getDownloadById,
 } from "@/db";
-import { emit } from '@tauri-apps/api/event';
+import { emit, listen } from '@tauri-apps/api/event';
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getMovieDetailCacheData } from "@/business/cache";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -37,6 +37,7 @@ import date from "@/utils/date";
 import { invoke } from "@tauri-apps/api/core";
 import { toggleScreenOrientation } from "tauri-plugin-vop-api";
 import { osType } from "@/utils/env";
+import { GlobalEvent } from "@/business/types";
 import "./Play.scss";
 import { QrcodeOutlined, FullscreenExitOutlined, FullscreenOutlined, PlayCircleOutlined, PoweroffOutlined } from "@ant-design/icons";
 
@@ -60,7 +61,7 @@ const Play = (props) => {
     const historyList = useAppSelector(historyListStore);
     const pageActive = useAppSelector(pageActiveStore);
     const [movieList, setMovieList] = useState([]);
-    
+    const playChangeEventUnlistenFn = useRef(null);
     // 监听historyList变化，获取第一条历史记录
     const firstHistoryItem = useMemo(() => {
         return historyList && historyList.length > 0 ? historyList[0] : null;
@@ -665,52 +666,70 @@ const Play = (props) => {
         });
         maxWidth > 0 && setEpisodesButtonMaxWidth(Math.ceil(maxWidth) + 1);
     }, [movieList]);
+    
+    const initPlay = async () => {
+        playPage.isFirstPlay = false;
+        setEpisodesButtonMaxWidth(0);
+        if (playInfo.playType == "onlineMovie") {
+            setPlayMode("local");
+            try {
+                let detail = await getMovieDetailCacheData(
+                    getSite(playInfo.movie.siteKey),
+                    playInfo.movie.ids,
+                );
+                // 缓存详情数据供后续使用
+                playPage.cachedDetail = detail;
+                let currentHistory = await getCurrentHistory(
+                    playInfo,
+                    detail,
+                );
+                playPage.currentHistory = currentHistory;
+                getUrls();
+            } catch (err) {
+                console.error('获取视频资源失败:', err);
+                closePlayerAndInit();
+            }
+        } else if (playInfo.playType == "iframePlay") {
+            setPlayMode("iframePlay");
+        } else if (playInfo.playType == "localMovie") {
+            setPlayMode("local");
+            setMovieList([]);
+            getUrls();
+        }
+    }
 
     useEffect(() => {
         if (playInfo.playState !== "newPlay" && !playInfo.movie.siteKey) return;
-        playPage.isFirstPlay = false;
-        setEpisodesButtonMaxWidth(0);
-        const initPlay = async () => {
-            if (playInfo.playType == "onlineMovie") {
-                setPlayMode("local");
-                try {
-                    let detail = await getMovieDetailCacheData(
-                        getSite(playInfo.movie.siteKey),
-                        playInfo.movie.ids,
-                    );
-                    // 缓存详情数据供后续使用
-                    playPage.cachedDetail = detail;
-                    let currentHistory = await getCurrentHistory(
-                        playInfo,
-                        detail,
-                    );
-                    playPage.currentHistory = currentHistory;
-                    getUrls();
-                } catch (err) {
-                    console.error('获取视频资源失败:', err);
-                    closePlayerAndInit();
-                }
-            } else if (playInfo.playType == "iframePlay") {
-                setPlayMode("iframePlay");
-            } else if (playInfo.playType == "localMovie") {
-                setPlayMode("local");
-                setMovieList([]);
-                getUrls();
-            }
-        }
         initPlay();
- }, [playInfo.playStateTime]);
-
+    }, [playInfo.playStateTime]);
+    
     useEffect(() => {
-        invoke("create_top_small_play_window", { createWindow: smallPlayVisible });
+        invoke("create_top_small_play_window", { createWindow: smallPlayVisible, shortVideoMode: shortVideoMode });
         if (smallPlayVisible) {
             setTimeout(() => {
                 let dp = player.dp;
                 dp.pause();
                 emit("smallPlayEvent", playInfo);
             }, 2000);
+        } else {
+            initPlay();
         }
     }, [smallPlayVisible])
+
+    useEffect(() => {
+        const initUnlisten = async () => {
+            const unlisten = await listen(GlobalEvent.PlayChangeEvent, ({payload}) => {
+                dispatch(updatePlayInfoIndex(payload));
+            });
+            playChangeEventUnlistenFn.current = unlisten;
+        }
+        initUnlisten();
+        return () => {
+            if (playChangeEventUnlistenFn.current) {
+                playChangeEventUnlistenFn.current();
+            }
+        }
+    }, []);
 
     const onlinePlayKey = useMemo(() => {
         if (smallPlayVisible) {
@@ -799,36 +818,6 @@ const Play = (props) => {
                                     />
                                 </Tooltip>
                             )}
-                            {/* 只在桌面端显示短剧模式切换按钮 */}
-                            {osType().startsWith('desktop') && (
-                                <Tooltip title={shortVideoMode ? "切换到正常模式" : "切换到短剧模式"}>
-                                    <Button 
-                                        type="text" 
-                                        icon={shortVideoMode ? <FullscreenOutlined /> : <FullscreenExitOutlined />} 
-                                        onClick={() => {
-                                            const newMode = !shortVideoMode;
-                                            setShortVideoMode(newMode);
-                                            // 保存用户偏好到本地存储
-                                            localStorage.setItem('shortVideoMode', newMode.toString());
-                                        }} 
-                                        style={{ marginLeft: '8px' }}
-                                    />
-                                </Tooltip>
-                            )}
-                            {/* 只在桌面端显示短剧模式切换按钮 */}
-                            {osType().startsWith('desktop') && (
-                                <Tooltip title={smallPlayVisible ? "关闭小窗口播放" : "打开小窗口播放"}>
-                                    <Button 
-                                        type="text" 
-                                        icon={smallPlayVisible ? <PoweroffOutlined /> : <PlayCircleOutlined />} 
-                                        onClick={() => {
-                                            const newMode = !smallPlayVisible;
-                                            setSmallPlayVisible(newMode);
-                                        }} 
-                                        style={{ marginLeft: '8px' }}
-                                    />
-                                </Tooltip>
-                            )}
                         </>
                     ) : (
                         firstHistoryItem && (
@@ -861,6 +850,36 @@ const Play = (props) => {
                                 </span>
                             </div>
                         )
+                    )}
+                     {/* 只在桌面端显示短剧模式切换按钮 */}
+                    {osType().startsWith('desktop') && (
+                        <Tooltip title={shortVideoMode ? "切换到正常模式" : "切换到短剧模式"}>
+                            <Button 
+                                type="text" 
+                                icon={shortVideoMode ? <FullscreenOutlined /> : <FullscreenExitOutlined />} 
+                                onClick={() => {
+                                    const newMode = !shortVideoMode;
+                                    setShortVideoMode(newMode);
+                                    // 保存用户偏好到本地存储
+                                    localStorage.setItem('shortVideoMode', newMode.toString());
+                                }} 
+                                style={{ marginLeft: '8px' }}
+                            />
+                        </Tooltip>
+                    )}
+                    {/* 只在桌面端显示短剧模式切换按钮 */}
+                    {osType().startsWith('desktop') && (
+                        <Tooltip title={smallPlayVisible ? "关闭小窗口播放" : "打开小窗口播放"}>
+                            <Button 
+                                type="text" 
+                                icon={smallPlayVisible ? <PoweroffOutlined /> : <PlayCircleOutlined />} 
+                                onClick={() => {
+                                    const newMode = !smallPlayVisible;
+                                    setSmallPlayVisible(newMode);
+                                }} 
+                                style={{ marginLeft: '8px' }}
+                            />
+                        </Tooltip>
                     )}
                     <div className="right" onClick={() => closePlayerAndInit()}>
                         <SvgIcon name="close" />

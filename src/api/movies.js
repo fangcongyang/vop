@@ -25,6 +25,11 @@ export default {
     },
 
     detail(site, id) {
+        const cacheKey = site.site_key + "@" + id;
+        const videoInfo = getCacheData(cacheKey);
+        if (videoInfo?.fullList?.length) {
+            return Promise.resolve(videoInfo);
+        }
         return siteService.detail(site, id);
     },
 

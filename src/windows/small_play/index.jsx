@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { listen } from '@tauri-apps/api/event';
+import { listen, emit } from '@tauri-apps/api/event';
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
     playerConfStore,
     updateplayerConf,
-    updatePlayInfoIndex,
     resetPlayInfo,
 } from "@/store/coreSlice";
 import {
@@ -39,7 +38,6 @@ const SmallPlay = () => {
     const [messageApi, contextHolder] = message.useMessage();
     const playerConf = useAppSelector(playerConfStore);
     const [siteList, setSiteList] = useState();
-    const [shortVideoMode, setShortVideoMode] = useState(false);
     const eventUnlistenFn = useRef(null);
     
     // 使用useRef来管理定时器ID，避免使用全局变量
@@ -338,23 +336,19 @@ const SmallPlay = () => {
             if (isReverse) {
                 if (playPage.movieIndex >= 1) {
                     playPage.movieIndex -= 1;
-                    dispatch(
-                        updatePlayInfoIndex({
-                            index: playPage.movieIndex,
-                            playState: "newPlay",
-                        })
-                    );
+                    emit(GlobalEvent.PlayChangeEvent, {
+                        index: playPage.movieIndex,
+                        playState: "newPlay"
+                    });
                 } else {
                     messageApi.warning("这已经是第一集了。");
                 }
             } else if (playPage.movieIndex < playPage.movieList.length - 1) {
                 playPage.movieIndex += 1;
-                dispatch(
-                    updatePlayInfoIndex({
+                    emit(GlobalEvent.PlayChangeEvent, {
                         index: playPage.movieIndex,
-                        playState: "newPlay",
-                    })
-                );
+                        playState: "newPlay"
+                    });
             } else {
                 messageApi.warning("这已经是最后一集了。");
             }
@@ -436,12 +430,10 @@ const SmallPlay = () => {
                     playPage.movieList.length - 1 > playPage.movieIndex
                 ) {
                     playPage.movieIndex += 1;
-                    dispatch(
-                        updatePlayInfoIndex({
-                            index: playPage.movieIndex,
-                            playState: "newPlay",
-                        })
-                    );
+                    emit(GlobalEvent.PlayChangeEvent, {
+                        index: playPage.movieIndex,
+                        playState: "newPlay"
+                    });
                 }
             }, 1000)
         );
@@ -542,9 +534,7 @@ const SmallPlay = () => {
                 <div
                     className={
                         playMode === "local" 
-                            ? shortVideoMode 
-                                ? "player short-video-mode" 
-                                : "player" 
+                            ? "player" 
                             : "player hidden"
                     }
                 >

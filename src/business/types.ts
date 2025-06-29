@@ -1,5 +1,6 @@
 export enum GlobalEvent {
     SmallPlayEvent = 'smallPlayEvent',
+    PlayChangeEvent = 'playChangeEvent',
 }
 
 export interface SmallPlayInfo {

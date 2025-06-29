@@ -4,7 +4,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { osType, appVersion, osDetailType } from "@/utils/env";
+import { osType, appVersion } from "@/utils/env";
 import { getSystemConfByKey, initDB, uploadData } from "@/db";
 import logo from "@/assets/logo.png";
 import SettingsSwitch from "@/components/SettingsSwitch";
