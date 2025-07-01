@@ -2,7 +2,6 @@ import { useCallback, useEffect } from "react";
 import { useGetState } from "./useGetState";
 import { store, TauriDataStore, StoreObserver } from "../utils/store";
 import { generateUUID } from "@/utils/common";
-import { debounce } from "lodash";
 
 export const useConfig = (key, defaultValue, options = { }) => {
     const [property, setPropertyState, getProperty] = useGetState(defaultValue);

@@ -1,18 +1,16 @@
-import { useState, useRef, memo, useEffect } from "react";
+import { useState, memo, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { pageActiveStore, togglePageActive } from "@/store/coreSlice";
-import { searchKeywordStore, updateSearchKeyword } from "@/store/movieSlice";
-import SvgIcon from "./SvgIcon";
-import ButtonIcon from "./ButtonIcon";
+import { updateSearchKeyword } from "@/store/movieSlice";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import { AutoComplete } from "antd";
-import { osType } from "@/utils/env";
 import { getAllSearchList, addSearchRecord, clearSearchRecord } from "@/db";
 import "./Navbar.scss";
 
 const Navbar = memo(({ children }) => {
   const dispatch = useAppDispatch();
+  const osType = useGlobalStore((state) => state.osType);
   const pageActive = useAppSelector(pageActiveStore);
-  const [inputFocus, setInputFocus] = useState(false);
   const [keywords, setKeywords] = useState("");
   const [searchList, setSearchList] = useState([]);
 
@@ -79,7 +77,7 @@ const Navbar = memo(({ children }) => {
           >
             收藏
           </a>
-          {osType() === "desktop" && (
+          {osType === "desktop" && (
             <a
               className={pageActive == "download" ? "active" : ""}
               onClick={() => dispatch(togglePageActive("download"))}

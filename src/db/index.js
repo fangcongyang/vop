@@ -4,12 +4,10 @@ import { AxiosHttpStrategy } from "@/utils/httpStrategy";
 import { unionWith, isEqual } from "lodash";
 import { generateUUID } from "@/utils/common";
 import { message } from "@tauri-apps/plugin-dialog";
-import date from "@/utils/date";
 
 class MopDatabase extends Dexie {
     site;
     siteClassList;
-    history;
     downloadInfo;
     systemConf;
     star;
@@ -20,8 +18,6 @@ class MopDatabase extends Dexie {
         this.version(1).stores({
             site: "++id,site_key,site_name,api,site_group,is_active,status,position,is_reverse_order,parse_mode",
             siteClassList: "++id,class_id,site_key,class_name",
-            history:
-                "++id,history_name,ids,index,start_position,end_position,play_time,site_key,online_play,detail,video_flag,duration,has_update,update_time",
             downloadInfo:
                 "++id,movie_name,url,sub_title_name,status,download_count,count,download_status",
             systemConf:
@@ -129,60 +125,6 @@ export async function cacheSiteClassList(site_key, classList) {
     });
     await db.siteClassList.bulkPut(classList);
     return classList;
-}
-
-export async function getAllHistory() {
-    return await db.history.orderBy("update_time").reverse().toArray();
-}
-
-export async function saveHistory(history) {
-    if (history.id) {
-        await db.history.update(history.id, history);
-    } else {
-        await db.history.add(history);
-    }
-}
-
-export async function getCurrentHistory(playInfo, detail) {
-    let oldHistory = await db.history
-        .where("ids")
-        .equals(playInfo.movie.ids)
-        .and((item) => item.site_key == playInfo.movie.siteKey)
-        .first();
-    if (oldHistory) {
-        if (!oldHistory.detail) {
-            oldHistory.detail = detail;
-            oldHistory.update_time = date.getDateTimeStr();
-            await db.history.update(oldHistory.id, oldHistory);
-        }
-    } else {
-        const videoFlag = playInfo.movie.videoFlag || "";
-        const isOnline = playInfo.playType === "iptv";
-        const history = {
-            history_name: playInfo.name,
-            site_key: playInfo.movie.siteKey,
-            ids: playInfo.movie.ids.toString(),
-            index: playInfo.movie.index,
-            play_time: 0,
-            duration: 0,
-            start_position: 0,
-            end_position: 0,
-            detail: detail ? JSON.stringify(detail) : void 0,
-            online_play: isOnline ? playInfo.movie.onlineUrl : "",
-            video_flag: videoFlag,
-            has_update: "0",
-            update_time: date.getDateTimeStr(),
-        };
-        const id = await db.history.add(history);
-        history["id"] = id;
-        return history;
-    }
-    return oldHistory;
-}
-
-export async function deleteHistory(historyId) {
-    await db.history.delete(historyId);
-    getAllHistory(true);
 }
 
 export async function getAllStar() {
@@ -313,11 +255,10 @@ export async function uploadData(dataUpload) {
     if (dataUpload) {
         uploadDataInterval = setInterval(async () => {
             const allSite = await getSiteList();
-            const allHistory = await getAllHistory(); 
             const clientUniqueConf = await getSystemConfByKey("clientUniqueId");
             let params = {
                 siteList: allSite,
-                historyList: allHistory,
+                historyList: [],
                 clientUniqueId: clientUniqueConf.conf_value,
                 apiUrl: "/api/site/uploadSite"
             };

@@ -9,7 +9,6 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.webkit.WebView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -24,7 +23,6 @@ class PingArgs {
 
 @TauriPlugin
 class VopPlugin(private val activity: Activity): Plugin(activity) {
-    private val implementation = Example()
     private var orientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
     override fun load(webView: WebView) {

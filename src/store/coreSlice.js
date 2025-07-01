@@ -163,7 +163,7 @@ export const coreSlice = createSlice({
                     downloadId: 0,
                 },
                 movie: {
-                    siteKey: "",
+                    siteKey: void 0,
                     ids: "",
                     index: 0,
                     videoFlag: "",
