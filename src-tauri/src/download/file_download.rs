@@ -47,7 +47,7 @@ pub async fn init() {
                 Ok(stream) => {
                     if let Err(err) = handle_client(stream) {
                         match err {
-                            Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
+                            Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8(_) => (),
                             e => error!("WebSocket handler business error: {}", e),
                         }
                     }

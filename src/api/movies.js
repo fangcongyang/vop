@@ -43,18 +43,19 @@ export default {
 
     fetchPlaylist(site, cacheKey, ids) {
         return new Promise((resolve, reject) => {
-            const videoInfo = getCacheData(cacheKey);
-            if (videoInfo?.fullList?.length) {
-                resolve(videoInfo.fullList);
-            } else {
-                this.detail(site, ids).then(
-                    res => {
-                        cacheData(cacheKey, res);
-                        resolve(res.fullList);
-                    },
-                    _err => reject()
-                );
-            }
+            getCacheData(cacheKey).then(videoInfo => {
+                if (videoInfo?.fullList?.length) {
+                    resolve(videoInfo.fullList);
+                } else {
+                    this.detail(site, ids).then(
+                        res => {
+                            cacheData(cacheKey, res);
+                            resolve(res.fullList);
+                        },
+                        _err => reject()
+                    );
+                }
+            });
         });
     },
 

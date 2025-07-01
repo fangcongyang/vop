@@ -1,31 +1,36 @@
 import { invoke } from "@tauri-apps/api/core";
-import { osType } from "@/utils/env";
+import { type } from "@tauri-apps/plugin-os"
 import movieApi from "@/api/movies";
 import fetch from '@/api/fetch';
 
-export const cacheData = async (key, value) => {
+export let cacheData = (key, value) => {
     if (!value) return;
-    let params = { key, value };
-    if (osType().startsWith("web")) {
-        params.apiUrl = "/api/cache/cacheData";
-        params.value = JSON.stringify(value);
-        fetch.post("", params)
-    } else {
-        invoke("cache_data", params);
+    try {
+        type();
+        cacheData = (params) => invoke("cache_data", params);
+    } catch {
+        cacheData = (params) => {
+            params.apiUrl = "/api/cache/cacheData";
+            params.value = JSON.stringify(value);
+            fetch.post("", params)
+        }
     }
+    cacheData({ key, value })
 };
 
-export const getCacheData = async (key) => {
+export let getCacheData = (key) => {
     try {
-        let params = { key };
-        let data;
-        if (osType().startsWith("web")) {
+        type();
+        getCacheData = (key) => invoke("get_cache_data", { key });
+    } catch {
+        getCacheData = (key) => {
+            const params = { key };
             params.apiUrl = "/api/cache/getCacheData";
-            data = fetch.post("", params);
-        } else {
-            data = await invoke("get_cache_data", params);
+            return fetch.post("", params);
         }
-        return data;
+    }
+    try {
+        return getCacheData(key)
     } catch (err) {
         console.log(err);
         return null;
