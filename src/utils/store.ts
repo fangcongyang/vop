@@ -1,4 +1,5 @@
 import { Store, load } from "@tauri-apps/plugin-store";
+import { type } from "@tauri-apps/plugin-os";
 import { appConfigDir, join } from "@tauri-apps/api/path";
 
 export class StoreObserver {
@@ -49,24 +50,42 @@ interface DataStore extends StoreSubject {
 export class TauriDataStore implements DataStore, StoreSubject {
     _store: Store | undefined;
     _observers: Set<StoreObserver>;
+    private _initialized: boolean = false;
+    private _initPromise: Promise<void> | null = null;
 
     constructor() {
         this._store = undefined;
         this._observers = new Set();
     }
 
-    async _init() {
+    async _init(): Promise<void> {
+        if (this._initialized) {
+            return;
+        }
+        
+        if (this._initPromise) {
+            return this._initPromise;
+        }
+        
+        this._initPromise = this._doInit();
+        await this._initPromise;
+        this._initialized = true;
+    }
+    
+    private async _doInit(): Promise<void> {
         const appConfigDirPath = await appConfigDir();
         const appConfigPath = await join(appConfigDirPath, "vop.json");
-        this._store = await load(appConfigPath, { autoSave: false })
+        this._store = await load(appConfigPath, { autoSave: false });
     }
 
     async set(key: string, value: any) {
+        await this._init();
         this._store?.set(key, value);
         this._store?.save();
     }
 
     async get(key: string): Promise<any> {
+        await this._init();
         return this._store?.get(key);
     }
 
@@ -139,13 +158,13 @@ class LocalDataStore implements DataStore, StoreSubject {
     }
 }
 
-export let store: DataStore = new LocalDataStore();
-
-export async function initStore(osType: string) {
-    if (osType.startsWith("web") || osType.startsWith("mobile")) {
-        store = new LocalDataStore();
-    } else {
-        store = new TauriDataStore();
-        await store._init();
+// 为了向后兼容，保留同步的store导出（但建议使用storePromise）
+export const store: DataStore = (() => {
+    try {
+        type();
+        return new TauriDataStore(); // 注意：此时可能未完全初始化
+    } catch {
+        console.log("use LocalDataStore");
+        return new LocalDataStore();
     }
-}
+})();

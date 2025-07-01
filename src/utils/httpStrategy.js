@@ -11,192 +11,168 @@ class HttpStrategy {
         return this.get(url, params, withTimestamp, timeout);
     }
 
-    get(url, params, withTimestamp = false, timeout = 10) {}
+    get(_url, _params, _withTimestamp = false, _timeout = 10) {}
 
-    post(url, params, timeout = 10) {}
+
+    post(_url, _params, _timeout = 10) {}
 }
 
 class TauriHttpStrategy extends HttpStrategy {
-    get(url, params, withTimestamp = false, timeout = 10) {
-        return new Promise(async (resolve, reject) => {
-            if (withTimestamp) {
-                let date = new Date().getTime();
-                if (params) {
-                    params["t"] = date;
-                } else {
-                    params = {};
-                    params["t"] = date;
-                }
-            }
-            let pp = qs.stringify(params);
-            if (pp) url += "?" + pp;
-            try {
-                let res = await fetch(url, {
-                    headers: {
-                        "User-agent":
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.58",
-                        "Content-Type": "application/text",
-                    },
-                    method: "GET",
-                    mode: "cors",
-                    timeout,
-                });
-                res.text()
-                    .then((data) => {
-                        resolve(data);
-                    })
-                    .catch((error) => {
-                        reject(error);
-                    });
-            } catch (error) {
-                reject(error);
-            }
+    async get(url, params, withTimestamp = false, timeout = 10) {
+        // 处理时间戳参数
+        if (withTimestamp) {
+            const timestamp = Date.now();
+            params = params ? { ...params, t: timestamp } : { t: timestamp };
+        }
+        
+        // 构建查询字符串
+        const queryString = qs.stringify(params);
+        const requestUrl = queryString ? `${url}?${queryString}` : url;
+        
+        const response = await fetch(requestUrl, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.58",
+                "Content-Type": "application/text",
+            },
+            method: "GET",
+            mode: "cors",
+            timeout: timeout * 1000, // 转换为毫秒
         });
+        
+        return await response.text();
     }
 
-    post(url, params, timeout = 10) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let res = await fetch(url, {
-                    headers: {
-                        "User-agent":
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.182",
-                    },
-                });
-                resolve(res);
-            } catch (error) {
-                reject(error);
-            }
+    async post(url, params, timeout = 10) {
+        // 构建请求体
+        const body = params ? qs.stringify(params) : undefined;
+        
+        const response = await fetch(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.58",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            method: "POST",
+            body,
+            timeout: timeout * 1000, // 转换为毫秒
         });
+        
+        return await response.text();
     }
 }
 
 class AxiosHttpStrategy extends HttpStrategy {
-    proxyGet(url, params, withTimestamp = false, timeout = 10) {
-        return new Promise(async (resolve, reject) => {
-            if (withTimestamp) {
-                let date = new Date().getTime();
-                if (params) {
-                    params["t"] = date;
-                } else {
-                    params = {};
-                    params["t"] = date;
-                }
+    async proxyGet(url, params, withTimestamp = false, timeout = 10) {
+        // 处理时间戳参数
+        if (withTimestamp) {
+            const timestamp = Date.now();
+            params = params ? { ...params, t: timestamp } : { t: timestamp };
+        }
+        
+        // 构建代理请求URL
+        const apiUrl = import.meta.env.VITE_VOP_API + "/api/site/siteProxy";
+        const queryString = qs.stringify(params);
+        const requestUrl = queryString ? `${url}?${queryString}` : url;
+        
+        const response = await axios.post(
+            apiUrl,
+            { request_path: requestUrl },
+            {
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                maxBodyLength: Infinity,
+                timeout: timeout * 1000,
+                responseType: "text",
             }
-            try {
-                let apiUrl =
-                    import.meta.env.VITE_VOP_API + "/api/site/siteProxy";
-                let pp = qs.stringify(params);
-                if (pp) url += "?" + pp;
-                axios
-                    .post(
-                        apiUrl,
-                        {
-                            request_path: url,
-                        },
-                        {
-                            headers: {
-                                "Content-Type":
-                                    "application/x-www-form-urlencoded",
-                            },
-                            maxBodyLength: Infinity,
-                            timeout: timeout * 1000,
-                            responseType: "text",
-                        }
-                    )
-                    .then((res) => {
-                        resolve(res.data);
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                        reject(error);
-                    });
-            } catch (error) {
-                reject(error);
-            }
-        });
+        );
+        
+        return response.data;
     }
 
-    get(url, params, withTimestamp = false, timeout = 10) {
-        return new Promise(async (resolve, reject) => {
-            if (withTimestamp) {
-                let date = new Date().getTime();
-                if (params) {
-                    params["t"] = date;
-                } else {
-                    params = {};
-                    params["t"] = date;
-                }
-            }
-            try {
-                if (!params.apiUrl) throw new Error("apiUrl is empty");
-                let apiUrl = import.meta.env.VITE_VOP_API + params.apiUrl;
-                delete params.apiUrl;
-                let pp = qs.stringify(params);
-                if (pp) apiUrl += "?" + pp;
-                axios
-                    .get(apiUrl, {
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded",
-                        },
-                        maxBodyLength: Infinity,
-                        timeout: timeout * 1000,
-                        responseType: "text",
-                    })
-                    .then((res) => {
-                        resolve(JSON.parse(res.data));
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                        reject(error);
-                    });
-            } catch (error) {
-                reject(error);
-            }
+    async get(url, params, withTimestamp = false, timeout = 10) {
+        // 处理时间戳参数
+        if (withTimestamp) {
+            const timestamp = Date.now();
+            params = params ? { ...params, t: timestamp } : { t: timestamp };
+        }
+        
+        // 验证并构建API URL
+        if (!params.apiUrl) {
+            throw new Error("apiUrl is empty");
+        }
+        
+        const apiUrl = import.meta.env.VITE_VOP_API + params.apiUrl;
+        const requestParams = { ...params };
+        delete requestParams.apiUrl;
+        
+        // 构建查询字符串
+        const queryString = qs.stringify(requestParams);
+        const requestUrl = queryString ? `${apiUrl}?${queryString}` : apiUrl;
+        
+        const response = await axios.get(requestUrl, {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            maxBodyLength: Infinity,
+            timeout: timeout * 1000,
+            responseType: "text",
         });
+        
+        return JSON.parse(response.data);
     }
 
-    post(url, params, timeout = 10) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!params.apiUrl) throw new Error("apiUrl is empty");
-                let apiUrl = import.meta.env.VITE_VOP_API + params.apiUrl;
-
-                delete params.apiUrl;
-                // 优化：使用 async/await 替代 then/catch
-                const res = await axios.post(apiUrl, params, {
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                    },
-                    timeout: timeout * 1000,
-                });
-                resolve(res.data);
-            } catch (error) {
-                reject(error);
-            }
+    async post(url, params, timeout = 10) {
+        // 验证并构建API URL
+        if (!params.apiUrl) {
+            throw new Error("apiUrl is empty");
+        }
+        
+        const apiUrl = import.meta.env.VITE_VOP_API + params.apiUrl;
+        const requestParams = { ...params };
+        delete requestParams.apiUrl;
+        
+        const response = await axios.post(apiUrl, requestParams, {
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            timeout: timeout * 1000,
         });
+        
+        return response.data;
     }
 
-    postJson(url, params, timeout = 10) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!params.apiUrl) throw new Error("apiUrl is empty");
-                let apiUrl = import.meta.env.VITE_VOP_API + params.apiUrl;
-
-                delete params.apiUrl;
-                // 优化：使用 async/await 替代 then/catch
-                const res = await axios.post(apiUrl, params, {
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    timeout: timeout * 1000,
-                });
-                resolve(res.data);
-            } catch (error) {
-                reject("Post JSON request error" + error.message);
-            }
-        });
+    async postJson(url, params, timeout = 10) {
+        // 验证并构建API URL
+        if (!params.apiUrl) {
+            throw new Error("apiUrl is empty");
+        }
+        
+        const apiUrl = import.meta.env.VITE_VOP_API + params.apiUrl;
+        const requestParams = { ...params };
+        delete requestParams.apiUrl;
+        
+        try {
+            const response = await axios.post(apiUrl, requestParams, {
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                timeout: timeout * 1000,
+            });
+            
+            return response.data;
+        } catch (error) {
+            throw new Error(`Post JSON request error: ${error.message}`);
+        }
     }
 }
+
+export const httpStrategy = (() => {
+    try {
+        type();
+        return new TauriHttpStrategy();
+    } catch {
+        return new AxiosHttpStrategy();
+    }
+})();
 
 export { TauriHttpStrategy, AxiosHttpStrategy };

@@ -48,4 +48,21 @@ export default {
 
         return { cancelableRequest, cancel };
     },
+
+    
+    /**
+     * 检测是否为移动设备（Web环境）
+     * @returns {boolean}
+     */
+    detectMobileDevice() {
+        const portraitMobile = window.matchMedia(
+            "screen and (max-width: 760px) and (orientation: portrait)"
+        ).matches;
+        
+        const landscapeMobile = window.matchMedia(
+            "screen and (max-width: 1000px) and (orientation: landscape)"
+        ).matches;
+        
+        return portraitMobile || landscapeMobile;
+    },
 };
