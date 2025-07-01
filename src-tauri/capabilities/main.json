@@ -30,8 +30,7 @@
             "allow": [
                 {
                     "path": "D:\\**"
-                },
-                { "path": "$APPCONFIG/*" }
+                }
             ]
         },
         "fs:allow-watch",
