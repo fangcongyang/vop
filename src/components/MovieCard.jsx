@@ -1,7 +1,7 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { updatePlayInfo, togglePageActive } from "@/store/coreSlice";
 import { updateDetailInfo, siteMapStore } from "@/store/movieSlice";
-import { osType } from "@/utils/env";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import LazyImage from "@/components/LazyImage";
 import doubanApi from "@/api/douban";
 import { getSiteByKey, starMovie, addDownloads } from "@/db";
@@ -13,6 +13,7 @@ import "./MovieCard.scss";
 
 const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSiteName = true, onDelete }) => {
     const dispatch = useAppDispatch();
+    const osType = useGlobalStore((state) => state.osType);
     const [messageApi, _contextHolder] = message.useMessage();
     const siteMap = useAppSelector(siteMapStore);
 
@@ -204,7 +205,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
                                 收藏
                             </span>
                         )}
-                        {osType() === "desktop" && (
+                        {osType === "desktop" && (
                             <span className="o-star" onClick={downloadEvent}>
                                 下载
                             </span>

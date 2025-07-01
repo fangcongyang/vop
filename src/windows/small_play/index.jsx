@@ -7,18 +7,16 @@ import {
     resetPlayInfo,
 } from "@/store/coreSlice";
 import {
-    getCurrentHistory,
-    saveHistory,
     getDownloadById,
     getSiteList,
 } from "@/db";
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getMovieDetailCacheData } from "@/business/cache";
 import movieApi from "@/api/movies";
+import { getCurrentHistoryOrSave, updateHistory } from "@/api/history";
 import { message } from "antd";
 import { useGetState } from "@/hooks";
 import _ from "lodash";
-import date from "@/utils/date";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { GlobalEvent } from "../../business/types";
 import "./index.scss";
@@ -266,14 +264,15 @@ const SmallPlay = () => {
         const startPosition = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
         const endPosition = parseInt(moviesInfo.endPosition.min) * 60 + parseInt(moviesInfo.endPosition.sec);
         
-        let currentHistory = playPage.currentHistory;
         if (isOnline) {
-            currentHistory.index = playPage.movieIndex;
-            currentHistory.online_play = playInfo.movie.onlineUrl;
-            currentHistory.start_position = startPosition;
-            currentHistory.end_position = endPosition;
-            currentHistory.update_time = date.getDateTimeStr();
-            await saveHistory(currentHistory);
+            const updateData = {
+                id: playPage.currentHistory.id,
+                index: playPage.movieIndex,
+                onlinePlay: playInfo.movie.onlineUrl,
+                startPosition: startPosition,
+                endPosition: endPosition,
+            };
+            await updateHistory(updateData);
         } else {
             timerEvent();
         }
@@ -288,7 +287,7 @@ const SmallPlay = () => {
         }
         
         // 使用React的方式创建定时器
-        const updateHistory = async () => {
+        const localUpdateHistory = async () => {
             if (!playPage.playing) {
                 return;
             }
@@ -299,21 +298,23 @@ const SmallPlay = () => {
                 const startPosition = parseInt(mi.startPosition.min) * 60 + parseInt(mi.startPosition.sec);
                 const endPosition = parseInt(mi.endPosition.min) * 60 + parseInt(mi.endPosition.sec);
                 
-                historyInfo.index = playPage.movieIndex;
-                historyInfo.play_time = player.currentTime();
-                historyInfo.duration = player.duration();
-                historyInfo.start_position = startPosition;
-                historyInfo.end_position = endPosition;
-                historyInfo.update_time = date.getDateTimeStr();
-                await saveHistory(historyInfo);
+                const updateData = {
+                    id: playPage.currentHistory.id,
+                    index: playPage.movieIndex,
+                    playTime: player.currentTime(),
+                    duration: player.duration(),
+                    startPosition: startPosition,
+                    endPosition: endPosition,
+                };
+                await updateHistory(updateData);
             }
         };
         
         // 立即执行一次更新
-        updateHistory();
+        localUpdateHistory();
         
         // 创建定时器并保存引用到useRef中
-        historyTimerRef.current = setInterval(updateHistory, 10000);
+        historyTimerRef.current = setInterval(localUpdateHistory, 10000);
     };
 
     // 播放下一集
@@ -492,7 +493,7 @@ const SmallPlay = () => {
                     );
                     // 缓存详情数据供后续使用
                     playPage.cachedDetail = detail;
-                    let currentHistory = await getCurrentHistory(
+                    let currentHistory = await getCurrentHistoryOrSave(
                         playInfo,
                         detail,
                     );

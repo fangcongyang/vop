@@ -1,33 +1,23 @@
-import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { pageActiveStore } from "@/store/coreSlice";
-import {
-    historyListStore,
-    storeHistoryList
-} from "@/store/movieSlice";
-import { getAllHistory, deleteHistory } from "@/db";
+import { useEffect, useState } from "react";
+import { selectAllHistory, deleteHistory } from "@/api/history";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import "./Movie.scss";
 
 const History = (props) => {
-    const dispatch = useAppDispatch();
-    const pageActive = useAppSelector(pageActiveStore);
-    const historyList = useAppSelector(historyListStore);
+    const [historyList, setHistoryList] = useState([]);
 
     useEffect(() => {
-        if (pageActive === "history") {
-            initHistoryList();
-        }
-    }, [pageActive])
+        initHistoryList();
+    }, []);
 
     const initHistoryList = async () => {
-        const res = await getAllHistory();
-        dispatch(storeHistoryList({historyList: res, forceRefresh: true}));
+        const res = await selectAllHistory();
+        setHistoryList(res);
     }
 
     const onDelete = async (item) => {
-        await deleteHistory(item.id)
+        await deleteHistory({id: item.id});
         initHistoryList();
     }
 

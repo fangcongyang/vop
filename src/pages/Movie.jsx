@@ -26,11 +26,11 @@ import { uniqBy } from "lodash";
 import { AutoComplete, message, Button } from "antd";
 import { LoadingOutlined, UpOutlined, DownOutlined } from "@ant-design/icons";
 import { Spin } from "antd";
-import { osType } from "@/utils/env";
 import utils from "@/utils";
 import NProgress from "nprogress";
 import { useConfig, useGetState } from "@/hooks";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import "./Movie.scss";
 
 
@@ -44,6 +44,7 @@ let movieInfo = {
 
 const Movie = () => {
   const dispatch = useAppDispatch();
+  const osType = useGlobalStore((state) => state.osType);
   const [messageApi] = message.useMessage();
   const pageActive = useAppSelector(pageActiveStore);
   const siteList = useAppSelector(siteListStore);
@@ -405,7 +406,7 @@ const Movie = () => {
       className="pageMain"
     >
       <div className="panel">
-        {osType().toLowerCase().includes("mobile") && (
+        {osType.toLowerCase().includes("mobile") && (
           <div className="movieSearch">
             <AutoComplete
               style={{

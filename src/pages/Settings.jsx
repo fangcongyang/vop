@@ -4,7 +4,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { togglePageActive } from "@/store/coreSlice";
 import { storeSiteList } from "@/store/movieSlice";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { osType, appVersion } from "@/utils/env";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import { getSystemConfByKey, initDB, uploadData } from "@/db";
 import logo from "@/assets/logo.png";
 import SettingsSwitch from "@/components/SettingsSwitch";
@@ -23,6 +23,8 @@ import "./Settings.scss";
 
 const Settings = (props) => {
     const dispatch = useAppDispatch();
+    const osType = useGlobalStore((state) => state.osType);
+    const appVersion = useGlobalStore((state) => state.appVersion);
     const [excludeR18Site, setExcludeR18Site] = useConfig(
         "excludeR18Site",
         true
@@ -97,7 +99,7 @@ const Settings = (props) => {
 
     const resetApp = () => {
         clearDB().then(() => {
-            if (osType().startsWith("web")) return;
+            if (osType.startsWith("web")) return;
             relaunch();
         })
     };
@@ -330,7 +332,7 @@ const Settings = (props) => {
                     ""
                 )}
 
-                {osType() == "desktop" && (
+                {osType == "desktop" && (
                     <>
                         <h3>下载</h3>
                         <SettingButton
@@ -362,7 +364,7 @@ const Settings = (props) => {
                         </div>
                     </>
                 )}
-                {!osType().startsWith("web") && (
+                {!osType.startsWith("web") && (
                     <>
                         <h3>代理配置</h3>
                         <SettingsSelect
@@ -459,7 +461,7 @@ const Settings = (props) => {
                     <button className="button" onClick={openDevTools}>开发者工具</button>
                   </div>
                 </div>
-                {osType() == "desktop" && (
+                {osType == "desktop" && (
                     <>
                         <SettingsSelect
                             title="关闭主面板时..."
@@ -496,13 +498,13 @@ const Settings = (props) => {
                             fangcongyang
                         </a>
                     </p>
-                    <p className="version">v {appVersion()}</p>
+                    <p className="version">v {appVersion}</p>
                 </div>
             </div>
             {isCheckingUpdate ? (
                 <UpdateModal
                     show={isCheckingUpdate}
-                    currentVersion={appVersion()}
+                    currentVersion={appVersion}
                     onClose={() => setIsCheckingUpdate(false)}
                 />
             ) : null}

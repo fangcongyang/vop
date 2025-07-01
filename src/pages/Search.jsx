@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import { pageActiveStore } from "@/store/coreSlice";
 import { searchKeywordStore, siteListStore } from "@/store/movieSlice";
 import MovidCard from "@/components/MovieCard";
@@ -8,15 +9,14 @@ import movieApi from "@/api/movies";
 import { AutoComplete, message } from "antd";
 import { getAllSearchList, addSearchRecord, clearSearchRecord } from "@/db";
 import _ from "lodash";
-import { osType } from "@/utils/env";
 import "./Movie.scss";
 
 const searchInfo = {
   searchId: 0,
 };
 const Search = (props) => {
-  const dispatch = useAppDispatch();
-  const [messageApi, contextHolder] = message.useMessage();
+  const osType = useGlobalStore((state) => state.osType);
+  const [messageApi] = message.useMessage();
   const siteList = useAppSelector(siteListStore);
   const pageActive = useAppSelector(pageActiveStore);
   const searchKeyword = useAppSelector(searchKeywordStore);
@@ -27,7 +27,7 @@ const Search = (props) => {
 
   useEffect(() => {
     if (
-      osType() != "mobile" &&
+      osType != "mobile" &&
       pageActive === "search" &&
       searchKeyword != searchKeywordRef.current
     ) {
@@ -114,7 +114,6 @@ const Search = (props) => {
           };
 
           if (_.isArray(res)) {
-            let count = 0;
             res.forEach((element) => {
               movieApi
                 .detail(site, element.id)
@@ -136,7 +135,7 @@ const Search = (props) => {
     <div
       className={props.className ? "pageMain " + props.className : "pageMain"}
     >
-      {osType().toLowerCase().includes("mobile") && (
+      {osType.toLowerCase().includes("mobile") && (
         <div style={{ marginTop: "10px" }}>
             <AutoComplete
               style={{

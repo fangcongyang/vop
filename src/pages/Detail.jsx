@@ -4,12 +4,12 @@ import { useGetState } from "@/hooks";
 import { pageActiveStore, updatePlayInfo } from "@/store/coreSlice";
 import { detailInfoStore } from "@/store/movieSlice";
 import MovieCard from "@/components/MovieCard";
-import SvgIcon from "@/components/SvgIcon";
 import Waterfall from "@/components/Waterfall";
-import { getCurrentHistory, getSiteByKey, starMovie } from "@/db";
+import { getSiteByKey, starMovie } from "@/db";
 import { cacheData, getCacheData } from "@/business/cache";
 import movieApi from "@/api/movies";
 import doubanApi from "@/api/douban";
+import { getCurrentHistory } from "@/api/history";
 import _ from "lodash";
 import "./Detail.scss";
 

@@ -7,19 +7,15 @@ import {
     updateplayerConf,
     updatePlayInfoIndex,
     resetPlayInfo,
-    pageActiveStore,
 } from "@/store/coreSlice";
 import {
-    siteListStore,
     historyListStore,
     storeHistoryList,
 } from "@/store/movieSlice";
 import {
-    getAllHistory,
-    getCurrentHistory,
-    saveHistory,
     getDownloadById,
 } from "@/db";
+import { selectAllHistory, updateHistory, getCurrentHistoryOrSave } from "@/api/history";
 import { emit, listen } from '@tauri-apps/api/event';
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getMovieDetailCacheData } from "@/business/cache";
@@ -32,11 +28,10 @@ import { message, Button, Tooltip, Input, Space } from "antd";
 import QRCodeModal from "@/components/QRCodeModal";
 import { fmtMSS } from "@/utils/common";
 import { useGetState } from "@/hooks";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import _ from "lodash";
-import date from "@/utils/date";
 import { invoke } from "@tauri-apps/api/core";
 import { toggleScreenOrientation } from "tauri-plugin-vop-api";
-import { osType } from "@/utils/env";
 import { GlobalEvent } from "@/business/types";
 import "./Play.scss";
 import { QrcodeOutlined, FullscreenExitOutlined, FullscreenOutlined, PlayCircleOutlined, PoweroffOutlined } from "@ant-design/icons";
@@ -54,12 +49,12 @@ let playPage = {
 
 const Play = (props) => {
     const dispatch = useAppDispatch();
+    const siteList = useGlobalStore((s) => s.siteList);
+    const osType = useGlobalStore((state) => state.osType);
     const [messageApi, contextHolder] = message.useMessage();
     const playInfo = useAppSelector(playInfoStore);
     const playerConf = useAppSelector(playerConfStore);
-    const siteList = useAppSelector(siteListStore);
     const historyList = useAppSelector(historyListStore);
-    const pageActive = useAppSelector(pageActiveStore);
     const [movieList, setMovieList] = useState([]);
     const playChangeEventUnlistenFn = useRef(null);
     // 监听historyList变化，获取第一条历史记录
@@ -101,7 +96,7 @@ const Play = (props) => {
     const [shortVideoMode, setShortVideoMode] = useState(() => {
         // 从本地存储中获取用户偏好，但只在桌面端生效
         const savedMode = localStorage.getItem('shortVideoMode');
-        return savedMode === 'true' && osType().startsWith('desktop');
+        return savedMode === 'true' && osType.startsWith('desktop');
     });
 
     // 自动关闭播发器
@@ -309,14 +304,15 @@ const Play = (props) => {
         const startPosition = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
         const endPosition = parseInt(moviesInfo.endPosition.min) * 60 + parseInt(moviesInfo.endPosition.sec);
         
-        let currentHistory = playPage.currentHistory;
         if (isOnline) {
-            currentHistory.index = playPage.movieIndex;
-            currentHistory.online_play = playInfo.movie.onlineUrl;
-            currentHistory.start_position = startPosition;
-            currentHistory.end_position = endPosition;
-            currentHistory.update_time = date.getDateTimeStr();
-            await saveHistory(currentHistory);
+            const updateData = {
+                id: playPage.currentHistory.id,
+                index: playPage.movieIndex,
+                onlinePlay: playInfo.movie.onlineUrl,
+                startPosition: startPosition,
+                endPosition: endPosition,
+            };
+            await updateHistory(updateData);
         } else {
             timerEvent();
         }
@@ -331,7 +327,7 @@ const Play = (props) => {
         }
         
         // 使用React的方式创建定时器
-        const updateHistory = async () => {
+        const localUpdateHistory = async () => {
             if (!playPage.playing) {
                 return;
             }
@@ -342,21 +338,23 @@ const Play = (props) => {
                 const startPosition = parseInt(mi.startPosition.min) * 60 + parseInt(mi.startPosition.sec);
                 const endPosition = parseInt(mi.endPosition.min) * 60 + parseInt(mi.endPosition.sec);
                 
-                historyInfo.index = playPage.movieIndex;
-                historyInfo.play_time = player.currentTime();
-                historyInfo.duration = player.duration();
-                historyInfo.start_position = startPosition;
-                historyInfo.end_position = endPosition;
-                historyInfo.update_time = date.getDateTimeStr();
-                await saveHistory(historyInfo);
+                const updateData = {
+                    id: playPage.currentHistory.id,
+                    index: playPage.movieIndex,
+                    playTime: player.currentTime(),
+                    duration: player.duration(),
+                    startPosition: startPosition,
+                    endPosition: endPosition,
+                };
+                await updateHistory(updateData);
             }
         };
         
         // 立即执行一次更新
-        updateHistory();
+        localUpdateHistory();
         
         // 创建定时器并保存引用到useRef中
-        historyTimerRef.current = setInterval(updateHistory, 10000);
+        historyTimerRef.current = setInterval(localUpdateHistory, 10000);
     };
 
     // 使用 useMemo 缓存活跃站点列表
@@ -551,7 +549,7 @@ const Play = (props) => {
         dp.on("play", async () => {
             clearTimeout(playPage.stallIptvTimeout);
             if (playPage.isFirstPlay) {
-                const localHistoryList = await getAllHistory();
+                const localHistoryList = await selectAllHistory();
                 if (localHistoryList.length === 0) {
                     messageApi.warning("历史记录为空，无法播放！");
                     return;
@@ -617,8 +615,8 @@ const Play = (props) => {
         });
     };
 
-    const selectAllHistory = (forceRefresh = false) => {
-        getAllHistory().then((res) => {
+    const updateSelectAllHistory = (forceRefresh = false) => {
+        selectAllHistory().then((res) => {
             dispatch(
                 storeHistoryList({ historyList: res, forceRefresh: forceRefresh })
             );
@@ -639,12 +637,6 @@ const Play = (props) => {
             }
         };
     }, []);
-
-    useEffect(() => {
-        if (pageActive === "play") {
-            selectAllHistory();
-        }
-    }, [pageActive]);
 
     useEffect(() => {
         if (playInfo.playState !== "newPlay" && !movieList) {
@@ -679,10 +671,11 @@ const Play = (props) => {
                 );
                 // 缓存详情数据供后续使用
                 playPage.cachedDetail = detail;
-                let currentHistory = await getCurrentHistory(
+                let currentHistory = await getCurrentHistoryOrSave(
                     playInfo,
                     detail,
                 );
+                updateSelectAllHistory(true);
                 playPage.currentHistory = currentHistory;
                 getUrls();
             } catch (err) {
@@ -712,11 +705,12 @@ const Play = (props) => {
                 emit("smallPlayEvent", playInfo);
             }, 2000);
         } else {
-            initPlay();
+            !playPage.isFirstPlay && initPlay();
         }
     }, [smallPlayVisible])
 
     useEffect(() => {
+        updateSelectAllHistory(true);
         const initUnlisten = async () => {
             const unlisten = await listen(GlobalEvent.PlayChangeEvent, ({payload}) => {
                 dispatch(updatePlayInfoIndex(payload));
@@ -740,7 +734,6 @@ const Play = (props) => {
     }, [playInfo.movie.onlineUrl]);
 
     const closePlayerAndInit = () => {
-        selectAllHistory(true);
         dispatch(resetPlayInfo());
         setPlayMode("local");
         playPage.isFirstPlay = true;
@@ -852,7 +845,7 @@ const Play = (props) => {
                         )
                     )}
                      {/* 只在桌面端显示短剧模式切换按钮 */}
-                    {osType().startsWith('desktop') && (
+                    {osType.startsWith('desktop') && (
                         <Tooltip title={shortVideoMode ? "切换到正常模式" : "切换到短剧模式"}>
                             <Button 
                                 type="text" 
@@ -868,7 +861,7 @@ const Play = (props) => {
                         </Tooltip>
                     )}
                     {/* 只在桌面端显示短剧模式切换按钮 */}
-                    {osType().startsWith('desktop') && (
+                    {osType.startsWith('desktop') && (
                         <Tooltip title={smallPlayVisible ? "关闭小窗口播放" : "打开小窗口播放"}>
                             <Button 
                                 type="text" 
@@ -1049,9 +1042,13 @@ const Play = (props) => {
                                         if (playPage.currentHistory) {
                                             const startPosition = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
                                             const endPosition = parseInt(moviesInfo.endPosition.min) * 60 + parseInt(moviesInfo.endPosition.sec);
-                                            playPage.currentHistory.start_position = startPosition;
-                                            playPage.currentHistory.end_position = endPosition;
-                                            saveHistory(playPage.currentHistory);
+                                            
+                                            const updateData = {
+                                                id: playPage.currentHistory.id,
+                                                startPosition: startPosition,
+                                                endPosition: endPosition,
+                                            };
+                                            updateHistory(updateData);
                                         }
                                         
                                         message.success('片头片尾设置已保存到本地和历史记录');
