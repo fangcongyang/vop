@@ -1,14 +1,18 @@
 use conf::get;
+use diesel::{Connection, SqliteConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use log::{info, LevelFilter};
 use once_cell::sync::OnceCell;
 use serde_json::{json, Value};
-use tauri::{App, WebviewWindow, Wry};
+use tauri::{App, AppHandle, WebviewWindow, Wry};
 
 mod cache;
 mod conf;
 mod download;
 mod utils;
 mod app;
+mod schema;
+mod orm;
 
 use download::file_download;
 use tauri_plugin_log::{Target, TargetKind};
@@ -17,6 +21,7 @@ use url::Url;
 use crate::conf::{init_config, init_config_value, is_first_run};
 
 pub static APP: OnceCell<tauri::AppHandle> = OnceCell::new();
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -46,6 +51,8 @@ pub fn run() {
         .setup(move |app| {
             // Global AppHandle
             APP.get_or_init(|| app.handle().clone());
+            // 初始化数据库
+            init_database(app.handle())?;
             info!("Init Config Store");
             let mut app_handle = app.handle().clone();
             init_config(&mut app_handle);
@@ -79,6 +86,11 @@ pub fn run() {
             app::cmds::download_file_task,
             app::cmds::github_repos_info_version,
             app::cmds::create_top_small_play_window,
+            orm::history::cmds::get_current_history_or_save,
+            orm::history::cmds::get_current_history,
+            orm::history::cmds::select_all_history,
+            orm::history::cmds::update_history,
+            orm::history::cmds::delete_history,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -123,4 +135,39 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
             return Ok(webview_window.build()?);
         }
     }
+}
+
+
+fn init_database(app: &AppHandle) -> anyhow::Result<()> {
+    use diesel::RunQueryDsl;
+    
+    let conn_url = orm::get_database_path(app)?;
+    info!("Database Path: {:?}", conn_url);
+    let mut conn = SqliteConnection::establish(&conn_url.clone()).expect("failed to connect to db");
+
+    // 设置SQLite优化参数
+    diesel::sql_query("PRAGMA busy_timeout = 2000;")
+        .execute(&mut conn)
+        .expect("Failed to set busy timeout");
+    diesel::sql_query("PRAGMA journal_mode = WAL;")
+        .execute(&mut conn)
+        .expect("Failed to set WAL mode");
+    
+    diesel::sql_query("PRAGMA synchronous = NORMAL;")
+        .execute(&mut conn)
+        .expect("Failed to set synchronous mode");
+    
+    diesel::sql_query("PRAGMA cache_size = 10000;")
+        .execute(&mut conn)
+        .expect("Failed to set cache size");
+    diesel::sql_query("PRAGMA wal_autocheckpoint = 1000;")
+        .execute(&mut conn)
+        .map_err(diesel::r2d2::Error::QueryError)?;
+
+    // Run pending migrations on startup
+    conn.run_pending_migrations(MIGRATIONS)
+        .expect("migrations failed");
+    orm::init_database_pool(&conn_url)?;
+    info!("Migrations applied successfully.");
+    Ok(())
 }

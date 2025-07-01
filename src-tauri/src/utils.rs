@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use chrono::Local;
+use uuid::Uuid;
 use anyhow::Result;
 use rand::Rng;
 use tauri_plugin_http::reqwest::{self, ClientBuilder};
@@ -124,6 +126,17 @@ pub fn choose_user_agent(ua: &str) -> &str {
         return ua;
     };
     USER_AGENT_LIST[index]
+}
+
+pub fn get_current_time_str() -> String {
+    let now = Local::now(); // 当前本地时间
+    let formatted = now.format("%Y-%m-%d %H:%M:%S").to_string();
+    formatted
+}
+
+pub fn uuid() -> String {
+    let id = Uuid::new_v4();
+    id.to_string().replace("-", "")
 }
 
 pub mod cmd {
