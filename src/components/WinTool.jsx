@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useAppSelector } from "@/store/hooks";
-import { settingsStore } from "@/store/coreSlice";
 import SvgIcon from "./SvgIcon";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./WinTool.scss";
@@ -8,7 +6,6 @@ import "./WinTool.scss";
 const WinTool = () => {
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const settings = useAppSelector(settingsStore);
 
   const svgStyle = {
     width: "8Px",
@@ -41,7 +38,7 @@ const WinTool = () => {
   return (
     <div className="frame">
       <div className="content">
-        <span className="title">{settings.title}</span>
+        <span className="title">vop</span>
         <div data-tauri-drag-region>
           <span className="top" onClick={handleAlwaysTop}>
             <SvgIcon

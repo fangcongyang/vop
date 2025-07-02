@@ -1,6 +1,3 @@
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { updatePlayInfo, togglePageActive } from "@/store/coreSlice";
-import { updateDetailInfo, siteMapStore } from "@/store/movieSlice";
 import { useGlobalStore } from "@/store/useGlobalStore";
 import LazyImage from "@/components/LazyImage";
 import doubanApi from "@/api/douban";
@@ -10,12 +7,15 @@ import { fmtMSS } from "@/utils/common";
 import util from "@/utils";
 import moviesApi from "@/api/movies";
 import "./MovieCard.scss";
+import { useMovieStore } from "@/store/useMovieStore";
 
 const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSiteName = true, onDelete }) => {
-    const dispatch = useAppDispatch();
     const osType = useGlobalStore((state) => state.osType);
     const [messageApi, _contextHolder] = message.useMessage();
-    const siteMap = useAppSelector(siteMapStore);
+    const togglePageActive = useGlobalStore((state) => state.togglePageActive);
+    const toggleMovieDetailInfo = useMovieStore((state) => state.toggleMovieDetailInfo);
+    const togglePlayInfo = useGlobalStore((state) => state.togglePlayInfo);
+    const siteMap = useGlobalStore((state) => state.siteMap);
 
     const imgLoad = () => layoutHandle();
 
@@ -55,7 +55,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
             name: getName(),
             iptv: { channelGroupId: 0, channelActive: "" },
             download: { downloadId: 0 },
-            movie: {
+            movieInfo: {
                 siteKey: getSiteKey(),
                 ids: getMovieId(),
                 index: viewMode === "history" ? item.index : 0,
@@ -63,7 +63,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
                 onlineUrl: "",
             },
         };
-        dispatch(updatePlayInfo({ playInfo, toPlay: true }));
+        togglePlayInfo(playInfo, true);
     };
 
     const starEvent = async (e) => {
@@ -118,7 +118,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
 
     const progress = (e) => (e.duration > 0 ? ((e.play_time / e.duration) * 100).toFixed(0) : 0);
 
-    const getPic = () => (viewMode === "history" ? JSON.parse(item.detail)?.pic : item.pic);
+    const getPic = () => (viewMode === "history" ? item.detail?.pic : item.pic);
 
     const getName = () => {
         switch (viewMode) {
@@ -157,7 +157,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
             }
 
             if (item.detail) {
-                const detail = JSON.parse(item.detail);
+                const detail = item.detail;
                 if (detail?.fullList?.[0]?.list.length > 1) {
                     spanArr.push(
                         <span key="detail">
@@ -174,8 +174,8 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
     };
 
     const onDetail = () => {
-        dispatch(updateDetailInfo({ siteKey: getSiteKey(), ids: getMovieId() }));
-        dispatch(togglePageActive("detail"));
+        toggleMovieDetailInfo({ siteKey: getSiteKey(), ids: getMovieId() });
+        togglePageActive("detail");
     };
 
     return (

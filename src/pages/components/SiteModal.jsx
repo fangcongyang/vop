@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Button, Modal, Form, Select, Input } from "antd";
 
-const { Field, useForm } = Form;
+const { useForm } = Form;
 
 const SiteModal = ({ siteInfo, open, onClose, onSubmit }) => {
   const [form] = useForm();

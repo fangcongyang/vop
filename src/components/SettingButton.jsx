@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import styles from "./SettingsComponent.module.scss";
 
@@ -8,7 +7,6 @@ const SettingsInput = ({
     description = "",
     type = "button",
     initValue = "",
-    fieldKey = "",
     placeholder = "",
     callback= undefined,
 }) => {

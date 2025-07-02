@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useGetState } from "@/hooks";
-import { pageActiveStore, updatePlayInfo } from "@/store/coreSlice";
-import { detailInfoStore } from "@/store/movieSlice";
+import { useGlobalStore } from "@/store/useGlobalStore";
+import { useMovieStore } from "@/store/useMovieStore";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import { getSiteByKey, starMovie } from "@/db";
-import { cacheData, getCacheData } from "@/business/cache";
 import movieApi from "@/api/movies";
 import doubanApi from "@/api/douban";
 import { getCurrentHistory } from "@/api/history";
@@ -14,9 +12,8 @@ import _ from "lodash";
 import "./Detail.scss";
 
 const Detail = (props) => {
-    const dispatch = useAppDispatch();
-    const detailInfo = useAppSelector(detailInfoStore);
-    const pageActive = useAppSelector(pageActiveStore);
+    const movieDetailInfo = useMovieStore((state) => state.movieDetailInfo);
+    const togglePlayInfo = useGlobalStore((state) => state.togglePlayInfo);
     const [loading, setLoading] = useState(false);
     const [videoFlag, setVideoFlag, getVideoFlag] = useGetState("");
     const [selectedEpisode, setSelectedEpisode] = useState(0);
@@ -26,30 +23,23 @@ const Detail = (props) => {
     const [maxWidth, setMaxWidth] = useState(0);
 
     useEffect(() => {
-        if (pageActive === "detail") {
-            setMaxWidth(0);
-            getDetailInfo();
-        }
-    }, [detailInfo.ids]);
+        setMaxWidth(0);
+        getMovieDetailInfo();
+    }, []);
 
-    const getDetailInfo = async () => {
+    const getMovieDetailInfo = async () => {
         setLoading(true);
-        const cacheKey = `${detailInfo.siteKey}@${detailInfo.ids}`;
-        const history = await getCurrentHistory(
-            detailInfo.siteKey,
-            detailInfo.ids
-        );
+        const history = await getCurrentHistory({
+            siteKey: movieDetailInfo.siteKey,
+            ids: movieDetailInfo.ids.toString()
+        });
         if (history) {
             setVideoFlag(history.videoFlag);
             setSelectedEpisode(history.index);
         }
 
-        let res = await getCacheData(cacheKey);
-        if (_.isEmpty(res)) {
-            const currentSite = await getSiteByKey(detailInfo.siteKey);
-            res = await movieApi.detail(currentSite, detailInfo.ids);
-            cacheData(cacheKey, res);
-        }
+        const currentSite = await getSiteByKey(movieDetailInfo.siteKey);
+        let res = await movieApi.detail(currentSite, movieDetailInfo.ids);
         handlerDetailData(res);
     };
 
@@ -150,7 +140,7 @@ const Detail = (props) => {
                 onlineUrl: "",
             },
         };
-        dispatch(updatePlayInfo({ playInfo, toPlay: true }));
+        togglePlayInfo(playInfo, true);
     };
 
     const doubanLinkEvent = () => {

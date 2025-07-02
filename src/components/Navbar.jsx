@@ -1,51 +1,12 @@
-import { useState, memo, useEffect } from "react";
-import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { pageActiveStore, togglePageActive } from "@/store/coreSlice";
-import { updateSearchKeyword } from "@/store/movieSlice";
+import { memo } from "react";
 import { useGlobalStore } from "@/store/useGlobalStore";
-import { AutoComplete } from "antd";
-import { getAllSearchList, addSearchRecord, clearSearchRecord } from "@/db";
+import SearchAutoComplete from "./SearchAutoComplete";
 import "./Navbar.scss";
 
 const Navbar = memo(({ children }) => {
-  const dispatch = useAppDispatch();
   const osType = useGlobalStore((state) => state.osType);
-  const pageActive = useAppSelector(pageActiveStore);
-  const [keywords, setKeywords] = useState("");
-  const [searchList, setSearchList] = useState([]);
-
-  useEffect(() => {
-    getSearchList();
-  }, []);
-
-  const getSearchList = () => {
-    getAllSearchList().then((res) => {
-      res.unshift({ id: -1, keyword: "清除搜索记录" });
-      res = res.map((option) => {return { value: option.keyword }})
-      setSearchList(res);
-    });
-  };
-
-  const doSearch = (e) => {
-    if (e.key !== "Enter") return;
-    if (!keywords) return;
-    addSearchRecord(keywords).then(() => {
-      getSearchList();
-    });
-    dispatch(updateSearchKeyword(keywords));
-  };
-
-  const goSearch = () => {
-    dispatch(togglePageActive("search"));
-  };
-
-  const onClearSearchRecord = () => {
-    clearSearchRecord().then(() => {
-      getSearchList();
-      setKeywords("");
-      return;
-    });
-  };
+  const pageActive = useGlobalStore((state) => state.pageActive);
+  const togglePageActive = useGlobalStore((state) => state.togglePageActive);
 
   return (
     <div id="contentBody" className="navBar">
@@ -55,63 +16,46 @@ const Navbar = memo(({ children }) => {
         <div className="navigationLinks">
           <a
             className={pageActive == "movie" ? "active" : ""}
-            onClick={() => dispatch(togglePageActive("movie"))}
+            onClick={() => togglePageActive("movie")}
           >
             影视
           </a>
           <a
             className={pageActive == "play" ? "active" : ""}
-            onClick={() => dispatch(togglePageActive("play"))}
+            onClick={() => togglePageActive("play")}
           >
             播放
           </a>
           <a
             className={pageActive == "history" ? "active" : ""}
-            onClick={() => dispatch(togglePageActive("history"))}
+            onClick={() => togglePageActive("history")}
           >
             历史
           </a>
           <a
             className={pageActive == "star" ? "active" : ""}
-            onClick={() => dispatch(togglePageActive("star"))}
+            onClick={() => togglePageActive("star")}
           >
             收藏
           </a>
           {osType === "desktop" && (
             <a
               className={pageActive == "download" ? "active" : ""}
-              onClick={() => dispatch(togglePageActive("download"))}
+              onClick={() => togglePageActive("download")}
             >
               下载
             </a>
           )}
           <a
             className={pageActive == "settings" ? "active" : ""}
-            onClick={() => dispatch(togglePageActive("settings"))}
+            onClick={() => togglePageActive("settings")}
           >
             设置
           </a>
         </div>
 
         <div className="rightPart">
-          <AutoComplete
-            style={{
-              width: 200,
-            }}
-            allowClear
-            options={searchList}
-            onChange={(value) => setKeywords(value)}
-            onSelect={(value) => {
-                if (value === "清除搜索记录") {
-                  onClearSearchRecord();
-                  return;
-                }
-                setKeywords(value);
-                dispatch(updateSearchKeyword(value));
-            }}
-            onInputKeyDown={(e) => doSearch(e)}
-            onFocus={() => goSearch()}
-          />
+          <SearchAutoComplete width={200} />
         </div>
       </nav>
       {children}

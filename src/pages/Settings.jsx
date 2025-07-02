@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useAppDispatch } from "@/store/hooks";
-import { togglePageActive } from "@/store/coreSlice";
-import { storeSiteList } from "@/store/movieSlice";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { useGlobalStore } from "@/store/useGlobalStore";
 import { getSystemConfByKey, initDB, uploadData } from "@/db";
@@ -22,9 +19,10 @@ import _ from "lodash";
 import "./Settings.scss";
 
 const Settings = (props) => {
-    const dispatch = useAppDispatch();
     const osType = useGlobalStore((state) => state.osType);
     const appVersion = useGlobalStore((state) => state.appVersion);
+    const togglePageActive = useGlobalStore((state) => state.togglePageActive);
+    const toggleSiteList = useGlobalStore((state) => state.toggleSiteList);
     const [excludeR18Site, setExcludeR18Site] = useConfig(
         "excludeR18Site",
         true
@@ -73,7 +71,7 @@ const Settings = (props) => {
     const [dataUpload, setDataUpload] = useState(false);
     const [isCheckingUpdate, setIsCheckingUpdate] = useState(false); // 添加状态
     const [closeAppOption, setCloseAppOption] = useConfig("closeAppOption", "ask"); // 添加状态
-    
+
     // FFmpeg 下载相关状态
     const [ffmpegDownloadStatus, setFfmpegDownloadStatus] = useState("idle"); // idle, begin, progress, end, error
     const [ffmpegDownloadProgress, setFfmpegDownloadProgress] = useState(0);
@@ -94,7 +92,7 @@ const Settings = (props) => {
     };
 
     const openSite = () => {
-        dispatch(togglePageActive("site"));
+        togglePageActive("site");
     };
 
     const resetApp = () => {
@@ -106,7 +104,7 @@ const Settings = (props) => {
 
     const syncSite = () => {
         initDB(true).then((res) => {
-            dispatch(storeSiteList({ siteList: res, forceRefresh: true }));
+            toggleSiteList({ siteList: res, forceRefresh: true });
         });
     };
 
@@ -203,26 +201,26 @@ const Settings = (props) => {
                 download_url: ffmpegInfo.url,
                 file_path: osDetailType + "/" + ffmpegInfo.path,
             });
-            
+
             ffmpegDownloadTask.on("begin", async (_data) => {
                 setFfmpegDownloadStatus("begin");
             });
-            
+
             ffmpegDownloadTask.on("progress", async (data) => {
                 setFfmpegDownloadStatus("progress");
                 setFfmpegDownloadProgress(data.progress || 0);
                 setFfmpegDownloadSpeed(data.speed || 0);
             });
-            
+
             ffmpegDownloadTask.on("end", async (_data) => {
                 setFfmpegDownloadStatus("end");
                 setFfmpegVersion("latest");
             });
-            
+
             ffmpegDownloadTask.on("error", async (_data) => {
                 setFfmpegDownloadStatus("error");
             });
-            
+
             ffmpegDownloadTask.startDownload();
         } else {
             console.error("不支持的操作系统类型:", osDetailType);
@@ -353,8 +351,8 @@ const Settings = (props) => {
                                 </div>
                             </div>
                             <div className="right">
-                                <button 
-                                    className="button" 
+                                <button
+                                    className="button"
                                     onClick={downloadFfmpeg}
                                     disabled={ffmpegDownloadStatus === "begin" || ffmpegDownloadStatus === "progress"}
                                 >
@@ -424,7 +422,7 @@ const Settings = (props) => {
                     description="自定义应用的主题颜色"
                     callback={(color) => themeColorCallback(color)}
                 />
-                
+
                 {/* 其他 */}
                 <h3>其他</h3>
                 <SettingsSwitch

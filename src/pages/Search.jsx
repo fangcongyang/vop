@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useAppSelector } from "@/store/hooks";
 import { useGlobalStore } from "@/store/useGlobalStore";
-import { pageActiveStore } from "@/store/coreSlice";
-import { searchKeywordStore, siteListStore } from "@/store/movieSlice";
 import MovidCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
+import SearchAutoComplete from "@/components/SearchAutoComplete";
 import movieApi from "@/api/movies";
-import { AutoComplete, message } from "antd";
-import { getAllSearchList, addSearchRecord, clearSearchRecord } from "@/db";
+import { message } from "antd";
 import _ from "lodash";
 import "./Movie.scss";
 
@@ -17,13 +14,12 @@ const searchInfo = {
 const Search = (props) => {
   const osType = useGlobalStore((state) => state.osType);
   const [messageApi] = message.useMessage();
-  const siteList = useAppSelector(siteListStore);
-  const pageActive = useAppSelector(pageActiveStore);
-  const searchKeyword = useAppSelector(searchKeywordStore);
+  const siteList = useGlobalStore((state) => state.siteList);
+  const pageActive = useGlobalStore((state) => state.pageActive);
+  const searchKeyword = useGlobalStore((state) => state.searchKeyword);
   const searchKeywordRef = useRef("");
   const movieListRef = useRef([]);
   const [movieList, setMovieList] = useState([]);
-  const [searchList, setSearchList] = useState([]);
 
   useEffect(() => {
     if (
@@ -35,33 +31,6 @@ const Search = (props) => {
       searchMovie();
     }
   }, [pageActive, searchKeyword]);
-
-  const getSearchList = () => {
-    getAllSearchList().then((res) => {
-      res.unshift({ id: -1, keyword: "清除搜索记录" });
-      res = res.map((option) => {
-        return { value: option.keyword };
-      });
-      setSearchList(res);
-    });
-  };
-
-  const doSearch = (e) => {
-    if (e.key === "Enter" || e.keyCode === 13) {
-        addSearchRecord(keywords).then(() => {
-          getSearchList();
-        });
-      searchMovie();
-    }
-  };
-  
-  const onClearSearchRecord = () => {
-    clearSearchRecord().then(() => {
-      getSearchList();
-      searchKeywordRef.current = "";
-      return;
-    });
-  };
 
   const isValidSearchResult = (detailRes) => {
     return (
@@ -137,22 +106,7 @@ const Search = (props) => {
     >
       {osType.toLowerCase().includes("mobile") && (
         <div style={{ marginTop: "10px" }}>
-            <AutoComplete
-              style={{
-                width: 200,
-              }}
-              allowClear
-              clearText="清除"
-              options={searchList}
-              onChange={(value) => {
-                if (value === "清除搜索记录") {
-                  onClearSearchRecord();
-                  return;
-                }
-                searchKeywordRef.current = value;
-              }}
-              onInputKeyDown={doSearch}
-            />
+            <SearchAutoComplete />
         </div>
       )}
       <div className="panelBody">

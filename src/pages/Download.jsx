@@ -1,11 +1,4 @@
 import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { pageActiveStore, updatePlayInfo } from "@/store/coreSlice";
-import {
-  downloadListStore,
-  storeDownloadList,
-  updateDownloadProcess,
-} from "@/store/movieSlice";
 import {
   getAllDownloadList,
   getDownloadSavePath,
@@ -26,19 +19,18 @@ const LinearProgressWithLabel = (props) => (
 );
 
 const Download = (props) => {
-  const dispatch = useAppDispatch();
-  const pageActive = useAppSelector(pageActiveStore);
-  const downloadList = useAppSelector(downloadListStore);
+  const togglePlayInfo = useGlobalStore((state) => state.togglePlayInfo);
+  const downloadInfoList = useGlobalStore((state) => state.downloadInfoList);
+  const toggleDownloadInfoList = useGlobalStore((state) => state.toggleDownloadInfoList);
+  const updateDownloadInfoProcess = useGlobalStore((state) => state.updateDownloadInfoProcess);
 
   useEffect(() => {
-    if (pageActive === "download") {
-      init();
-    }
-  }, [pageActive]);
+    init();
+  }, []);
 
   const init = async () => {
     const res = await getAllDownloadList();
-    dispatch(storeDownloadList({ downloadList: res, forceRefresh: true }));
+    toggleDownloadInfoList(res);
   };
 
   const getPercentage = (rowData) => {
@@ -151,7 +143,7 @@ const Download = (props) => {
       download: { downloadId: downloadInfo.id },
       movie: { siteKey: "", ids: "", index: 0, videoFlag: "", onlineUrl: "" },
     };
-    dispatch(updatePlayInfo({ playInfo, toPlay: true }));
+    togglePlayInfo(playInfo, true);
   };
 
   const retryEvent = async (download) => {
@@ -171,7 +163,7 @@ const Download = (props) => {
       diInfo.download_status = di.download_status;
       diInfo.status = di.status;
       await updateDownloadById(diInfo);
-      dispatch(updateDownloadProcess(diInfo));
+      updateDownloadInfoProcess(diInfo);
     }
   };
 
@@ -186,7 +178,7 @@ const Download = (props) => {
         props.className ? `downloadPage ${props.className}` : "downloadPage"
       }
     >
-      <Table rowKey="id" columns={columns} dataSource={downloadList}></Table>
+      <Table rowKey="id" columns={columns} dataSource={downloadInfoList}></Table>
     </div>
   );
 };

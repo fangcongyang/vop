@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { pageActiveStore } from "@/store/coreSlice";
-import {
-  storeSiteList,
-  siteListStore,
-} from "@/store/movieSlice";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import { getSiteList, deleteSite, saveSite } from "@/db";
 import { Table, Space, Button, Tag } from "antd";
 import { invoke } from "@tauri-apps/api/core";
@@ -12,21 +7,14 @@ import SiteModal from "./components/SiteModal";
 import "./Site.scss";
 
 const Site = (props) => {
-  const dispatch = useAppDispatch();
-  const pageActive = useAppSelector(pageActiveStore);
-  const siteList = useAppSelector(siteListStore);
+  const siteList = useGlobalStore((state) => state.siteList);
+  const toggleSiteList = useGlobalStore((state) => state.toggleSiteList);
   const [openSiteModal, setOpenSiteModal] = useState(false);
   const [siteInfo, setSiteInfo] = useState({});
 
-  useEffect(() => {
-    if (pageActive === "site") {
-      init();
-    }
-  }, [pageActive]);
-
   const init = () => {
     getSiteList().then((res) => {
-      dispatch(storeSiteList({ siteList: res, forceRefresh: true }));
+      toggleSiteList(res);
     });
   };
 

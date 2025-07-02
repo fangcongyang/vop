@@ -1,20 +1,15 @@
 import { useEffect, useState } from "react";
-import { useAppSelector } from "@/store/hooks";
-import { pageActiveStore } from "@/store/coreSlice";
 import { getAllStar, deleteStar } from "@/db";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import "./Movie.scss";
 
 const Star = (props) => {
-    const pageActive = useAppSelector(pageActiveStore);
     const [starList,setStarList] = useState([]);
 
     useEffect(() => {
-        if (pageActive === "star") {
-            initStarList();
-        }
-    }, [pageActive])
+        initStarList();
+    }, [])
 
     const initStarList = async () => {
         const result = await getAllStar();
