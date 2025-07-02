@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { listen, emit } from '@tauri-apps/api/event';
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-    playerConfStore,
-    updateplayerConf,
-    resetPlayInfo,
-} from "@/store/coreSlice";
-import {
-    getDownloadById,
-    getSiteList,
-} from "@/db";
+import { listen, emit } from "@tauri-apps/api/event";
+import { getDownloadById } from "@/db";
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getMovieDetailCacheData } from "@/business/cache";
 import movieApi from "@/api/movies";
@@ -19,6 +10,7 @@ import { useGetState } from "@/hooks";
 import _ from "lodash";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { GlobalEvent } from "../../business/types";
+import { useGlobalStore } from "@/store/useGlobalStore";
 import "./index.scss";
 
 let player;
@@ -28,16 +20,13 @@ let playPage = {
     movieIndex: 0,
     currentHistory: null,
     playing: false,
-    stallIptvTimeout: null,
 };
 
 const SmallPlay = () => {
-    const dispatch = useAppDispatch();
     const [messageApi, contextHolder] = message.useMessage();
-    const playerConf = useAppSelector(playerConfStore);
-    const [siteList, setSiteList] = useState();
+    const siteList = useGlobalStore((state) => state.siteList);
     const eventUnlistenFn = useRef(null);
-    
+
     // 使用useRef来管理定时器ID，避免使用全局变量
     const historyTimerRef = useRef(null);
     // localFile 本地文件 local 本地在线 online iframe网页
@@ -58,26 +47,21 @@ const SmallPlay = () => {
         playType: "",
         playMovieUq: "",
         currentHistory: null,
-        movie: {
+        movieInfo: {
             index: 0,
             siteKey: "",
             ids: "",
             videoFlag: "",
         },
     });
-    
+
     // 创建moviesInfo响应对象
     const [moviesInfo, setMoviesInfo, getMoviesInfo] = useGetState({
         currentTime: 0,
         otherSiteMoviesSources: [],
         startPosition: { min: "00", sec: "00" },
         endPosition: { min: "00", sec: "00" },
-        isStar: false,
-        currentMoviesFullList: [],
-        moviesFullListIndex: 0,
-        exportablePlaylist: true
     });
-
 
     // 自动关闭播发器
     const closePlayer = () => {
@@ -97,14 +81,13 @@ const SmallPlay = () => {
             player = new MoviesPlayer(
                 playerType,
                 playerInfo,
-                {...playerConf, hotkey: false},
                 showPalyPrevAndNext
             );
             bindEvent();
         } else {
             player.dp.playPrevAndNext(showPalyPrevAndNext);
         }
-        playPage.movieIndex = playInfo.movie.index;
+        playPage.movieIndex = playInfo.movieInfo.index;
     };
 
     const getUrls = async () => {
@@ -130,31 +113,40 @@ const SmallPlay = () => {
         } else {
             let time = undefined;
             // 初始化片头片尾位置
-            setMoviesInfo(prev => ({
+            setMoviesInfo((prev) => ({
                 ...prev,
                 startPosition: { min: "00", sec: "00" },
-                endPosition: { min: "00", sec: "00" }
+                endPosition: { min: "00", sec: "00" },
             }));
-            
+
             // 从localStorage恢复片头片尾设置
             const timingKey = `timing_${playMovieUq}`;
             const savedTiming = localStorage.getItem(timingKey);
             if (savedTiming) {
                 try {
                     const timing = JSON.parse(savedTiming);
-                    setMoviesInfo(prev => ({
+                    setMoviesInfo((prev) => ({
                         ...prev,
-                        startPosition: timing.startPosition || { min: "00", sec: "00" },
-                        endPosition: timing.endPosition || { min: "00", sec: "00" }
+                        startPosition: timing.startPosition || {
+                            min: "00",
+                            sec: "00",
+                        },
+                        endPosition: timing.endPosition || {
+                            min: "00",
+                            sec: "00",
+                        },
                     }));
                 } catch (e) {
-                    console.warn('Failed to parse timing from localStorage:', e);
+                    console.warn(
+                        "Failed to parse timing from localStorage:",
+                        e
+                    );
                 }
             }
-            
+
             let currentHistory = playPage.currentHistory;
             if (currentHistory) {
-                if (currentHistory.index == playInfo.movie.index) {
+                if (currentHistory.index == playInfo.movieInfo.index) {
                     time = currentHistory.play_time;
                 }
 
@@ -162,26 +154,38 @@ const SmallPlay = () => {
                 if (currentHistory.start_position) {
                     // 数据库保存的时长通过快捷键设置时可能为小数, startPosition为object对应输入框分秒转化到数据库后肯定为整数
                     const startPos = currentHistory.start_position;
-                    setMoviesInfo(prev => ({
+                    setMoviesInfo((prev) => ({
                         ...prev,
                         startPosition: {
-                            min: String(Math.floor(startPos / 60)).padStart(2, '0'),
-                            sec: String(Math.floor(startPos % 60)).padStart(2, '0')
-                        }
+                            min: String(Math.floor(startPos / 60)).padStart(
+                                2,
+                                "0"
+                            ),
+                            sec: String(Math.floor(startPos % 60)).padStart(
+                                2,
+                                "0"
+                            ),
+                        },
                     }));
                 }
                 if (currentHistory.end_position) {
                     const endPos = currentHistory.end_position;
-                    setMoviesInfo(prev => ({
+                    setMoviesInfo((prev) => ({
                         ...prev,
                         endPosition: {
-                            min: String(Math.floor(endPos / 60)).padStart(2, '0'),
-                            sec: String(Math.floor(endPos % 60)).padStart(2, '0')
-                        }
+                            min: String(Math.floor(endPos / 60)).padStart(
+                                2,
+                                "0"
+                            ),
+                            sec: String(Math.floor(endPos % 60)).padStart(
+                                2,
+                                "0"
+                            ),
+                        },
                     }));
                 }
             }
-            const index = playInfo.movie.index || 0;
+            const index = playInfo.movieInfo.index || 0;
             playVideo(index, time);
         }
     };
@@ -191,84 +195,95 @@ const SmallPlay = () => {
     };
 
     const playMovieUq = useMemo(() => {
-        return playInfo.movie.siteKey + "@" + playInfo.movie.ids;
-    }, [playInfo.movie]);
+        return playInfo.movieInfo.siteKey + "@" + playInfo.movieInfo.ids;
+    }, [playInfo.movieInfo]);
 
     const playVideo = (index = 0, time = 0) => {
-        // moviesInfo.isStar = false;
-        let site = getSite(playInfo.movie.siteKey);
-        movieApi
-            .fetchPlaylist(site, playMovieUq, playInfo.movie.ids)
-            .then(async (fullList) => {
-                // moviesInfo.currentMoviesFullList = fullList;
-                let playlist = fullList[0].list; // ZY支持的已移到首位
-                // 如果设定了特定的video flag, 获取该flag下的视频列表
-                const videoFlag = playInfo.movie.videoFlag;
-                if (videoFlag) {
-                    fullList.forEach((x, _index) => {
-                        if (x.flag == videoFlag) {
-                            playlist = x.list;
-                            // moviesInfo.moviesFullListIndex = index;
-                        }
-                    });
-                }
-                playPage.movieIndex = index;
-                playPage.movieList = playlist;
-                const url = playlist[index].includes("$")
-                    ? playlist[index].split("$")[1]
-                    : playlist[index];
-                
-                if (!url.endsWith(".m3u8") && !url.endsWith(".mp4")) {
-                    // moviesInfo.exportablePlaylist = true;
-                    if (getIsVipMovies(url)) {
-                        messageApi.info("即将调用解析接口播放，请等待...");
-                        movieParseUrlInfo.value.vipPlay = true;
-                        playInfo.movie.onlineUrl =
-                            movieParseUrl.websiteParseUrl + url;
-                    } else {
-                        const newPlayInfo = _.cloneDeep(playInfo);
-                        newPlayInfo.movie.onlineUrl = url;
-                        newPlayInfo.playType = "iframePlay";
-                        setPlayInfo(newPlayInfo);
+        let site = getSite(playInfo.movieInfo.siteKey);
+        let historyInfo = playPage.currentHistory;
+        const doHandler = (fullList) => {
+            let playlist = fullList[0].list; // ZY支持的已移到首位
+            // 如果设定了特定的video flag, 获取该flag下的视频列表
+            const videoFlag = playInfo.movieInfo.videoFlag;
+            if (videoFlag) {
+                fullList.forEach((x, _index) => {
+                    if (x.flag == videoFlag) {
+                        playlist = x.list;
                     }
-                    player.destroy();
-                    videoPlaying("online");
-                    return;
+                });
+            }
+
+            playPage.movieIndex = index;
+            playPage.movieList = playlist;
+            const url = playlist[index].includes("$")
+                ? playlist[index].split("$")[1]
+                : playlist[index];
+
+            if (!url.endsWith(".m3u8") && !url.endsWith(".mp4")) {
+                if (getIsVipMovies(url)) {
+                    messageApi.info("即将调用解析接口播放，请等待...");
+                    movieParseUrlInfo.value.vipPlay = true;
+                    playInfo.movieInfo.onlineUrl =
+                        movieParseUrl.websiteParseUrl + url;
                 } else {
-                    getPlayer(url, false);
-                    player.dp.switchVideo({
-                        url: url,
-                        type: player.dpConfig.video.type,
-                    });
-                    // bindOnceEvent();
-                    // 计算片头跳过时间
-                    const skipStartTime = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
-                    // 使用最大的开始时间（缓存时间或片头跳过时间）
-                    const finalStartTime = Math.max(time || 0, skipStartTime);
-                    if (finalStartTime > 0) {
-                        player.dp.seek(finalStartTime);
-                    }
+                    const newPlayInfo = _.cloneDeep(playInfo);
+                    newPlayInfo.movieInfo.onlineUrl = url;
+                    newPlayInfo.playType = "iframePlay";
+                    togglePlayInfo(newPlayInfo);
                 }
-                videoPlaying();
-                playerInfo.skipendStatus = false;
-            })
-            .catch((err) => {
-                console.log(err);
-                messageApi.error("播放地址可能已失效，请换源并调整收藏");
-            });
+                player.destroy();
+                videoPlaying("online");
+                return;
+            } else {
+                getPlayer(url, false);
+                player.dp.switchVideo({
+                    url: url,
+                    type: player.dpConfig.video.type,
+                });
+                // bindOnceEvent();
+                // 计算片头跳过时间
+                const skipStartTime =
+                    parseInt(moviesInfo.startPosition.min) * 60 +
+                    parseInt(moviesInfo.startPosition.sec);
+                // 使用最大的开始时间（缓存时间或片头跳过时间）
+                const finalStartTime = Math.max(time || 0, skipStartTime);
+                if (finalStartTime > 0) {
+                    player.dp.seek(finalStartTime);
+                }
+            }
+            videoPlaying();
+            playerInfo.skipendStatus = false;
+        };
+        if (historyInfo.detail && historyInfo.detail.fullList) {
+            const fullList = historyInfo.detail.fullList;
+            doHandler(fullList);
+        } else {
+            movieApi
+                .fetchPlaylist(site, playMovieUq, playInfo.movieInfo.ids)
+                .then(async (fullList) => {
+                    doHandler(fullList);
+                })
+                .catch((err) => {
+                    console.log(err);
+                    messageApi.error("播放地址可能已失效，请换源并调整收藏");
+                });
+        }
     };
 
     const videoPlaying = async (isOnline) => {
-        
         // 计算片头片尾位置（秒）
-        const startPosition = parseInt(moviesInfo.startPosition.min) * 60 + parseInt(moviesInfo.startPosition.sec);
-        const endPosition = parseInt(moviesInfo.endPosition.min) * 60 + parseInt(moviesInfo.endPosition.sec);
-        
+        const startPosition =
+            parseInt(moviesInfo.startPosition.min) * 60 +
+            parseInt(moviesInfo.startPosition.sec);
+        const endPosition =
+            parseInt(moviesInfo.endPosition.min) * 60 +
+            parseInt(moviesInfo.endPosition.sec);
+
         if (isOnline) {
             const updateData = {
                 id: playPage.currentHistory.id,
                 index: playPage.movieIndex,
-                onlinePlay: playInfo.movie.onlineUrl,
+                onlinePlay: playInfo.movieInfo.onlineUrl,
                 startPosition: startPosition,
                 endPosition: endPosition,
             };
@@ -285,7 +300,7 @@ const SmallPlay = () => {
             clearInterval(historyTimerRef.current);
             historyTimerRef.current = null;
         }
-        
+
         // 使用React的方式创建定时器
         const localUpdateHistory = async () => {
             if (!playPage.playing) {
@@ -295,9 +310,13 @@ const SmallPlay = () => {
             const mi = getMoviesInfo();
             if (historyInfo) {
                 // 计算片头片尾位置（秒）
-                const startPosition = parseInt(mi.startPosition.min) * 60 + parseInt(mi.startPosition.sec);
-                const endPosition = parseInt(mi.endPosition.min) * 60 + parseInt(mi.endPosition.sec);
-                
+                const startPosition =
+                    parseInt(mi.startPosition.min) * 60 +
+                    parseInt(mi.startPosition.sec);
+                const endPosition =
+                    parseInt(mi.endPosition.min) * 60 +
+                    parseInt(mi.endPosition.sec);
+
                 const updateData = {
                     id: playPage.currentHistory.id,
                     index: playPage.movieIndex,
@@ -309,10 +328,10 @@ const SmallPlay = () => {
                 await updateHistory(updateData);
             }
         };
-        
+
         // 立即执行一次更新
         localUpdateHistory();
-        
+
         // 创建定时器并保存引用到useRef中
         historyTimerRef.current = setInterval(localUpdateHistory, 10000);
     };
@@ -339,17 +358,17 @@ const SmallPlay = () => {
                     playPage.movieIndex -= 1;
                     emit(GlobalEvent.PlayChangeEvent, {
                         index: playPage.movieIndex,
-                        playState: "newPlay"
+                        playState: "newPlay",
                     });
                 } else {
                     messageApi.warning("这已经是第一集了。");
                 }
             } else if (playPage.movieIndex < playPage.movieList.length - 1) {
                 playPage.movieIndex += 1;
-                    emit(GlobalEvent.PlayChangeEvent, {
-                        index: playPage.movieIndex,
-                        playState: "newPlay"
-                    });
+                emit(GlobalEvent.PlayChangeEvent, {
+                    index: playPage.movieIndex,
+                    playState: "newPlay",
+                });
             } else {
                 messageApi.warning("这已经是最后一集了。");
             }
@@ -360,48 +379,14 @@ const SmallPlay = () => {
     const bindEvent = () => {
         let dp = player.dp;
         let dpConfig = player.dpConfig;
-        let stallCount = 0;
-        dp.on("waiting", () => {
-            if (
-                dpConfig.isLive &&
-                playerConf.value.autoChangeSourceWhenIptvStalling
-            ) {
-                playPage.stallIptvTimeout = setTimeout(() => {
-                    stallCount++;
-                    if (stallCount >= 4) {
-                        stallCount = 0;
-                        prevNextEvent();
-                    }
-                }, 5 * 1000);
-            }
-        });
         dp.on("canplay", () => {
             playPage.playing = true;
-            stallCount = 0;
-            clearTimeout(playPage.stallIptvTimeout);
             if (dp.video.paused) {
                 dp.play();
             }
         });
-        dp.on("destroy", () => {
-            stallCount = 0;
-            clearTimeout(playPage.stallIptvTimeout);
-        });
-
-        dp.on(
-            "volumechange",
-            _.debounce(async () => {
-                dispatch(
-                    updateplayerConf({
-                        key: "volume",
-                        value: player.dp.video.volume,
-                    })
-                );
-            }, 500)
-        );
-
         dp.on("timeupdate", () => {
-            if (dpConfig.isLive || !playInfo.movie.siteKey) return;
+            if (dpConfig.isLive || !playInfo.movieInfo.siteKey) return;
 
             const detail = playPage.cachedDetail || {};
             if (detail && detail.endPosition) {
@@ -419,10 +404,6 @@ const SmallPlay = () => {
             }
         });
 
-        dp.on("play", async () => {
-            clearTimeout(playPage.stallIptvTimeout);
-        });
-
         dp.on(
             "ended",
             _.debounce(() => {
@@ -433,7 +414,7 @@ const SmallPlay = () => {
                     playPage.movieIndex += 1;
                     emit(GlobalEvent.PlayChangeEvent, {
                         index: playPage.movieIndex,
-                        playState: "newPlay"
+                        playState: "newPlay",
                     });
                 }
             }, 1000)
@@ -457,29 +438,27 @@ const SmallPlay = () => {
                 clearInterval(historyTimerRef.current);
                 historyTimerRef.current = null;
             }
-            if (playPage.stallIptvTimeout) {
-                clearTimeout(playPage.stallIptvTimeout);
-            }
         };
     }, []);
 
     useEffect(() => {
-        getSiteList().then((res) => {
-            setSiteList(res);
-        });
         const initUnlisten = async () => {
-            const unlisten = await listen(GlobalEvent.SmallPlayEvent, ({payload}) => {
-                setPlayMode(payload.playMode);
-                setPlayInfo(payload);
-            });
+            const unlisten = await listen(
+                GlobalEvent.SmallPlayEvent,
+                ({ payload }) => {
+                    console.log(123, payload)
+                    setPlayMode(payload.playMode);
+                    setPlayInfo(payload);
+                }
+            );
             eventUnlistenFn.current = unlisten;
-        }
+        };
         initUnlisten();
         return () => {
             if (eventUnlistenFn.current) {
                 eventUnlistenFn.current();
             }
-        }
+        };
     }, []);
 
     useEffect(() => {
@@ -488,19 +467,19 @@ const SmallPlay = () => {
                 setPlayMode("local");
                 try {
                     let detail = await getMovieDetailCacheData(
-                        getSite(playInfo.movie.siteKey),
-                        playInfo.movie.ids,
+                        getSite(playInfo.movieInfo.siteKey),
+                        playInfo.movieInfo.ids
                     );
                     // 缓存详情数据供后续使用
                     playPage.cachedDetail = detail;
                     let currentHistory = await getCurrentHistoryOrSave(
                         playInfo,
-                        detail,
+                        detail
                     );
                     playPage.currentHistory = currentHistory;
                     getUrls();
-                } catch (err) {
-                    console.error('获取视频资源失败:', err);
+                } catch {
+                    messageApi.error("获取视频资源失败");
                     closePlayerAndInit();
                 }
             } else if (playInfo.playType == "iframePlay") {
@@ -509,17 +488,15 @@ const SmallPlay = () => {
                 setPlayMode("local");
                 getUrls();
             }
-        }
+        };
         initPlay();
     }, [playInfo.playStateTime]);
 
     const onlinePlayKey = useMemo(() => {
-        return playInfo.movie.onlineUrl ? new Date().getTime() : 0;
-    }, [playInfo.movie.onlineUrl]);
+        return playInfo.movieInfo.onlineUrl ? new Date().getTime() : 0;
+    }, [playInfo.movieInfo.onlineUrl]);
 
     const closePlayerAndInit = () => {
-        selectAllHistory(true);
-        dispatch(resetPlayInfo());
         setPlayMode("local");
         playPage.isFirstPlay = true;
         playPage.movieList = [];
@@ -534,9 +511,7 @@ const SmallPlay = () => {
             <div className="box">
                 <div
                     className={
-                        playMode === "local" 
-                            ? "player" 
-                            : "player hidden"
+                        playMode === "local" ? "player" : "player hidden"
                     }
                 >
                     <div id="dpplayer"></div>
@@ -544,8 +519,8 @@ const SmallPlay = () => {
                 <div
                     className={
                         playMode === "iframePlay"
-                            ? shortVideoMode 
-                                ? "iframePlayer short-video-mode" 
+                            ? shortVideoMode
+                                ? "iframePlayer short-video-mode"
                                 : "iframePlayer"
                             : "iframePlayer hidden"
                     }
@@ -553,10 +528,10 @@ const SmallPlay = () => {
                     <iframe
                         id="iframePlayer"
                         key={onlinePlayKey}
-                        src={playInfo.movie.onlineUrl}
+                        src={playInfo.movieInfo.onlineUrl}
                         width="100%"
                         height="100%"
-                        style={{border: 'none'}}
+                        style={{ border: "none" }}
                         allow="autoplay;fullscreen"
                     ></iframe>
                 </div>

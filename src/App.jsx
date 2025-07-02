@@ -28,7 +28,6 @@ function App() {
     // 初始化主题设置
     const initTheme = async () => {
       const localDarkMode = darkMode || false;
-      console.log(localDarkMode);
       const themeColor = (await store.get("themeColor")) || "#335eea";
       applyTheme(localDarkMode, themeColor);
     };

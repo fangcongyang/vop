@@ -1,10 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { updateDownloadProcess } from "@/store/movieSlice";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { exit } from "@tauri-apps/plugin-process";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { pageActiveStore } from "@/store/coreSlice";
 import { useConfig } from "@/hooks";
 import { useGlobalStore } from "@/store/useGlobalStore";
 import WinTool from "@/components/WinTool";
@@ -22,13 +19,14 @@ import "./index.scss";
 import Search from "@/pages/Search";
 import Site from "@/pages/Site";
 import Detail from "@/pages/Detail";
+import { useMovieStore } from "@/store/useMovieStore";
 
 const downloadWebsocketNum = 2;
 let downloadBusArr = [];
 
 function Main() {
-  const dispatch = useAppDispatch();
-  const pageActive = useAppSelector(pageActiveStore);
+  const pageActive = useGlobalStore((state) => state.pageActive);
+  const updateDownloadInfoProcess = useMovieStore((state) => state.updateDownloadInfoProcess);
   const osType = useGlobalStore((state) => state.osType);
   const main = useRef(null);
   const exitUnlistenFn = useRef(null);
@@ -38,7 +36,7 @@ function Main() {
     for (var i = 0; i < downloadWebsocketNum; i++) {
       const downloadBus = new DownloadBus();
       downloadBus.updateDownloadInfoEvent = (download) => {
-        dispatch(updateDownloadProcess(download));
+        updateDownloadInfoProcess(download);
       };
       downloadBusArr.push(downloadBus);
     }
