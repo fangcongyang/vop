@@ -3,19 +3,19 @@ import createRequest from "./base";
 const getCurrentHistoryOrSaveRequest = createRequest<any, any>("get_current_history_or_save");
 
 export const getCurrentHistoryOrSave = (playInfo: any, detail: any) =>{
-    const videoFlag = playInfo.movie.videoFlag || "";
+    const videoFlag = playInfo.movieInfo.videoFlag || "";
     const isOnline = playInfo.playType === "iptv";
     const history: any = {
         history_name: playInfo.name,
-        site_key: playInfo.movie.siteKey,
-        ids: playInfo.movie.ids.toString(),
-        index: playInfo.movie.index,
+        site_key: playInfo.movieInfo.siteKey,
+        ids: playInfo.movieInfo.ids.toString(),
+        index: playInfo.movieInfo.index,
         play_time: 0,
         duration: 0,
         start_position: 0,
         end_position: 0,
         detail: detail ? JSON.stringify(detail) : void 0,
-        online_play: isOnline ? playInfo.movie.onlineUrl : "",
+        online_play: isOnline ? playInfo.movieInfo.onlineUrl : "",
         video_flag: videoFlag,
         has_update: "0",
     };

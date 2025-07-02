@@ -1,11 +1,11 @@
 use crate::orm::history::service::get_history_by_site_key_and_ids;
-use crate::orm::history::types::{History, HistoryUpdate};
+use crate::orm::history::types::{History, HistoryUpdate, HistoryVo};
 use crate::orm::{get_database_pool, history::types::HistorySave};
 use crate::schema::history::dsl as history_dsl;
-use diesel::RunQueryDsl;
+use diesel::{QueryDsl, RunQueryDsl};
 use diesel::ExpressionMethods;
 use diesel::insert_into;
-use crate::utils;
+use crate::utils::{self, parse_json};
 
 #[tauri::command]
 pub fn get_current_history_or_save(
@@ -16,10 +16,10 @@ pub fn get_current_history_or_save(
     }
     let mut db = get_database_pool()
         .map_err(|e| format!("获取数据库连接失败: {}", e))?;
-    
+
     let now = utils::get_current_time_str();
     let id_local = utils::uuid();
-    
+
     // 使用 ON CONFLICT 进行 UPSERT 操作
     let history = insert_into(history_dsl::history)
         .values((
@@ -43,7 +43,7 @@ pub fn get_current_history_or_save(
         .do_nothing()
         .get_result::<History>(&mut db)
         .map_err(|e| format!("保存历史记录失败: {}", e))?;
-    
+
     Ok(history)
 }
 
@@ -60,14 +60,36 @@ pub fn get_current_history(
 
 #[tauri::command]
 pub fn select_all_history(
-) -> Result<Vec<History>, String> {
+) -> Result<Vec<HistoryVo>, String> {
+
     let mut db = get_database_pool()
         .map_err(|e| format!("获取数据库连接失败: {}", e))?;
-    
+
     let history = history_dsl::history
+        .order_by(history_dsl::update_time.desc())
         .load::<History>(&mut db)
         .map_err(|e| format!("查询历史记录失败: {}", e))?;
-    Ok(history)
+    let mut history_vo = vec![];
+    for h in history {
+        history_vo.push(HistoryVo {
+            id: h.id,
+            history_name: h.history_name,
+            ids: h.ids,
+            index: h.index,
+            start_position: h.start_position,
+            end_position: h.end_position,
+            play_time: h.play_time,
+            site_key: h.site_key,
+            online_play: h.online_play,
+            detail: parse_json::<serde_json::Value>(Some(h.detail)),
+            video_flag: h.video_flag,
+            duration: h.duration,
+            has_update: h.has_update,
+            create_time: h.create_time,
+            update_time: h.update_time,
+        });
+    }
+    Ok(history_vo)
 }
 
 #[tauri::command]
@@ -76,7 +98,7 @@ pub fn update_history(
 ) -> Result<usize, String> {
     let mut db = get_database_pool()
         .map_err(|e| format!("获取数据库连接失败: {}", e))?;
-    
+
     let now = utils::get_current_time_str();
     let rows_affected = diesel::update(history_dsl::history)
         .filter(history_dsl::id.eq(&data.id))
@@ -101,7 +123,7 @@ pub fn delete_history(
 ) -> Result<usize, String> {
     let mut db = get_database_pool()
         .map_err(|e| format!("获取数据库连接失败: {}", e))?;
-    
+
     let rows_affected = diesel::delete(history_dsl::history)
         .filter(history_dsl::id.eq(id))
         .execute(&mut db)

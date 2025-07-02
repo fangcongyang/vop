@@ -228,7 +228,7 @@ async fn download_slice(
     download_info_context: &mut DownloadInfoContext,
     socket: &mut WebSocket<TcpStream>,
 ) -> anyhow::Result<DownloadInfoResponse, Box<dyn std::error::Error>> {
-    let download_count = AtomicI32::new(download_info_context.download_count);
+    let download_count = Arc::new(AtomicI32::new(download_info_context.download_count));
     let v = std::fs::read_to_string(&download_info_context.json_path)?;
     let mut download_source_info = serde_json::from_str::<DownloadSourceInfo>(&v)?;
     let queue = &read_data_to_queue(
@@ -240,6 +240,24 @@ async fn download_slice(
         mpsc::Sender<DownloadInfoDetail>,
         mpsc::Receiver<DownloadInfoDetail>,
     ) = mpsc::channel(100);
+
+    // 创建进度发送 channel
+    let (progress_tx, mut progress_rx): (
+        mpsc::Sender<i32>,
+        mpsc::Receiver<i32>,
+    ) = mpsc::channel(10);
+
+    // 创建进度发送定时器
+    let download_count_clone = download_count.clone();
+    let progress_tx_clone = progress_tx.clone();
+    let progress_task = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
+        loop {
+            interval.tick().await;
+            let current_count = download_count_clone.load(Ordering::Relaxed);
+            let _ = progress_tx_clone.send(current_count).await;
+        }
+    });
 
     loop {
         let queue_data = queue.pop();
@@ -305,30 +323,48 @@ async fn download_slice(
         .open(&download_info_context.json_success_path)
         .await?;
 
-    while let Some(mut res) = rx.recv().await {
-        if res.success {
-            let file_name = res.file_name.clone();
-            let rs = downloaded_file_save(res.clone()).await;
-            if rs.is_ok() {
-                let download_count1 = download_count.fetch_add(1, Ordering::Relaxed);
-
-                let _ = &json_success_file
-                    .write((file_name + "\r\n").as_bytes())
-                    .await?;
-
-                socket.send(tungstenite::Message::text(serde_json::to_string(&json!({
-                    "id": download_info_context.id,
-                    "download_count": download_count1,
-                    "mes_type": "progress",
-                }))?))?
-            } else {
-                res.data = None;
-                download_source_info.download_info_list.push(res);
+    // 使用 tokio::select! 来同时处理文件下载和进度发送
+    loop {
+        tokio::select! {
+            // 处理文件下载结果
+            res = rx.recv() => {
+                match res {
+                    Some(mut res) => {
+                        if res.success {
+                            let file_name = res.file_name.clone();
+                            let rs = downloaded_file_save(res.clone()).await;
+                            if rs.is_ok() {
+                                let _ = download_count.fetch_add(1, Ordering::Relaxed);
+                                let _ = &json_success_file
+                                    .write((file_name + "\r\n").as_bytes())
+                                    .await?;
+                            } else {
+                                res.data = None;
+                                download_source_info.download_info_list.push(res);
+                            }
+                        } else {
+                            download_source_info.download_info_list.push(res);
+                        }
+                    }
+                    _none => break, // 所有文件下载完成
+                }
             }
-        } else {
-            download_source_info.download_info_list.push(res);
+            // 处理定时进度发送
+            progress_count = progress_rx.recv() => {
+                if let Some(count) = progress_count {
+                    let _ = socket.send(tungstenite::Message::text(serde_json::to_string(&json!({
+                        "id": download_info_context.id,
+                        "download_count": count,
+                        "mes_type": "progress",
+                    }))?));
+                }
+            }
         }
     }
+
+    // 停止进度发送任务
+    progress_task.abort();
+    drop(progress_tx);
 
     let v = serde_json::to_string_pretty(&download_source_info)?;
     let mut json_file = OpenOptions::new()

@@ -19,12 +19,10 @@ export class MoviesPlayer {
     };
     dp;
 
-    constructor(playerType, playerInfo, playerConf, showPalyPrevAndNext) {
+    constructor(playerType, playerInfo, showPalyPrevAndNext) {
         this.dpConfig.container = document.getElementById("dpplayer");
         this.playerType = playerType;
-        this.dpConfig.volume = playerConf.volume;
         this.dpConfig.isLive = playerInfo.isLive;
-        this.dpConfig.hotkey = playerConf.hotkey;
         this.dpConfig.showPalyPrevAndNext = showPalyPrevAndNext;
         this.setPlayerType(playerType);
         this.dp = new DPlayer(this.dpConfig);

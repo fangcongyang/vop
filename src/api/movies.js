@@ -26,11 +26,20 @@ export default {
 
     detail(site, id) {
         const cacheKey = site.site_key + "@" + id;
-        const videoInfo = getCacheData(cacheKey);
-        if (videoInfo?.fullList?.length) {
-            return Promise.resolve(videoInfo);
-        }
-        return siteService.detail(site, id);
+        return new Promise((resolve, reject) => {
+            getCacheData(cacheKey).then(videoInfo => {
+                if (videoInfo?.fullList?.length) {
+                    resolve(videoInfo);
+                } else {
+                    siteService.detail(site, id).then(res => {
+                        cacheData(cacheKey, res);
+                        resolve(res);
+                    })
+                    .catch(err => reject(err));
+                }
+            })
+            .catch(err => reject(err));
+        })
     },
 
     search(site, wd) {

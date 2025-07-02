@@ -24,9 +24,9 @@ export default {
         var regex = /^[\],:{}\s]*$/;
         return regex.test(
             str
-                .replace(/\\["\\\/bfnrtu]/g, "@")
+                .replace(/\\["\\/bfnrtu]/g, "@")
                 .replace(
-                    /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,
+                    /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?/g,
                     "]"
                 )
                 .replace(/(?:^|:|,)(?:\s*\[)+/g, "")
@@ -49,7 +49,7 @@ export default {
         return { cancelableRequest, cancel };
     },
 
-    
+
     /**
      * 检测是否为移动设备（Web环境）
      * @returns {boolean}
@@ -58,11 +58,11 @@ export default {
         const portraitMobile = window.matchMedia(
             "screen and (max-width: 760px) and (orientation: portrait)"
         ).matches;
-        
+
         const landscapeMobile = window.matchMedia(
             "screen and (max-width: 1000px) and (orientation: landscape)"
         ).matches;
-        
+
         return portraitMobile || landscapeMobile;
     },
 };

@@ -7,15 +7,16 @@ export let cacheData = (key, value) => {
     if (!value) return;
     try {
         type();
-        cacheData = (params) => invoke("cache_data", params);
+        cacheData = (key, value) => invoke("cache_data", { key, value });
     } catch {
-        cacheData = (params) => {
+        cacheData = (key, value) => {
+            const params = { key, value };
             params.apiUrl = "/api/cache/cacheData";
             params.value = JSON.stringify(value);
-            fetch.post("", params)
+            return fetch.post("", params)
         }
     }
-    cacheData({ key, value })
+    cacheData(key, value);
 };
 
 export let getCacheData = (key) => {

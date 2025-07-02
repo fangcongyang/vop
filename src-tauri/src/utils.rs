@@ -139,6 +139,13 @@ pub fn uuid() -> String {
     id.to_string().replace("-", "")
 }
 
+pub fn parse_json<T: for<'a> serde::Deserialize<'a>>(json_str: Option<String>) -> Option<T> {
+    match json_str {
+        Some(json) => serde_json::from_str::<T>(&json).ok(),
+        _none => None,
+    }
+}
+
 pub mod cmd {
     use super::*;
     use log::error;
@@ -228,8 +235,8 @@ pub mod cmd {
                     ))
                 }
             }
-            
-            #[cfg(not(target_os = "windows"))]  
+
+            #[cfg(not(target_os = "windows"))]
             {
                 let output = Command::new("ping")
                     .args(["-c", "3", "-W", "3", &host_str])

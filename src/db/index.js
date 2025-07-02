@@ -86,8 +86,19 @@ export async function getSiteByKey(site_key) {
 }
 
 export async function getSiteClassList(site_key) {
-    // db.siteClassList.clear();
-    return db.siteClassList.where("site_key").equals(site_key).toArray();
+    let classList = await db.siteClassList.where("site_key").equals(site_key).toArray();
+    if (classList.length === 0) {
+        const site = await getSiteByKey(site_key);
+        try {
+            const res = await movieApi.getSiteClass(site);
+            const allClass = [{ class_id: -1, class_name: "最新" }, ...res.classList];
+            classList = await cacheSiteClassList(site.site_key, allClass);
+        } catch {
+            classList = [];
+        }
+    }
+    return classList;
+
 }
 
 export async function saveSite(site) {
