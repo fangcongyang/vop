@@ -8,8 +8,16 @@ use std::{
     thread,
 };
 
-use log::error;
+use log::{error, info};
 use tungstenite::{accept, handshake::HandshakeRole, Error, HandshakeError, Message, Result};
+
+#[cfg(windows)]
+use std::sync::Once;
+#[cfg(windows)]
+use winapi::shared::minwindef::MAKEWORD;
+
+#[cfg(windows)]
+static WINSOCK_INIT: Once = Once::new();
 
 use crate::download::m3u8_download::M3u8Download;
 
@@ -41,19 +49,51 @@ pub struct DownloadRequest {
 }
 
 pub async fn init() {
-    if let Ok(server) = TcpListener::bind("127.0.0.1:8000") {
-        for stream in server.incoming() {
-            thread::spawn(move || match stream {
-                Ok(stream) => {
-                    if let Err(err) = handle_client(stream) {
-                        match err {
-                            Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8(_) => (),
-                            e => error!("WebSocket handler business error: {}", e),
+    // 在Windows上初始化Winsock
+    #[cfg(windows)]
+    WINSOCK_INIT.call_once(|| {
+        unsafe {
+            let mut wsa_data: winapi::um::winsock2::WSADATA = std::mem::zeroed();
+            let result = winapi::um::winsock2::WSAStartup(
+                MAKEWORD(2, 2),
+                &mut wsa_data,
+            );
+            if result != 0 {
+                error!("WSAStartup failed with error: {}", result);
+                return;
+            } else {
+                info!("Winsock initialized successfully");
+            }
+        }
+    });
+
+    // 添加小延迟确保网络栈完全初始化
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    match TcpListener::bind("127.0.0.1:8000") {
+        Ok(server) => {
+            info!("WebSocket server started on 127.0.0.1:8000");
+            for stream in server.incoming() {
+                thread::spawn(move || match stream {
+                    Ok(stream) => {
+                        if let Err(err) = handle_client(stream) {
+                            match err {
+                                Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8(_) => (),
+                                e => error!("WebSocket handler business error: {}", e),
+                            }
                         }
                     }
-                }
-                Err(e) => error!("Error accepting stream: {}", e),
-            });
+                    Err(e) => error!("Error accepting stream: {}", e),
+                });
+            }
+        }
+        Err(e) => {
+            error!("Failed to bind WebSocket server to 127.0.0.1:8000: {}", e);
+            #[cfg(windows)]
+            {
+                error!("This might be due to Windows network stack initialization issues.");
+                error!("Please ensure no other application is using port 8000.");
+            }
         }
     }
 }

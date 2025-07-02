@@ -69,7 +69,14 @@ pub fn run() {
                     create_window_result.err().unwrap()
                 );
             }
-            tauri::async_runtime::spawn(file_download::init());
+            
+            // 延迟启动WebSocket服务器，确保应用程序完全初始化
+            tauri::async_runtime::spawn(async {
+                // 等待应用程序完全启动
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                info!("Starting WebSocket download server...");
+                file_download::init().await;
+            });
 
             Ok(())
         })
