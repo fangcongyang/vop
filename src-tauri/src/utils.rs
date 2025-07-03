@@ -3,13 +3,14 @@ use std::{
     fs::{self, read_to_string, File},
     path::{Path, PathBuf},
 };
+use log::error;
 
-use chrono::Local;
-use uuid::Uuid;
 use anyhow::Result;
+use chrono::Local;
 use rand::Rng;
 use tauri_plugin_http::reqwest::{self, ClientBuilder};
 use tokio;
+use uuid::Uuid;
 
 use crate::conf::get_string;
 
@@ -146,9 +147,26 @@ pub fn parse_json<T: for<'a> serde::Deserialize<'a>>(json_str: Option<String>) -
     }
 }
 
+pub fn del_movie_path(path_str: String) {
+    let mut path = PathBuf::new();
+    path.push(&path_str);
+    if exists(&path) {
+        fs::remove_dir_all(path.clone()).unwrap_or_else(|err| {
+            error!("删除失败: {}", err);
+        });
+    }
+
+    // 如果父文件夹存在且为空则删除
+    path.pop();
+    if exists(&path) && is_empty_safe(&path) {
+        fs::remove_dir_all(path).unwrap_or_else(|err| {
+            error!("删除父目录失败: {}", err);
+        });
+    }
+}
+
 pub mod cmd {
     use super::*;
-    use log::error;
     use serde::{Deserialize, Serialize};
     use std::process::Command;
     use tauri::command;
@@ -182,25 +200,6 @@ pub mod cmd {
         });
 
         sites
-    }
-
-    #[command]
-    pub fn del_movie_path(path_str: String) {
-        let mut path = PathBuf::new();
-        path.push(&path_str);
-        if exists(&path) {
-            fs::remove_dir_all(path.clone()).unwrap_or_else(|err| {
-                error!("删除失败: {}", err);
-            });
-        }
-
-        // 如果父文件夹存在且为空则删除
-        path.pop();
-        if exists(&path) && is_empty_safe(&path) {
-            fs::remove_dir_all(path).unwrap_or_else(|err| {
-                error!("删除父目录失败: {}", err);
-            });
-        }
     }
 
     #[command]

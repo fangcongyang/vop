@@ -69,7 +69,7 @@ pub fn run() {
                     create_window_result.err().unwrap()
                 );
             }
-            
+
             // 延迟启动WebSocket服务器，确保应用程序完全初始化
             tauri::async_runtime::spawn(async {
                 // 等待应用程序完全启动
@@ -82,7 +82,6 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             utils::cmd::get_init_site_data,
-            utils::cmd::del_movie_path,
             utils::cmd::calculate_ping_latency,
             cache::cmd::cache_data,
             cache::cmd::get_cache_data,
@@ -98,6 +97,10 @@ pub fn run() {
             orm::history::cmds::select_all_history,
             orm::history::cmds::update_history,
             orm::history::cmds::delete_history,
+            orm::download_info::cmds::select_all_download_info,
+            orm::download_info::cmds::get_download_info_by_id,
+            orm::download_info::cmds::save_download_info,
+            orm::download_info::cmds::delete_download_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -147,7 +150,7 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
 
 fn init_database(app: &AppHandle) -> anyhow::Result<()> {
     use diesel::RunQueryDsl;
-    
+
     let conn_url = orm::get_database_path(app)?;
     info!("Database Path: {:?}", conn_url);
     let mut conn = SqliteConnection::establish(&conn_url.clone()).expect("failed to connect to db");
@@ -159,11 +162,11 @@ fn init_database(app: &AppHandle) -> anyhow::Result<()> {
     diesel::sql_query("PRAGMA journal_mode = WAL;")
         .execute(&mut conn)
         .expect("Failed to set WAL mode");
-    
+
     diesel::sql_query("PRAGMA synchronous = NORMAL;")
         .execute(&mut conn)
         .expect("Failed to set synchronous mode");
-    
+
     diesel::sql_query("PRAGMA cache_size = 10000;")
         .execute(&mut conn)
         .expect("Failed to set cache size");

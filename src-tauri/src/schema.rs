@@ -1,13 +1,15 @@
 diesel::table! {
     download_info (id) {
-        id -> Nullable<Integer>,
+        id -> Text,
         movie_name -> Text,
         url -> Text,
         sub_title_name -> Text,
         status -> Text,
         download_count -> Integer,
         count -> Integer,
-        download_status -> Text
+        download_status -> Text,
+        create_time -> Text,
+        update_time -> Nullable<Text>,
     }
 }
 

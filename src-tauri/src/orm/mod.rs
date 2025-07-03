@@ -7,6 +7,7 @@ use tokio::sync::OnceCell;
 use diesel::RunQueryDsl;
 
 pub mod history;
+pub mod download_info;
 
 static DB_POOL: OnceCell<Arc<Pool<ConnectionManager<SqliteConnection>>>> = OnceCell::const_new();
 
