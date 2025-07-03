@@ -22,8 +22,8 @@ static WINSOCK_INIT: Once = Once::new();
 use crate::download::m3u8_download::M3u8Download;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct DownloadInfo {
-    pub id: i32,
+pub struct DownloadTaskInfo {
+    pub id: String,
     pub movie_name: String,
     pub url: String,
     pub sub_title_name: String,
@@ -37,7 +37,7 @@ pub struct DownloadInfo {
 }
 
 lazy_static! {
-    pub static ref DOWNLOAD_QUEUE: Mutex<SegQueue<DownloadInfo>> = Mutex::new(SegQueue::new());
+    pub static ref DOWNLOAD_QUEUE: Mutex<SegQueue<DownloadTaskInfo>> = Mutex::new(SegQueue::new());
 }
 
 #[allow(non_snake_case)]
@@ -45,7 +45,7 @@ lazy_static! {
 pub struct DownloadRequest {
     pub id: String,
     pub messageType: String,
-    pub downloadInfo: Option<DownloadInfo>,
+    pub downloadTaskInfo: Option<DownloadTaskInfo>,
 }
 
 pub async fn init() {
@@ -120,14 +120,14 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                         socket.send(tungstenite::Message::text(
                             serde_json::to_string(&json!({
                                 "id": request.id.clone(),
-                                "downloadInfo": download_info,
+                                "downloadTaskInfo": download_info,
                                 "messageType": "get_download_info_by_queue"
                             }))
                             .expect("Failed to serialize json"),
                         ))?
                     }
                     "downloadVideo" => {
-                        let download_info = request.downloadInfo.unwrap();
+                        let download_info = request.downloadTaskInfo.unwrap();
                         let mut m3u8_download =
                             M3u8Download::new(&mut download_info.clone()).unwrap();
                         m3u8_download.start_download(&mut socket).await;
@@ -141,20 +141,34 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
 }
 
 pub mod cmd {
-    use crate::download::{m3u8_download::merger, types::DownloadInfoContext};
+    use crate::{download::{file_download::service}, orm::download_info::types::DownloadInfo};
 
-    use super::{DownloadInfo, DOWNLOAD_QUEUE};
     use tauri::command;
 
     #[command]
     pub fn retry_download(download: DownloadInfo) {
-        let queue = DOWNLOAD_QUEUE.lock().unwrap();
-        queue.push(download);
+        service::retry_download(download);
     }
 
     #[command]
+    pub async fn movie_merger(download: DownloadInfo) -> Result<DownloadInfo, String> {
+        Ok(service::movie_merger(download).await?)
+    }
+}
+
+pub mod service {
+    use crate::{conf::get_string, download::{m3u8_download::merger, types::DownloadInfoContext}, orm::download_info::types::DownloadInfo};
+
+    use super::{DownloadTaskInfo, DOWNLOAD_QUEUE};
+
+    pub fn retry_download(download: DownloadInfo) {
+        let queue = DOWNLOAD_QUEUE.lock().unwrap();
+        queue.push(download_info_to_download_task_info(download));
+    }
+
     pub async fn movie_merger(mut download: DownloadInfo) -> Result<DownloadInfo, String> {
-        let mut download_info_context = DownloadInfoContext::new(&mut download)
+        let mut download_task_info = download_info_to_download_task_info(download.clone());
+        let mut download_info_context: DownloadInfoContext = DownloadInfoContext::new(&mut download_task_info)
             .map_err(|e| format!("创建视频下载对象失败: {}", e))?;
         let result = merger(&mut download_info_context).await;
         match result {
@@ -164,6 +178,20 @@ pub mod cmd {
                 return Ok(download);
             }
             Err(_) => Ok(download),
+        }
+    }
+
+    pub fn download_info_to_download_task_info(download_info: DownloadInfo) -> DownloadTaskInfo {
+        DownloadTaskInfo {
+            id: download_info.id,
+            movie_name: download_info.movie_name,
+            url: download_info.url,
+            sub_title_name: download_info.sub_title_name,
+            status: download_info.status,
+            download_count: download_info.download_count,
+            count: Some(download_info.count),
+            download_status: download_info.download_status,
+            save_path: get_string("downloadSavePath"),
         }
     }
 }

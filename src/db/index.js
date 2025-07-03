@@ -1,5 +1,4 @@
 import Dexie from "dexie";
-import { invoke } from "@tauri-apps/api/core";
 import { AxiosHttpStrategy } from "@/utils/httpStrategy";
 import { unionWith, isEqual } from "lodash";
 import { generateUUID } from "@/utils/common";
@@ -158,71 +157,8 @@ export async function deleteStar(starId) {
     getAllStar(true);
 }
 
-export async function getAllDownloadList() {
-    return await db.downloadInfo.toArray();
-}
-
-export async function getDownloadById(downloadId) {
-    const downloadSavePath = await db.systemConf
-        .where("conf_code")
-        .equals("downloadSavePath")
-        .first();
-    const downloadInfo = await db.downloadInfo
-        .where("id")
-        .equals(downloadId)
-        .first();
-    const subTitleName = downloadInfo.sub_title_name;
-    downloadInfo.url =
-        downloadSavePath.conf_value +
-        "\\" +
-        downloadInfo.movie_name +
-        "\\" +
-        subTitleName +
-        "\\" +
-        subTitleName +
-        ".mp4";
-    return downloadInfo;
-}
-
-export async function deleteDownload(downloadInfo) {
-    const downloadSavePath = await getDownloadSavePath();
-    await db.downloadInfo.delete(downloadInfo.id);
-    const subTitleName = downloadInfo.sub_title_name;
-    const downloadInfoPath =
-        downloadSavePath + "\\" + downloadInfo.movie_name + "\\" + subTitleName;
-    invoke("del_movie_path", { pathStr: downloadInfoPath });
-}
-
-export async function addDownloads(downloadInfos) {
-    const downloadSavePath = await getDownloadSavePath();
-    downloadInfos.forEach(async (downloadInfo) => {
-        let oldDownload = await db.downloadInfo
-            .where("movie_name")
-            .equals(downloadInfo.movie_name)
-            .first();
-        if (!oldDownload) {
-            let id = await db.downloadInfo.add(downloadInfo);
-            downloadInfo["id"] = id;
-            downloadInfo["save_path"] = downloadSavePath;
-            invoke("retry_download", { download: downloadInfo });
-        }
-    });
-}
-
-export async function updateDownloadById(downloadInfo) {
-    db.downloadInfo.update(downloadInfo.id, downloadInfo);
-}
-
 export async function getSystemConfByKey(confCode) {
     return await db.systemConf.where("conf_code").equals(confCode).first();
-}
-
-export async function getDownloadSavePath() {
-    const downloadSavePath = await db.systemConf
-        .where("conf_code")
-        .equals("downloadSavePath")
-        .first();
-    return downloadSavePath?.conf_value;
 }
 
 export async function addSearchRecord(keyword) {

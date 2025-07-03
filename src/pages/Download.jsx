@@ -1,14 +1,12 @@
 import { useEffect } from "react";
-import {
-  getAllDownloadList,
-  getDownloadSavePath,
-  deleteDownload,
-  updateDownloadById,
-} from "@/db";
+import { useGlobalStore } from "@/store/useGlobalStore";
+import { useMovieStore } from "@/store/useMovieStore";
+import { selectAllDownloadInfo, deleteDownloadInfo } from "@/api/downloadInfo";
 import { Progress, Table, Space, Tag } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import _ from "lodash";
 import "./Download.scss";
+import { useConfig } from "@/hooks";
 
 const LinearProgressWithLabel = (props) => (
   <div style={{ display: "flex", alignItems: "center" }}>
@@ -20,16 +18,17 @@ const LinearProgressWithLabel = (props) => (
 
 const Download = (props) => {
   const togglePlayInfo = useGlobalStore((state) => state.togglePlayInfo);
-  const downloadInfoList = useGlobalStore((state) => state.downloadInfoList);
-  const toggleDownloadInfoList = useGlobalStore((state) => state.toggleDownloadInfoList);
+  const downloadInfoList = useMovieStore((state) => state.downloadInfoList);
+  const toggleDownloadInfoList = useMovieStore((state) => state.toggleDownloadInfoList);
   const updateDownloadInfoProcess = useGlobalStore((state) => state.updateDownloadInfoProcess);
+  const [downloadSavePath] = useConfig("downloadSavePath", "");
 
   useEffect(() => {
     init();
   }, []);
 
   const init = async () => {
-    const res = await getAllDownloadList();
+    const res = await selectAllDownloadInfo();
     toggleDownloadInfoList(res);
   };
 
@@ -141,17 +140,16 @@ const Download = (props) => {
       name: downloadInfo.movie_name,
       iptv: { channelGroupId: 0, channelActive: "" },
       download: { downloadId: downloadInfo.id },
-      movie: { siteKey: "", ids: "", index: 0, videoFlag: "", onlineUrl: "" },
+      movieInfo: { siteKey: "", ids: "", index: 0, videoFlag: "", onlineUrl: "" },
     };
     togglePlayInfo(playInfo, true);
   };
 
   const retryEvent = async (download) => {
-    const save_path = await getDownloadSavePath();
     const downloadInfo = {
       ...download,
       download_status: "downloading",
-      save_path,
+      save_path: downloadSavePath,
     };
     await invoke("retry_download", { download: downloadInfo });
   };
@@ -162,13 +160,12 @@ const Download = (props) => {
       const diInfo = _.cloneDeep(download);
       diInfo.download_status = di.download_status;
       diInfo.status = di.status;
-      await updateDownloadById(diInfo);
       updateDownloadInfoProcess(diInfo);
     }
   };
 
   const onDeleteDownload = async (download) => {
-    await deleteDownload(download);
+    await deleteDownloadInfo({ id: download.id });
     init();
   };
 

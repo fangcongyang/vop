@@ -1,7 +1,8 @@
 import { useGlobalStore } from "@/store/useGlobalStore";
 import LazyImage from "@/components/LazyImage";
 import doubanApi from "@/api/douban";
-import { getSiteByKey, starMovie, addDownloads } from "@/db";
+import { getSiteByKey, starMovie } from "@/db";
+import { saveDownloadInfo } from "@/api/downloadInfo";
 import { message } from "antd";
 import { fmtMSS } from "@/utils/common";
 import util from "@/utils";
@@ -101,7 +102,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
                 parentId: "0",
                 download_status: "wait",
             }));
-            addDownloads(downloadInfos);
+            saveDownloadInfo({downloadInfos});
             messageApi.success(res.info);
         } catch (err) {
             console.log(err);

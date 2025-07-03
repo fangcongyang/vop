@@ -1,11 +1,9 @@
-import { updateDownloadById } from "@/db";
-
 export class DownloadBus {
     wsAddr = "ws://127.0.0.1:8000";
     downloadRequest = {
         id: "0",
         messageType: "get_download_info_by_queue",
-        downloadInfo: null,
+        downloadTaskInfo: null,
     };
     ws;
     updateDownloadInfoEvent;
@@ -13,7 +11,7 @@ export class DownloadBus {
     isCompulsionClose = false;
 
     constructor(downloadInfo) {
-        this.downloadRequest.downloadInfo = downloadInfo;
+        this.downloadRequest.downloadTaskInfo = downloadInfo;
         this.initSocket();
     }
 
@@ -21,7 +19,7 @@ export class DownloadBus {
 
     intervalGetDownloadInfo = () => {
         this.downloadInterval = setInterval(() => {
-            this.downloadRequest.downloadInfo = null
+            this.downloadRequest.downloadTaskInfo = null
             this.downloadRequest.messageType = "get_download_info_by_queue";
             this.ws.send(JSON.stringify(this.downloadRequest));
         }, 1000);
@@ -51,20 +49,20 @@ export class DownloadBus {
         this.ws.onmessage = async ({ data }) => {
             const dataObj = JSON.parse(data);
             if (dataObj.messageType === "get_download_info_by_queue") {
-                if (dataObj.downloadInfo) {
+                if (dataObj.downloadTaskInfo) {
                     clearInterval(this.downloadInterval);
                     this.downloadRequest.messageType = "downloadVideo";
-                    this.downloadRequest.downloadInfo = dataObj.downloadInfo;
+                    this.downloadRequest.downloadTaskInfo = dataObj.downloadTaskInfo;
                     this.ws.send(JSON.stringify(this.downloadRequest));
                 }
                 return;
             }
 
             if (dataObj?.status) {
-                this.downloadRequest.downloadInfo.status = dataObj.status;
+                this.downloadRequest.downloadTaskInfo.status = dataObj.status;
             }
             if (dataObj?.download_status) {
-                this.downloadRequest.downloadInfo.download_status = dataObj.download_status;
+                this.downloadRequest.downloadTaskInfo.download_status = dataObj.download_status;
             }
 
             switch (dataObj.mes_type) {
@@ -73,19 +71,18 @@ export class DownloadBus {
                 case "downloadSliceEnd":
                 case "checkSourceEnd":
                     if (dataObj.mes_type === "parseSourceEnd") {
-                        this.downloadRequest.downloadInfo.count = dataObj.count;
+                        this.downloadRequest.downloadTaskInfo.count = dataObj.count;
                     }
                     break;
                 case "progress":
-                    this.downloadRequest.downloadInfo.download_count = dataObj.download_count;
+                    this.downloadRequest.downloadTaskInfo.download_count = dataObj.download_count;
                     break;
                 case "end":
-                    this.downloadRequest.downloadInfo.download_status = dataObj.download_status;
+                    this.downloadRequest.downloadTaskInfo.download_status = dataObj.download_status;
                     break;
             }
 
-            await updateDownloadById(this.downloadRequest.downloadInfo);
-            this.updateDownloadInfoEvent(this.downloadRequest.downloadInfo);
+            this.updateDownloadInfoEvent(this.downloadRequest.downloadTaskInfo);
 
             if (dataObj.mes_type === "end") {
                 this.intervalGetDownloadInfo();

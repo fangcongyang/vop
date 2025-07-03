@@ -26,10 +26,10 @@ use tokio::{
 };
 use tungstenite::WebSocket;
 
-use crate::utils;
+use crate::{orm::download_info::{service::update_download_by_id, types::DownloadInfoUpdate}, utils};
 
 use super::{
-    file_download::DownloadInfo,
+    file_download::DownloadTaskInfo,
     m3u8_encrypt_key::{KeyType, M3u8EncryptKey},
     types::{
         parse_operation_name, DownloadInfoContext, DownloadInfoDetail, DownloadInfoQueueDetail,
@@ -45,7 +45,7 @@ pub struct M3u8Download {
 }
 
 impl M3u8Download {
-    pub fn new(download_info: &mut DownloadInfo) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(download_info: &mut DownloadTaskInfo) -> Result<Self, Box<dyn std::error::Error>> {
         let download_info_context = DownloadInfoContext::new(download_info)?;
         Ok(M3u8Download {
             download_info_context: download_info_context.clone(),
@@ -109,6 +109,13 @@ impl M3u8Download {
                 error!("下载m3u8失败，失败原因:{}", result.unwrap_err());
             }
             if !rs_sucess || out_limit_num {
+                let download_info_update = DownloadInfoUpdate {
+                    id: self.download_info_context.id.clone(),
+                    status: Some(self.download_info_context.status.clone()),
+                    download_status: Some("downloadFail".to_string()),
+                    ..Default::default()
+                };
+                let _ = update_download_by_id(download_info_update);
                 let m = socket.send(tungstenite::Message::text(
                     serde_json::to_string(&json!({
                         "id": self.download_info_context.id,
@@ -133,7 +140,7 @@ async fn parse_source(
     let media_play_list = parse_m3u8(download_info_context).await?;
     let count = media_play_list.segments.len();
     let mut download_source_info = DownloadSourceInfo::new();
-    download_source_info.id = download_info_context.id;
+    download_source_info.id = download_info_context.id.clone();
 
     create_dir_all(&download_info_context.ts_path)?;
 
@@ -181,8 +188,16 @@ async fn parse_source(
         .await?;
     json_file.write_all(v.as_bytes()).await?;
 
+    let download_info_update = DownloadInfoUpdate {
+        id: download_info_context.id.clone(),
+        status: Some("downloadSlice".to_string()),
+        count: Some(count as i32),
+        download_status: Some("downloading".to_string()),
+        ..Default::default()
+    };
+    let _ = update_download_by_id(download_info_update);
     Ok(DownloadInfoResponse {
-        id: download_info_context.id,
+        id: download_info_context.id.clone(),
         status: "downloadSlice".to_string(),
         download_count: None,
         count: Some(count),
@@ -323,6 +338,9 @@ async fn download_slice(
         .open(&download_info_context.json_success_path)
         .await?;
 
+    // 创建集合对象存储成功下载的文件名
+    let mut success_files: Vec<String> = Vec::new();
+
     // 使用 tokio::select! 来同时处理文件下载和进度发送
     loop {
         tokio::select! {
@@ -335,9 +353,8 @@ async fn download_slice(
                             let rs = downloaded_file_save(res.clone()).await;
                             if rs.is_ok() {
                                 let _ = download_count.fetch_add(1, Ordering::Relaxed);
-                                let _ = &json_success_file
-                                    .write((file_name + "\r\n").as_bytes())
-                                    .await?;
+                                // 将成功下载的文件名放入集合对象中
+                                success_files.push(file_name);
                             } else {
                                 res.data = None;
                                 download_source_info.download_info_list.push(res);
@@ -352,6 +369,22 @@ async fn download_slice(
             // 处理定时进度发送
             progress_count = progress_rx.recv() => {
                 if let Some(count) = progress_count {
+                    // 在这里记录成功下载的文件到文件中
+                    if !success_files.is_empty() {
+                        let batch_content = success_files
+                            .iter()
+                            .map(|name| format!("{}\r\n", name))
+                            .collect::<String>();
+                        let _ = json_success_file.write(batch_content.as_bytes()).await?;
+                        success_files.clear(); // 清空已处理的文件名
+                    }
+
+                    let download_info_update = DownloadInfoUpdate {
+                        id: download_info_context.id.clone(),
+                        download_count: Some(count),
+                        ..Default::default()
+                    };
+                    let _ = update_download_by_id(download_info_update);
                     let _ = socket.send(tungstenite::Message::text(serde_json::to_string(&json!({
                         "id": download_info_context.id,
                         "download_count": count,
@@ -374,13 +407,20 @@ async fn download_slice(
         .await?;
     json_file.write_all(v.as_bytes()).await?;
     download_info_context.download_count = download_count.load(Ordering::Relaxed);
+
+    let download_info_update = DownloadInfoUpdate {
+        id: download_info_context.id.clone(),
+        status: Some("checkSource".to_string()),
+        download_count: Some(download_info_context.download_count),
+        ..Default::default()
+    };
+    let _ = update_download_by_id(download_info_update);
     Ok(DownloadInfoResponse {
-        id: download_info_context.id,
+        id: download_info_context.id.clone(),
         status: "checkSource".to_string(),
         download_count: Some(download_info_context.download_count),
-        count: None,
-        download_status: None,
         mes_type: "downloadSliceEnd".to_string(),
+        ..Default::default()
     })
 }
 
@@ -437,13 +477,17 @@ async fn check_source(
         status = "merger".to_string();
     }
 
+    let download_info_update = DownloadInfoUpdate {
+        id: download_info_context.id.clone(),
+        status: Some(status.clone()),
+        ..Default::default()
+    };
+    let _ = update_download_by_id(download_info_update);
     Ok(DownloadInfoResponse {
-        id: download_info_context.id,
+        id: download_info_context.id.clone(),
         status,
-        download_count: None,
-        count: None,
-        download_status: None,
         mes_type: "checkSourceEnd".to_string(),
+        ..Default::default()
     })
 }
 
@@ -485,13 +529,19 @@ pub async fn merger(
             download_info_context.sub_title_name.clone(),
         ));
 
+        let download_info_update = DownloadInfoUpdate {
+            id: download_info_context.id.clone(),
+            status: Some("downloadEnd".to_string()),
+            download_status: Some("downloadSuccess".to_string()),
+            ..Default::default()
+        };
+        let _ = update_download_by_id(download_info_update);
         Ok(DownloadInfoResponse {
-            id: download_info_context.id,
+            id: download_info_context.id.clone(),
             status: "downloadEnd".to_string(),
-            download_count: None,
-            count: None,
             download_status: Some("downloadSuccess".to_string()),
             mes_type: "end".to_string(),
+            ..Default::default()
         })
     } else {
         let s = String::from_utf8_lossy(&output.stderr);

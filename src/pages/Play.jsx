@@ -5,7 +5,7 @@ import React, {
     useMemo,
     useCallback,
 } from "react";
-import { getDownloadById } from "@/db";
+import { getDownloadInfoById } from "@/api/downloadInfo";
 import {
     selectAllHistory,
     updateHistory,
@@ -144,7 +144,7 @@ const Play = (props) => {
             // 是直播源，直接播放
             playChannel(currentChannel.value);
         } else if (playInfo.playType === "localMovie") {
-            getDownloadById(playInfo.download.downloadId).then(
+            getDownloadInfoById({ id: playInfo.download.downloadId }).then(
                 (downloadInfo) => {
                     const assetUrl = convertFileSrc(downloadInfo.url);
                     player.dp.switchVideo({
@@ -670,8 +670,12 @@ const Play = (props) => {
         if (playInfo.playType == "onlineMovie") {
             setPlayMode("local");
             try {
+                const site = getSite(playInfo.movieInfo.siteKey);
+                if (!site || !site.site_key) {
+                    return;
+                }
                 let detail = await getMovieDetailCacheData(
-                    getSite(playInfo.movieInfo.siteKey),
+                    site,
                     playInfo.movieInfo.ids
                 );
                 // 缓存详情数据供后续使用
@@ -713,8 +717,6 @@ const Play = (props) => {
                 dp.pause();
                 emit("smallPlayEvent", playInfo);
             }, 2000);
-        } else {
-            !playPage.isFirstPlay && initPlay();
         }
     }, [smallPlayVisible]);
 
@@ -739,7 +741,6 @@ const Play = (props) => {
 
     const onlinePlayKey = useMemo(() => {
         if (smallPlayVisible) {
-            console.log(1234, playInfo);
             emit("smallPlayEvent", playInfo);
             return;
         }

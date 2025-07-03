@@ -287,10 +287,10 @@ const Movie = () => {
 
             if (res) {
                 // 更新状态
-                setMoviePageInfo((prevState) => ({
-                    ...prevState,
+                setMoviePageInfo({
+                    ...getMoviePageInfo(),
                     movieList: res,
-                }));
+                });
 
                 // 更新缓存
                 cacheData(cacheKey, getMoviePageInfo());

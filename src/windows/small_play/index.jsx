@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { listen, emit } from "@tauri-apps/api/event";
-import { getDownloadById } from "@/db";
+import { getDownloadInfoById } from "@/api/downloadInfo";
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { getMovieDetailCacheData } from "@/business/cache";
 import movieApi from "@/api/movies";
@@ -101,7 +101,7 @@ const SmallPlay = () => {
             // 是直播源，直接播放
             playChannel(playInfo.playUrl);
         } else if (playInfo.playType === "localMovie") {
-            getDownloadById(playInfo.download.downloadId).then(
+            getDownloadInfoById({ id: playInfo.download.downloadId }).then(
                 (downloadInfo) => {
                     const assetUrl = convertFileSrc(downloadInfo.url);
                     player.dp.switchVideo({
@@ -506,7 +506,7 @@ const SmallPlay = () => {
     };
 
     return (
-        <div data-tauri-drag-region className="play">
+        <div data-tauri-drag-region className="small-play">
             {contextHolder}
             <div className="box">
                 <div
