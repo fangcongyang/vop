@@ -8,8 +8,8 @@ create table if not exists `site` (
 	is_active TEXT NOT NULL  , --是否激活;1 激活 0不激活
 	`status` TEXT NOT NULL  , --状态;可用 不可用
 	position REAL NOT NULL  , --排序
-	is_reverse_order TEXT NOT NULL, --网站分页降序; 1降序 0升序 
-	parse_mode TEXT NOT NULL, --解析模式; json xml 
+	is_reverse_order TEXT NOT NULL, --网站分页降序; 1降序 0升序
+	parse_mode TEXT NOT NULL, --解析模式; json xml
 	create_time TEXT NOT NULL, --创建时间
 	update_time TEXT NOT NULL --更新时间
 );
@@ -47,15 +47,15 @@ create unique index idx_history_site_key_ids on history(`site_key`, `ids`);
 
 create table if not exists star (
 	id TEXT PRIMARY KEY NOT NULL , --主键id
-	star_name TEXT NOT NULL  , --名称	
-	star_ids TEXT NOT NULL  , --网站资源唯一id;网站id+视频id
+	star_name TEXT NOT NULL  , --名称
+	ids TEXT NOT NULL  , --网站资源唯一id;网站id+视频id
 	site_key TEXT NOT NULL  , --网站key
 	movie_type TEXT  , --影片类型
 	`year` TEXT  , --上映时间
 	note TEXT  , --影片备注
-	douban_rate TEXT  , --影片豆瓣评分	
+	douban_rate TEXT  , --影片豆瓣评分
 	has_update TEXT NOT NULL,  --是否有更新
-	last_update_time TEXT NOT NULL, --上次更新时间
+	last_update_time TEXT, --上次更新时间
 	position REAL NOT NULL, --排序
 	pic TEXT , --图片
 	area TEXT  , --地区

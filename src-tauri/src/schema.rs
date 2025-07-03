@@ -15,19 +15,21 @@ diesel::table! {
 
 diesel::table! {
     star (id) {
-        id -> Nullable<Integer>,
+        id -> Text,
         star_name -> Text,
         ids -> Text,
         site_key -> Text,
-        movie_type -> Text,
+        movie_type -> Nullable<Text>,
         year -> Text,
-        note -> Text,
-        douban_rate -> Text,
+        note -> Nullable<Text>,
+        douban_rate -> Nullable<Text>,
         has_update -> Text,
-        last_update_time -> Text,
+        last_update_time -> Nullable<Text>,
         position -> Double,
         pic -> Text,
-        area -> Text,
+        area -> Nullable<Text>,
+        create_time -> Text,
+        update_time -> Nullable<Text>,
     }
 }
 

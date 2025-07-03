@@ -1,8 +1,9 @@
 import { useGlobalStore } from "@/store/useGlobalStore";
 import LazyImage from "@/components/LazyImage";
 import doubanApi from "@/api/douban";
-import { getSiteByKey, starMovie } from "@/db";
+import { getSiteByKey } from "@/db";
 import { saveDownloadInfo } from "@/api/downloadInfo";
+import { starMovie } from "@/api/star";
 import { message } from "antd";
 import { fmtMSS } from "@/utils/common";
 import util from "@/utils";
@@ -75,14 +76,15 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
             ids: getMovieId(),
             site_key: getSiteKey(),
             movie_type: item.type,
-            year: `${item.year}年`,
+            year: `${item.year || new Date().getFullYear()}年`,
             note: item.note,
             douban_rate: await doubanApi.doubanRate(movieName, item.year),
-            last_update_time: item.last,
+            last_update_time: item.last_update_time,
             pic: getPic(),
             area: item.area,
+            has_update: "0",
         };
-        starMovie(star).then(() => {
+        starMovie({star}).then(() => {
             messageApi.success("收藏影片成功");
         });
     };

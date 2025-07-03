@@ -4,7 +4,8 @@ import { useGlobalStore } from "@/store/useGlobalStore";
 import { useMovieStore } from "@/store/useMovieStore";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
-import { getSiteByKey, starMovie } from "@/db";
+import { getSiteByKey } from "@/db";
+import { starMovie } from "@/api/star";
 import movieApi from "@/api/movies";
 import doubanApi from "@/api/douban";
 import { getCurrentHistory } from "@/api/history";
@@ -114,14 +115,15 @@ const Detail = (props) => {
             ids: info.id.toString(),
             site_key: detailInfo.siteKey,
             movie_type: info.type,
-            year: `${info.year}年`,
+            year: `${info.year || new Date().getFullYear()}年`,
             note: info.note,
             douban_rate: doubanRate,
-            last_update_time: info.last,
+            last_update_time: info.last_update_time,
             pic: info.pic,
             area: info.area,
+            has_update: "0",
         };
-        starMovie(star);
+        starMovie({star});
     };
 
     const playEvent = (index) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAllStar, deleteStar } from "@/db";
+import { selectAllStar, deleteStar } from "@/api/star";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import "./Movie.scss";
@@ -12,12 +12,12 @@ const Star = (props) => {
     }, [])
 
     const initStarList = async () => {
-        const result = await getAllStar();
+        const result = await selectAllStar();
         setStarList(result);
     }
 
     const onDelete = async (item) => {
-        await deleteStar(item.id)
+        await deleteStar({id: item.id});
         initStarList();
     }
 

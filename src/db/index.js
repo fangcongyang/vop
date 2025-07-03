@@ -137,9 +137,6 @@ export async function cacheSiteClassList(site_key, classList) {
     return classList;
 }
 
-export async function getAllStar() {
-    return await db.star.orderBy("id").toArray();
-}
 
 export async function starMovie(star) {
     let oldStar = await db.star
@@ -150,11 +147,6 @@ export async function starMovie(star) {
     if (!oldStar) {
         await db.star.add(star);
     }
-}
-
-export async function deleteStar(starId) {
-    await db.star.delete(starId);
-    getAllStar(true);
 }
 
 export async function getSystemConfByKey(confCode) {

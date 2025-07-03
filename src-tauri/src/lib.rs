@@ -101,6 +101,9 @@ pub fn run() {
             orm::download_info::cmds::get_download_info_by_id,
             orm::download_info::cmds::save_download_info,
             orm::download_info::cmds::delete_download_info,
+            orm::star::cmds::star_movie,
+            orm::star::cmds::delete_star,
+            orm::star::cmds::select_all_star,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
