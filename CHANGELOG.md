@@ -1,4 +1,23 @@
-## [0.1.1](https://github.com/fangcongyang/vop/compare/v0.1.0...v0.1.1) (2025-06-29)
+## [0.1.2](https://github.com/fangcongyang/vop/compare/v0.1.1...v0.1.2) (2025-07-03)
+
+
+### ✨ Features | 新功能
+
+* 解决多窗口数据不一致问题，引入Diesel ([](https://github.com/fangcongyang/vop/commit/eb45cb3))
+* 下载管理接口 ([](https://github.com/fangcongyang/vop/commit/20c1e7f))
+* 新增后端接口请求公共处理和历史接口api ([](https://github.com/fangcongyang/vop/commit/da96752))
+* 新增历史记录相关功能 ([](https://github.com/fangcongyang/vop/commit/5846589))
+* 增加代码格式化配置 ([](https://github.com/fangcongyang/vop/commit/c800c68))
+* **star:** 实现影片收藏功能的后端与前端集成 ([](https://github.com/fangcongyang/vop/commit/98ea182))
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* 修复websocket关闭报错处理 ([](https://github.com/fangcongyang/vop/commit/35c98bc))
+
+
+
+## [0.1.1](https://github.com/fangcongyang/vop/compare/0.1.1...v0.1.1) (2025-06-29)
 
 
 ### ✨ Features | 新功能
