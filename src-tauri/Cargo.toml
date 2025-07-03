@@ -1,6 +1,6 @@
 [package]
 name = "vop"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Online Play Video App"
 authors = ["you"]
 edition = "2021"
@@ -49,7 +49,7 @@ diesel = { version = "2.2.0", features = ["sqlite", "returning_clauses_for_sqlit
 diesel_migrations = "2"
 libsqlite3-sys = { version = "0.28", features = ["bundled"] }
 chrono = "0.4.41"
-uuid = { version = "1.17.0", features = ["v4"] } 
+uuid = { version = "1.17.0", features = ["v4"] }
 tauri-plugin-vop = { path = "../tauri-plugin-vop" }
 
 [features]
