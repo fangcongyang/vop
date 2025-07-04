@@ -97,6 +97,7 @@ pub fn run() {
             orm::history::cmds::select_all_history,
             orm::history::cmds::update_history,
             orm::history::cmds::delete_history,
+            orm::history::cmds::import_history,
             orm::download_info::cmds::select_all_download_info,
             orm::download_info::cmds::get_download_info_by_id,
             orm::download_info::cmds::save_download_info,

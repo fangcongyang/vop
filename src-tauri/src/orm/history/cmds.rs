@@ -1,8 +1,8 @@
-use crate::orm::history::service::get_history_by_site_key_and_ids;
+use crate::orm::history::service::{get_history_by_site_key_and_ids, select_all_historys};
 use crate::orm::history::types::{History, HistoryUpdate, HistoryVo};
 use crate::orm::{get_database_pool, history::types::HistorySave};
 use crate::schema::history::dsl as history_dsl;
-use diesel::{QueryDsl, RunQueryDsl};
+use diesel::RunQueryDsl;
 use diesel::ExpressionMethods;
 use diesel::insert_into;
 use crate::utils::{self, parse_json};
@@ -61,14 +61,7 @@ pub fn get_current_history(
 #[tauri::command]
 pub fn select_all_history(
 ) -> Result<Vec<HistoryVo>, String> {
-
-    let mut db = get_database_pool()
-        .map_err(|e| format!("获取数据库连接失败: {}", e))?;
-
-    let history = history_dsl::history
-        .order_by(history_dsl::update_time.desc())
-        .load::<History>(&mut db)
-        .map_err(|e| format!("查询历史记录失败: {}", e))?;
+    let history = select_all_historys()?;
     let mut history_vo = vec![];
     for h in history {
         history_vo.push(HistoryVo {
@@ -128,5 +121,48 @@ pub fn delete_history(
         .filter(history_dsl::id.eq(id))
         .execute(&mut db)
         .map_err(|e| format!("删除历史记录失败: {}", e))?;
+    Ok(rows_affected)
+}
+
+#[tauri::command]
+pub fn import_history(
+    file_path: &str,
+) -> Result<usize, String> {
+    let mut db = get_database_pool()
+        .map_err(|e| format!("获取数据库连接失败: {}", e))?;
+
+    let file_content = std::fs::read_to_string(file_path)
+        .map_err(|e| format!("读取文件内容失败: {}", e))?;
+    let history_vo: Vec<HistoryVo> = serde_json::from_str(&file_content)
+        .map_err(|e| format!("解析JSON失败: {}", e))?;
+    let history = select_all_historys()?;
+    let mut history_vo_new = vec![];
+    let now = utils::get_current_time_str();
+    for h in history_vo {
+        if history.iter().find(|x| x.site_key == h.site_key && x.ids == h.ids).is_none() {
+            history_vo_new.push(History {
+                id: h.id,
+                history_name: h.history_name,
+                ids: h.ids,
+                index: h.index,
+                start_position: h.start_position,
+                end_position: h.end_position,
+                play_time: h.play_time,
+                site_key: h.site_key,
+                online_play: h.online_play,
+                detail: serde_json::to_string(&h.detail).unwrap_or("".to_string()),
+                video_flag: h.video_flag,
+                duration: h.duration,
+                has_update: h.has_update,
+                create_time: now.clone(),
+                update_time: Some(now.clone()),
+            });
+        }
+    }
+
+    let rows_affected = diesel::insert_into(history_dsl::history)
+        .values(history_vo_new)
+        .execute(&mut db)
+        .map_err(|e| format!("导入历史记录失败: {}", e))?;
     Ok(rows_affected)
 }

@@ -77,7 +77,7 @@ const Play = (props) => {
     // localFile 本地文件 local 本地在线 online iframe网页
     const [playMode, setPlayMode] = useState("local");
     const [playing, setPlaying] = useState(false);
-    const [episodesButtonMaxWidth, setEpisodesButtonMaxWidth] = useState(0);
+
     const [qrCodeVisible, setQrCodeVisible] = useState(false);
     const [currentPlayUrl, setCurrentPlayUrl] = useState("");
     const [smallPlayVisible, setSmallPlayVisible] = useState(false);
@@ -643,30 +643,10 @@ const Play = (props) => {
         };
     }, []);
 
-    useEffect(() => {
-        if (playInfo.playState !== "newPlay" && !movieList) {
-            return;
-        }
-        // 获取所有具有指定类名的节点
-        const items = document.querySelectorAll(".play-episode-btn");
-        if (items.length == 0) return;
 
-        // 初始化最大宽度
-        let maxWidth = 0;
-
-        // 遍历所有节点，计算最大宽度
-        items.forEach((item) => {
-            const itemWidth = item.offsetWidth; // 获取节点的宽度
-            if (itemWidth > maxWidth) {
-                maxWidth = itemWidth; // 更新最大宽度
-            }
-        });
-        maxWidth > 0 && setEpisodesButtonMaxWidth(Math.ceil(maxWidth) + 1);
-    }, [movieList]);
 
     const initPlay = async () => {
         playPage.isFirstPlay = false;
-        setEpisodesButtonMaxWidth(0);
         if (playInfo.playType == "onlineMovie") {
             setPlayMode("local");
             try {
@@ -754,7 +734,6 @@ const Play = (props) => {
         playPage.movieList = [];
         playPage.movieIndex = 0;
         playPage.playing = false;
-        setEpisodesButtonMaxWidth(0);
         setPlaying(false);
         setMovieList([]);
         getPlayer("", true);
@@ -1217,41 +1196,21 @@ const Play = (props) => {
                     style={{ display: movieList.length == 0 ? "none" : "" }}
                 >
                     <h2>剧集选择</h2>
-                    {movieList.map((i, j) => (
-                        <div
-                            key={j}
-                            className="play-episode-btn"
-                            onClick={() => listItemEvent(j)}
-                            style={{
-                                width:
-                                    episodesButtonMaxWidth == 0
-                                        ? "auto"
-                                        : `${episodesButtonMaxWidth}px`,
-                            }}
-                        >
+                    <div className="play-episodes-grid">
+                        {movieList.map((i, j) => (
                             <div
-                                className={
+                                key={j}
+                                className={`play-episode-btn ${
                                     playInfo.movieInfo.index === j
                                         ? "play-episode-btn-active"
                                         : ""
-                                }
+                                }`}
+                                onClick={() => listItemEvent(j)}
                             >
                                 <span>{ftName(i)}</span>
                             </div>
-                        </div>
-                    ))}
-                    {Array.from({ length: 12 }).map((i, j) => (
-                        <div
-                            key={j}
-                            className="play-episode-btn h1"
-                            style={{
-                                width:
-                                    episodesButtonMaxWidth == 0
-                                        ? "auto"
-                                        : `${episodesButtonMaxWidth}px`,
-                            }}
-                        />
-                    ))}
+                        ))}
+                    </div>
                 </div>
                 {/* 其他站点播放资源 */}
                 {moviesInfo.otherSiteMoviesSources &&

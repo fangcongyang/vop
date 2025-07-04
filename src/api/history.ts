@@ -29,3 +29,5 @@ export const selectAllHistory = createRequest<any, void>("select_all_history");
 export const updateHistory = createRequest<{ id: string, index: number, playTime: number, startPosition: number, endPosition: number, hasUpdate: string }, void>("update_history");
 
 export const deleteHistory = createRequest<{ id: string }, void>("delete_history", true);
+
+export const importHistory = createRequest<{ filePath: string }, void>("import_history", true);

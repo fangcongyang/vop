@@ -1,12 +1,30 @@
-import { useEffect, useState } from "react";
-import { selectAllHistory, deleteHistory } from "@/api/history";
+import { useEffect, useState, useRef } from "react";
+import { selectAllHistory, deleteHistory, importHistory } from "@/api/history";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
+import ContextMenu from "@/components/ContextMenu";
+import utils from "@/utils";
+
 import "./Movie.scss";
 
 const History = (props) => {
     const [historyList, setHistoryList] = useState([]);
-
+    const historyRef = useRef(null);
+    const [contextMenuVisible, setContextMenuVisible] = useState(false);
+    const menuItems = [
+        {
+            id: "import",
+            label: "导入",
+            icon: "⬇️",
+            shortcut: "Ctrl+I",
+        },
+        {
+            id: "export",
+            label: "导出",
+            icon: "⬆️",
+            shortcut: "Ctrl+E",
+        },
+    ];
     useEffect(() => {
         initHistoryList();
     }, []);
@@ -14,23 +32,45 @@ const History = (props) => {
     const initHistoryList = async () => {
         const res = await selectAllHistory();
         setHistoryList(res);
-    }
+    };
 
     const onDelete = async (item) => {
-        await deleteHistory({id: item.id});
+        await deleteHistory({ id: item.id });
         initHistoryList();
-    }
+    };
+
+    const handleMenuToggle = (show) => {
+        if (typeof show === "boolean") {
+            setContextMenuVisible(show);
+        } else {
+            // 如果第一个参数不是布尔值，说明是关闭菜单
+            setContextMenuVisible(false);
+        }
+    };
+
+    // 处理菜单项点击
+    const handleMenuItemClick = async (item) => {
+        if (item.id === "export") {
+            await utils.exportJSON("history.json", historyList);
+        } else if (item.id === "import") {
+            const res = await utils.importJSON();
+            if (res) {
+                await importHistory({ filePath: res });
+                initHistoryList();
+            }
+        }
+    };
 
     return (
         <div
+            ref={historyRef}
             className={
                 props.className ? "pageMain " + props.className : "pageMain"
             }
         >
             <div className="panelBody">
                 <div className="showPicture">
-                    <Waterfall list={historyList} gutter={10} 
-                        initYzb={10}>
+                    <Waterfall list={historyList} gutter={10} initYzb={10}>
                         <MovieCard
                             viewMode="history"
                             onDelete={onDelete}
@@ -56,6 +96,15 @@ const History = (props) => {
                     </Waterfall>
                 </div>
             </div>
+            <ContextMenu
+                visible={contextMenuVisible}
+                items={menuItems}
+                onClose={handleMenuToggle}
+                onItemClick={handleMenuItemClick}
+                minWidth={200}
+                containerRef={historyRef}
+                autoAttach={true}
+            />
         </div>
     );
 };

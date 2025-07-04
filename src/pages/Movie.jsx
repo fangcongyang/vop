@@ -53,6 +53,7 @@ const Movie = () => {
     const cancelSiteClassRequest = useRef(null);
     const loadingRef = useRef(null);
     const [showBackTop, setShowBackTop] = useState(false);
+    const isInitializedRef = useRef(false);
 
     // 优化后的 IntersectionObserver 监听
     useIntersectionObserver(
@@ -79,16 +80,22 @@ const Movie = () => {
             pageMainElement.addEventListener("scroll", handleScroll);
         }
 
-        if (currentSite) {
-            siteClick(currentSite);
-        }
-
         return () => {
             if (pageMainElement) {
                 pageMainElement.removeEventListener("scroll", handleScroll);
             }
         };
     }, []);
+
+    // 单独监听 currentSite 的变化，确保在初始化完成后执行
+    useEffect(() => {
+        if (currentSite && !isInitializedRef.current) {
+            isInitializedRef.current = true;
+            // 只执行初始化逻辑，不调用完整的 siteClick 避免循环
+            movieInfo.currentSite = currentSite;
+            siteChange();
+        }
+    }, [currentSite]);
 
     const activeSiteList = useMemo(() => {
         return siteList.filter((item) => {

@@ -1,10 +1,39 @@
 .small-play {
-  height: 100%;
-  overflow: auto;
-  border: 2px solid #000;
-
-  .player {
     height: 100%;
-    width: 100%;
-  }
+    overflow: auto;
+    border: 2px solid #000;
+    &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+
+    // 清除浮动
+    .clearfix:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    .box {
+        border-radius: 5px;
+        color: var(--color-text);
+        height: 100%;
+
+        &:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .player {
+            height: 100%;
+            width: 100%;
+
+            .dplayer,
+            .iframePlayer {
+                height: 100%;
+                width: 100%;
+            }
+        }
+    }
 }

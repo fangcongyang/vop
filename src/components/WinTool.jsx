@@ -14,7 +14,7 @@ const WinTool = () => {
 
   async function handleAlwaysTop() {
     setIsAlwaysOnTop(!isAlwaysOnTop);
-    await getCurrentWindow().setAlwaysOnTop(isAlwaysOnTop);
+    await getCurrentWindow().setAlwaysOnTop(!isAlwaysOnTop);
   }
 
   // 最小化

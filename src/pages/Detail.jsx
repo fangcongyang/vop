@@ -21,10 +21,9 @@ const Detail = (props) => {
     const [info, setInfo] = useState({});
     const [doubanRate, setDoubanRate] = useState(null);
     const [doubanRecommendations, setDoubanRecommendations] = useState([]);
-    const [maxWidth, setMaxWidth] = useState(0);
+
 
     useEffect(() => {
-        setMaxWidth(0);
         getMovieDetailInfo();
     }, []);
 
@@ -44,23 +43,7 @@ const Detail = (props) => {
         handlerDetailData(res);
     };
 
-    useEffect(() => {
-        // 获取所有具有指定类名的节点
-        const items = document.querySelectorAll(".episode-btn");
-        if (items.length == 0) return;
 
-        // 初始化最大宽度
-        let maxWidth = 0;
-
-        // 遍历所有节点，计算最大宽度
-        items.forEach((item) => {
-            const itemWidth = item.offsetWidth; // 获取节点的宽度
-            if (itemWidth > maxWidth) {
-                maxWidth = itemWidth; // 更新最大宽度
-            }
-        });
-        maxWidth > 0 && setMaxWidth(Math.ceil(maxWidth) + 1);
-    }, [info.videoList]);
 
     const handlerDetailData = async (res) => {
         if (res) {
@@ -252,44 +235,22 @@ const Detail = (props) => {
                             )}
                         <div className="episodes-section">
                             <h2>剧集选择</h2>
-                            {info.videoList &&
-                                info.videoList.length > 0 &&
-                                info.videoList.map((i, j) => (
-                                    <div
-                                        key={j}
-                                        className="episode-btn"
-                                        onClick={() => {
-                                            setSelectedEpisode(j);
-                                            playEvent(j);
-                                        }}
-                                        style={{
-                                            width:
-                                                maxWidth == 0
-                                                    ? "auto"
-                                                    : `${maxWidth}px`,
-                                        }}
-                                    >
+                            <div className="episodes-grid">
+                                {info.videoList &&
+                                    info.videoList.length > 0 &&
+                                    info.videoList.map((i, j) => (
                                         <div
-                                            className={`${selectedEpisode === j ? 'active' : ''}`}
+                                            key={j}
+                                            className={`episode-btn ${selectedEpisode === j ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setSelectedEpisode(j);
+                                                playEvent(j);
+                                            }}
                                         >
                                             <span>{ftName(i, j)}</span>
                                         </div>
-                                    </div>
-                                ))}
-                                {
-                                    Array.from({ length: 12 }).map((i, j) => (
-                                        <div
-                                            key={j}
-                                            className="episode-btn h1"
-                                            style={{
-                                                width:
-                                                    maxWidth == 0
-                                                        ? "auto"
-                                                        : `${maxWidth}px`,
-                                            }}
-                                        />
-                                    ))
-                                }
+                                    ))}
+                            </div>
                         </div>
                         {info.recommendations &&
                             info.recommendations.length > 0 && (

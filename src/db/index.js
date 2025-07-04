@@ -17,11 +17,8 @@ class MopDatabase extends Dexie {
         this.version(1).stores({
             site: "++id,site_key,site_name,api,site_group,is_active,status,position,is_reverse_order,parse_mode",
             siteClassList: "++id,class_id,site_key,class_name",
-            downloadInfo:
-                "++id,movie_name,url,sub_title_name,status,download_count,count,download_status",
             systemConf:
                 "++id,conf_code,conf_name,conf_value,parent_id,search_path",
-            star: "++id,star_name,ids,site_key,movie_type,year,note,douban_rate,has_update,last_update_time,position,pic,area",
             searchRecord: "++id,keyword,search_time",
         });
     }

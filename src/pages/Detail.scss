@@ -289,10 +289,6 @@
 
 .episodes-section {
     margin-top: 20px;
-    display: flex;
-    flex-wrap: wrap; // 允许换行
-    gap: 10px; 
-    justify-content: space-between;
     padding: 15px;
     background-color: var(--color-secondary-bg);
     border-radius: 10px;
@@ -302,59 +298,52 @@
         font-size: 1.2rem;
         color: var(--color-primary);
         width: 100%;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
         border-bottom: 2px solid var(--color-primary-bg);
         padding-bottom: 8px;
     }
 
-    div {
+    .episodes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: 10px;
+        width: 100%;
+    }
+
+    .episode-btn {
         display: flex;
         align-items: center;
         justify-content: center;
+        height: 2rem;
+        border-radius: 5px;
+        padding: 6px 14px;
         box-sizing: border-box;
+        transition: background-color 0.3s ease, transform 0.2s;
+        background-color: var(--color-body-bg);
+        border: 1px solid var(--color-primary-bg);
+        color: var(--color-text);
+        cursor: pointer;
 
-        div {
-            display: flex;
-            height: 2rem;
-            border-radius: 5px;
-            align-content: center;
-            padding: 6px 14px;
-            width: 100%;
-            box-sizing: border-box;
-            flex: 1 1 auto;
-            transition: background-color 0.3s ease, transform 0.2s;
-            background-color: var(--color-body-bg); 
-            border: 1px solid;
-            align-content: center;
-            border-color: var(--color-primary-bg);
-            color: var(--color-text);
-
-            span {
-                display: inline-block;
-                border: none;
-                cursor: pointer;
-            }
-
-            &:hover {
-                background-color: var(--color-primary-bg);
-                border-color: var(--color-primary);
-                color: var(--color-primary);
-                transform: translateY(-2px);
-                box-shadow: var(--l-bsc);
-            }
+        span {
+            display: inline-block;
+            border: none;
+            font-size: 0.9rem;
         }
 
-        .active {
+        &:hover {
+            background-color: var(--color-primary-bg);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--l-bsc);
+        }
+
+        &.active {
             background-color: var(--color-primary);
             border-color: var(--color-primary);
             color: white;
             font-weight: bold;
         }
-    }
-
-    .episode-btn.h1 {
-        height: 1px;
-        visibility: hidden
     }
 }
 
