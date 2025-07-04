@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { message } from "antd";
 import { selectAllHistory, deleteHistory, importHistory } from "@/api/history";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
@@ -8,6 +9,7 @@ import utils from "@/utils";
 import "./Movie.scss";
 
 const History = (props) => {
+    const [messageApi, contextHolder] = message.useMessage();
     const [historyList, setHistoryList] = useState([]);
     const historyRef = useRef(null);
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
@@ -51,12 +53,20 @@ const History = (props) => {
     // 处理菜单项点击
     const handleMenuItemClick = async (item) => {
         if (item.id === "export") {
-            await utils.exportJSON("history.json", historyList);
+            const { success } = await utils.exportJSON("history.json", historyList);
+            if (success) {
+                messageApi.success("导出成功");
+            }
         } else if (item.id === "import") {
             const res = await utils.importJSON();
-            if (res) {
-                await importHistory({ filePath: res });
-                initHistoryList();
+            if (res.success) {
+                try {
+                    await importHistory({ filePath: res.filePath });
+                    initHistoryList();
+                    messageApi.success("导入成功");
+                } catch (error) {
+                    messageApi.error("导入失败, " + error);
+                }
             }
         }
     };
@@ -68,6 +78,7 @@ const History = (props) => {
                 props.className ? "pageMain " + props.className : "pageMain"
             }
         >
+            {contextHolder}
             <div className="panelBody">
                 <div className="showPicture">
                     <Waterfall list={historyList} gutter={10} initYzb={10}>

@@ -446,7 +446,6 @@ const SmallPlay = () => {
             const unlisten = await listen(
                 GlobalEvent.SmallPlayEvent,
                 ({ payload }) => {
-                    console.log(123, payload)
                     setPlayMode(payload.playMode);
                     setPlayInfo(payload);
                 }

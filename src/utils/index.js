@@ -1,6 +1,5 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
-import { message } from "antd";
 
 export default {
     trimAll(ele) {
@@ -78,8 +77,9 @@ export default {
         if (filePath !== null) {
             if (!filePath.endsWith(".json")) filePath += ".json";
             await writeTextFile(filePath, jsonString);
-            message.success("已保存成功");
+            return { success: true, filePath };
         }
+        return { success: false };
     },
 
     async importJSON() {
@@ -89,11 +89,11 @@ export default {
         if (filePath !== null) {
             const fileContent = await readTextFile(filePath);
             if (this.isJSON(fileContent)) {
-                message.success("已读取成功");
-                return filePath;
+                return { success: true, filePath };
             } else {
-                message.error("文件内容不是JSON格式");
+                return { success: false, error: "文件内容不是JSON格式" };
             }
         }
+        return { success: false, error: "未选择文件" };
     },
 };
