@@ -23,6 +23,7 @@ pub fn select_all_historys() -> Result<Vec<History>, String> {
     let mut db = get_database_pool()
         .map_err(|e| format!("获取数据库连接失败: {}", e))?;
     let history = history_dsl::history
+        .order_by(history_dsl::update_time.desc())
         .load::<History>(&mut db)
         .map_err(|e| format!("获取历史记录失败: {}", e))?;
     Ok(history)

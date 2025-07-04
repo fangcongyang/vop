@@ -54,6 +54,7 @@
     "internal-ip": "^7.0.0",
     "sass": "^1.72.0",
     "sass-loader": "^14.1.1",
+    "terser": "^5.43.1",
     "vite": "^5.0.0",
     "vite-plugin-svg-icons": "^2.0.1"
   }
