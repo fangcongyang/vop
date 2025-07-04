@@ -51,17 +51,19 @@ pub fn run() {
         .setup(move |app| {
             // Global AppHandle
             APP.get_or_init(|| app.handle().clone());
-            // 初始化数据库
-            init_database(app.handle())?;
+
+            // 1. 首先初始化配置（同步），确保窗口创建时能读取到代理等配置
             info!("Init Config Store");
             let mut app_handle = app.handle().clone();
             init_config(&mut app_handle);
+
             // Check First Run
             if is_first_run() {
-                // Open Config Window
                 info!("First Run, opening config window");
                 init_config_value();
             }
+
+            // 2. 创建窗口（初始隐藏），此时配置已可用
             let create_window_result = create_window(app);
             if create_window_result.is_err() {
                 log::error!(
@@ -70,12 +72,31 @@ pub fn run() {
                 );
             }
 
-            // 延迟启动WebSocket服务器，确保应用程序完全初始化
-            tauri::async_runtime::spawn(async {
-                // 等待应用程序完全启动
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            // 3. 在后台线程中初始化数据库和其他服务，避免阻塞窗口显示
+            let app_handle_for_async = app_handle.clone();
+            std::thread::spawn(move || {
+                let start_time = std::time::Instant::now();
+                info!("Starting background initialization...");
+
+                // 同步初始化数据库
+                let db_start = std::time::Instant::now();
+                if let Err(e) = init_database(&app_handle_for_async) {
+                    log::error!("Database initialization failed: {}", e);
+                } else {
+                    info!("Database initialization completed in {:?}", db_start.elapsed());
+                }
+
                 info!("Starting WebSocket download server...");
-                file_download::init().await;
+
+                // 使用 Tauri 的异步运行时来启动 WebSocket 服务器
+                let app_handle_clone = app_handle_for_async.clone();
+                app_handle_clone.run_on_main_thread(move || {
+                    tauri::async_runtime::spawn(async move {
+                        file_download::init().await;
+                    });
+                }).expect("Failed to run on main thread");
+
+                info!("Background initialization thread completed in {:?}", start_time.elapsed());
             });
 
             Ok(())
@@ -121,7 +142,8 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
             .inner_size(1440f64, 840f64)
             .fullscreen(false)
             .resizable(true)
-            .decorations(false);
+            .decorations(false)
+            .visible(true); // 初始隐藏窗口，避免白屏
     }
 
     #[allow(unused_assignments)]

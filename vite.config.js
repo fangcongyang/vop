@@ -20,6 +20,43 @@ export default defineConfig(async ({ mode }) => ({
             customDomId: "__svg__icons__dom__",
         }),
     ],
+    
+    // 构建优化
+    build: {
+        rollupOptions: {
+            output: {
+                // 代码分割策略
+                manualChunks: {
+                    // 将 React 相关库分离
+                    'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+                    // 将 Ant Design 分离
+                    'antd-vendor': ['antd', '@ant-design/icons'],
+                    // 将 Tauri API 分离
+                    'tauri-vendor': [
+                        '@tauri-apps/api',
+                        '@tauri-apps/plugin-dialog',
+                        '@tauri-apps/plugin-fs',
+                        '@tauri-apps/plugin-http',
+                        '@tauri-apps/plugin-os',
+                        '@tauri-apps/plugin-process',
+                        '@tauri-apps/plugin-shell',
+                        '@tauri-apps/plugin-store',
+                        '@tauri-apps/plugin-updater'
+                    ],
+                    // 将工具库分离
+                    'utils-vendor': ['lodash', 'axios', 'cheerio', 'marked']
+                }
+            }
+        },
+        // 启用 gzip 压缩
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: mode === 'production',
+                drop_debugger: mode === 'production'
+            }
+        }
+    },
 
     resolve: {
         alias: {
@@ -27,6 +64,31 @@ export default defineConfig(async ({ mode }) => ({
         },
     },
 
+    // 优化依赖预构建
+    optimizeDeps: {
+        include: [
+            'react',
+            'react-dom',
+            'react-router-dom',
+            'antd',
+            '@ant-design/icons',
+            'axios',
+            'lodash'
+        ],
+        exclude: [
+            // 排除 Tauri 相关包，因为它们在浏览器环境中不可用
+            '@tauri-apps/api',
+            '@tauri-apps/plugin-dialog',
+            '@tauri-apps/plugin-fs',
+            '@tauri-apps/plugin-http',
+            '@tauri-apps/plugin-os',
+            '@tauri-apps/plugin-process',
+            '@tauri-apps/plugin-shell',
+            '@tauri-apps/plugin-store',
+            '@tauri-apps/plugin-updater'
+        ]
+    },
+    
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //
     // 1. prevent vite from obscuring rust errors
@@ -36,6 +98,10 @@ export default defineConfig(async ({ mode }) => ({
         port: 2420,
         strictPort: true,
         host: mobile ? "0.0.0.0" : "0.0.0.0",
+        // 启用预热
+        warmup: {
+            clientFiles: ['./src/App.jsx', './src/main.jsx']
+        },
         proxy: {
             "/api": {
                 target: loadEnv(mode, process.cwd()).VITE_VOP_API,
