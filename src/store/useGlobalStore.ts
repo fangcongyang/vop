@@ -210,7 +210,6 @@ export const useGlobalStore = create<GlobalState>()(
                 pageActive: state.pageActive,
                 currentSite: state.currentSite,
                 searchKeyword: state.searchKeyword,
-                playInfo: state.playInfo,
                 osType: state.osType,
                 osDetailType: state.osDetailType,
             }),

@@ -165,11 +165,11 @@ const Play = (props) => {
             const _key = playMovieUq;
             let time = undefined;
             // 初始化片头片尾位置
-            setMoviesInfo((prev) => ({
-                ...prev,
+            setMoviesInfo({
+                ...moviesInfo,
                 startPosition: { min: "00", sec: "00" },
                 endPosition: { min: "00", sec: "00" },
-            }));
+            });
 
             // 从localStorage恢复片头片尾设置
             const timingKey = `timing_${_key}`;
@@ -177,8 +177,8 @@ const Play = (props) => {
             if (savedTiming) {
                 try {
                     const timing = JSON.parse(savedTiming);
-                    setMoviesInfo((prev) => ({
-                        ...prev,
+                    setMoviesInfo({
+                        ...moviesInfo,
                         startPosition: timing.startPosition || {
                             min: "00",
                             sec: "00",
@@ -187,7 +187,7 @@ const Play = (props) => {
                             min: "00",
                             sec: "00",
                         },
-                    }));
+                    });
                 } catch (e) {
                     console.warn(
                         "Failed to parse timing from localStorage:",
@@ -206,8 +206,8 @@ const Play = (props) => {
                 if (currentHistory.start_position) {
                     // 数据库保存的时长通过快捷键设置时可能为小数, startPosition为object对应输入框分秒转化到数据库后肯定为整数
                     const startPos = currentHistory.start_position;
-                    setMoviesInfo((prev) => ({
-                        ...prev,
+                    setMoviesInfo({
+                        ...moviesInfo,
                         startPosition: {
                             min: String(Math.floor(startPos / 60)).padStart(
                                 2,
@@ -218,12 +218,12 @@ const Play = (props) => {
                                 "0"
                             ),
                         },
-                    }));
+                    });
                 }
                 if (currentHistory.end_position) {
                     const endPos = currentHistory.end_position;
-                    setMoviesInfo((prev) => ({
-                        ...prev,
+                    setMoviesInfo({
+                        ...moviesInfo,
                         endPosition: {
                             min: String(Math.floor(endPos / 60)).padStart(
                                 2,
@@ -234,7 +234,7 @@ const Play = (props) => {
                                 "0"
                             ),
                         },
-                    }));
+                    });
                 }
             }
             const index = playInfo.movieInfo.index || 0;
@@ -365,29 +365,44 @@ const Play = (props) => {
 
         // 使用React的方式创建定时器
         const localUpdateHistory = async () => {
-            if (!playPage.playing) {
-                return;
-            }
-            let historyInfo = playPage.currentHistory;
-            const mi = getMoviesInfo();
-            if (historyInfo) {
-                // 计算片头片尾位置（秒）
-                const startPosition =
-                    parseInt(mi.startPosition.min) * 60 +
-                    parseInt(mi.startPosition.sec);
-                const endPosition =
-                    parseInt(mi.endPosition.min) * 60 +
-                    parseInt(mi.endPosition.sec);
-
-                const updateData = {
-                    id: playPage.currentHistory.id,
-                    index: playPage.movieIndex,
-                    playTime: player.currentTime(),
-                    duration: player.duration(),
-                    startPosition: startPosition,
-                    endPosition: endPosition,
-                };
-                await updateHistory(updateData);
+            try {
+                if (!playPage.currentHistory) {
+                    console.warn("当前历史记录为空，跳过更新");
+                    return;
+                }
+                let historyInfo = playPage.currentHistory;
+                const mi = getMoviesInfo();
+                if (historyInfo) {
+                    // 计算片头片尾位置（秒）
+                    const startPosition =
+                        parseInt(mi.startPosition.min) * 60 +
+                        parseInt(mi.startPosition.sec);
+                    const endPosition =
+                        parseInt(mi.endPosition.min) * 60 +
+                        parseInt(mi.endPosition.sec);
+                    const currentTime = player.currentTime();
+                    const duration = player.duration();
+                    // 验证时间数据有效性
+                    if (
+                        isNaN(currentTime) ||
+                        isNaN(duration) ||
+                        currentTime < 0
+                    ) {
+                        console.warn("播放时间数据无效，跳过更新");
+                        return;
+                    }
+                    const updateData = {
+                        id: playPage.currentHistory.id,
+                        index: playPage.movieIndex,
+                        playTime: player.currentTime(),
+                        duration: player.duration(),
+                        startPosition: startPosition,
+                        endPosition: endPosition,
+                    };
+                    await updateHistory(updateData);
+                }
+            } catch (error) {
+                console.error("更新历史记录失败:", error);
             }
         };
 
@@ -421,12 +436,12 @@ const Play = (props) => {
             !playInfo.movieInfo.siteKey ||
             activeSites.length === 0
         ) {
-            setMoviesInfo((prev) => ({ ...prev, otherSiteMoviesSources: [] }));
+            setMoviesInfo({ ...moviesInfo, otherSiteMoviesSources: [] });
             return;
         }
 
         // 重置其他站点资源
-        setMoviesInfo((prev) => ({ ...prev, otherSiteMoviesSources: [] }));
+        setMoviesInfo({ ...moviesInfo, otherSiteMoviesSources: [] });
 
         try {
             // 统一处理搜索结果的函数
@@ -466,13 +481,13 @@ const Play = (props) => {
             const results = await Promise.all(searchPromises);
             const allResults = results.flat();
 
-            setMoviesInfo((prev) => ({
-                ...prev,
+            setMoviesInfo({
+                ...moviesInfo,
                 otherSiteMoviesSources: allResults,
-            }));
+            });
         } catch (error) {
             console.error("获取其他站点资源失败:", error);
-            setMoviesInfo((prev) => ({ ...prev, otherSiteMoviesSources: [] }));
+            setMoviesInfo({ ...moviesInfo, otherSiteMoviesSources: [] });
         }
     }, [playInfo.name, activeSites, firstHistoryItem?.history_name]);
 
@@ -642,8 +657,6 @@ const Play = (props) => {
             }
         };
     }, []);
-
-
 
     const initPlay = async () => {
         playPage.isFirstPlay = false;
