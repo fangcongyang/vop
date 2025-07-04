@@ -1,4 +1,18 @@
-## [0.1.2](https://github.com/fangcongyang/vop/compare/v0.1.1...v0.1.2) (2025-07-03)
+## [0.1.3](https://github.com/fangcongyang/vop/compare/v0.1.2...v0.1.3) (2025-07-04)
+
+
+### ⚡ Performance Improvements | 性能优化
+
+* 优化应用启动性能和资源加载策略 ([](https://github.com/fangcongyang/vop/commit/c837886))
+
+
+### ✨ Features | 新功能
+
+* 添加右键菜单组件及历史记录导入导出功能 ([](https://github.com/fangcongyang/vop/commit/d7a9ea0))
+
+
+
+## [0.1.2](https://github.com/fangcongyang/vop/compare/0.1.2...v0.1.2) (2025-07-03)
 
 
 ### ✨ Features | 新功能
