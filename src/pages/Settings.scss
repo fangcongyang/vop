@@ -133,7 +133,7 @@
         &:active {
             transform: scale(0.94);
         }
-        
+
         @include responseTo('phonePortrait') {
             display: block;
         }
@@ -148,13 +148,12 @@ input.text-input.margin-right-0 {
 input.text-input {
     background: var(--color-secondary-bg);
     border: none;
-    margin-right: 22px;
     padding: 8px 12px 8px 12px;
     border-radius: 8px;
     color: var(--color-text);
     font-weight: 600;
     font-size: 16px;
-    
+
     @include responseTo('phonePortrait') {
         margin-bottom: 10px;
         width: 300px;
@@ -170,7 +169,7 @@ input[type='number'] {
 #proxy-form {
     display: flex;
     align-items: center;
-    
+
     @include responseTo('phonePortrait') {
         display: block;
     }

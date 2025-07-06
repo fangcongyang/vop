@@ -111,6 +111,11 @@ pub fn run() {
             file_download::cmd::movie_merger,
             app::cmds::open_devtools,
             app::cmds::download_file_task,
+            app::cmds::download_miniserve_task,
+            app::cmds::start_miniserve_service,
+            app::cmds::stop_miniserve_service,
+            app::cmds::check_miniserve_service_status,
+            app::cmds::get_local_ip,
             app::cmds::github_repos_info_version,
             app::cmds::create_top_small_play_window,
             orm::history::cmds::get_current_history_or_save,
@@ -126,6 +131,7 @@ pub fn run() {
             orm::star::cmds::star_movie,
             orm::star::cmds::delete_star,
             orm::star::cmds::select_all_star,
+            orm::star::cmds::import_star,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
