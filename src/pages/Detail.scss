@@ -294,6 +294,12 @@
     border-radius: 10px;
     box-shadow: var(--l-bsc);
 
+    // CSS变量定义
+    --base-width: 60px;
+    --char-width: 12px;
+    --max-width: 150px;
+    --episode-min-width: 80px;
+
     h2 {
         font-size: 1.2rem;
         color: var(--color-primary);
@@ -305,7 +311,7 @@
 
     .episodes-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(var(--episode-min-width, 80px), 1fr));
         gap: 10px;
         width: 100%;
     }

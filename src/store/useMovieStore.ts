@@ -92,8 +92,6 @@ export const useMovieStore = create<MovieState>()(persist(
         storage: createJSONStorage(() => localStorage),
         partialize: (state) => ({
             movieDetailInfo: state.movieDetailInfo,
-            downloadInfoList: state.downloadInfoList,
-            historyInfoList: state.historyInfoList,
         }),
     }
 ));

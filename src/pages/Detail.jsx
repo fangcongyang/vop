@@ -92,6 +92,44 @@ const Detail = (props) => {
         return num.length > 1 ? num[0] : `第${n + 1}集`;
     };
 
+    // 计算剧集名称字数并设置动态宽度
+    const calculateEpisodeWidth = (episodeName) => {
+        const charCount = episodeName.length;
+        return charCount;
+    };
+
+    // 设置剧集网格的动态宽度CSS变量
+    const updateEpisodeGridWidth = () => {
+        if (!info.videoList || info.videoList.length === 0) return;
+        
+        // 计算所有剧集名称的最大字数
+        const maxCharCount = Math.max(
+            ...info.videoList.map((item, index) => {
+                const episodeName = ftName(item, index);
+                return calculateEpisodeWidth(episodeName);
+            })
+        );
+        
+        // 设置计算参数
+        const baseWidth = 60;
+        const charWidth = 12;
+        const maxWidth = 150;
+        
+        // 计算动态宽度：基础宽度 + 字数 * 每字宽度
+        const calculatedWidth = Math.min(baseWidth + maxCharCount * charWidth, maxWidth);
+        
+        // 设置CSS变量
+        const episodeGrid = document.querySelector('.episodes-grid');
+        if (episodeGrid) {
+            episodeGrid.style.setProperty('--episode-min-width', `${calculatedWidth}px`);
+        }
+    };
+
+    // 当info.videoList变化时更新剧集网格宽度
+    useEffect(() => {
+        updateEpisodeGridWidth();
+    }, [info.videoList]);
+
     const starEvent = () => {
         const star = {
             star_name: info.name,

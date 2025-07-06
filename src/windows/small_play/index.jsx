@@ -404,11 +404,14 @@ const SmallPlay = () => {
         dp.on("timeupdate", () => {
             if (dpConfig.isLive || !playInfo.movieInfo.siteKey) return;
 
-            const detail = playPage.cachedDetail || {};
-            if (detail && detail.endPosition) {
+            const mi = getMoviesInfo();
+            const endPosition =
+                parseInt(mi.endPosition.min) * 60 +
+                parseInt(mi.endPosition.sec);
+            if (endPosition) {
                 const time =
                     dp.video.duration -
-                    detail.endPosition -
+                    endPosition -
                     dp.video.currentTime;
                 if (time <= 0.25) {
                     // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
@@ -485,8 +488,6 @@ const SmallPlay = () => {
                         getSite(playInfo.movieInfo.siteKey),
                         playInfo.movieInfo.ids
                     );
-                    // 缓存详情数据供后续使用
-                    playPage.cachedDetail = detail;
                     let currentHistory = await getCurrentHistoryOrSave(
                         playInfo,
                         detail

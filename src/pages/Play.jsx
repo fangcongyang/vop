@@ -38,6 +38,51 @@ import {
 } from "@ant-design/icons";
 import { useMovieStore } from "@/store/useMovieStore";
 
+// 时间输入组件
+const TimingInput = ({ label, position, onChange }) => {
+    const handleMinChange = (e) => {
+        const value = e.target.value.replace(/\D/g, "").slice(0, 2);
+        onChange({
+            ...position,
+            min: value || "00",
+        });
+    };
+
+    const handleSecChange = (e) => {
+        const value = e.target.value.replace(/\D/g, "").slice(0, 2);
+        if (value === "" || parseInt(value) <= 59) {
+            onChange({
+                ...position,
+                sec: value || "00",
+            });
+        }
+    };
+
+    return (
+        <div className="timing-item">
+            <span className="timing-label">{label}</span>
+            <Space.Compact>
+                <Input
+                    style={{ width: 60 }}
+                    value={position.min}
+                    onChange={handleMinChange}
+                    placeholder="分"
+                    maxLength={2}
+                />
+                <span style={{ padding: "0 8px", lineHeight: "32px" }}>分</span>
+                <Input
+                    style={{ width: 60 }}
+                    value={position.sec}
+                    onChange={handleSecChange}
+                    placeholder="秒"
+                    maxLength={2}
+                />
+                <span style={{ padding: "0 8px", lineHeight: "32px" }}>秒</span>
+            </Space.Compact>
+        </div>
+    );
+};
+
 let player;
 let playPage = {
     isFirstPlay: true,
@@ -558,11 +603,14 @@ const Play = (props) => {
         dp.on("timeupdate", () => {
             if (dpConfig.isLive || !playInfo.movieInfo.siteKey) return;
 
-            const detail = playPage.cachedDetail || {};
-            if (detail && detail.endPosition) {
+            const mi = getMoviesInfo();
+            const endPosition =
+                parseInt(mi.endPosition.min) * 60 +
+                parseInt(mi.endPosition.sec);
+            if (endPosition) {
                 const time =
                     dp.video.duration -
-                    detail.endPosition -
+                    endPosition -
                     dp.video.currentTime;
                 if (time <= 0.25) {
                     // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
@@ -671,8 +719,6 @@ const Play = (props) => {
                     site,
                     playInfo.movieInfo.ids
                 );
-                // 缓存详情数据供后续使用
-                playPage.cachedDetail = detail;
                 let currentHistory = await getCurrentHistoryOrSave(
                     playInfo,
                     detail
@@ -761,6 +807,44 @@ const Play = (props) => {
         }
     };
 
+    // 计算剧集名称字数并设置动态宽度
+    const calculateEpisodeWidth = (episodeName) => {
+        const charCount = episodeName.length;
+        return charCount;
+    };
+
+    // 设置剧集网格的动态宽度CSS变量
+    const updateEpisodeGridWidth = () => {
+        if (movieList.length === 0) return;
+
+        // 计算所有剧集名称的最大字数
+        const maxCharCount = Math.max(
+            ...movieList.map((item, index) => {
+                const episodeName = ftName(item, index);
+                return calculateEpisodeWidth(episodeName);
+            })
+        );
+
+        // 根据是否为短剧模式设置不同的计算参数
+        const baseWidth = shortVideoMode ? 70 : 60;
+        const charWidth = shortVideoMode ? 10 : 12;
+        const maxWidth = shortVideoMode ? 120 : 150;
+
+        // 计算动态宽度：基础宽度 + 字数 * 每字宽度
+        const calculatedWidth = Math.min(baseWidth + maxCharCount * charWidth, maxWidth);
+
+        // 设置CSS变量
+        const episodeGrid = document.querySelector('.play-episodes-grid');
+        if (episodeGrid) {
+            episodeGrid.style.setProperty('--episode-min-width', `${calculatedWidth}px`);
+        }
+    };
+
+    // 当movieList或shortVideoMode变化时更新剧集网格宽度
+    useEffect(() => {
+        updateEpisodeGridWidth();
+    }, [movieList, shortVideoMode]);
+
     const listItemEvent = (n) => {
         if (playInfo.playType == "iptv") {
             const channel = channelGroupList.value[n];
@@ -786,6 +870,48 @@ const Play = (props) => {
     // 关闭二维码弹窗
     const closeQRCode = () => {
         setQrCodeVisible(false);
+    };
+
+    // 保存片头片尾设置到localStorage
+    const saveTimingToLocalStorage = (moviesInfo) => {
+        const timingKey = `timing_${playMovieUq}`;
+        const timingData = {
+            startPosition: moviesInfo.startPosition,
+            endPosition: moviesInfo.endPosition,
+        };
+        localStorage.setItem(timingKey, JSON.stringify(timingData));
+    };
+
+    // 保存片头片尾设置到数据库
+    const handleSaveTimingSettings = async () => {
+        try {
+            if (!playPage.currentHistory) {
+                messageApi.warning("当前没有播放历史记录");
+                return;
+            }
+
+            const startPosition =
+                parseInt(moviesInfo.startPosition.min) * 60 +
+                parseInt(moviesInfo.startPosition.sec);
+            const endPosition =
+                parseInt(moviesInfo.endPosition.min) * 60 +
+                parseInt(moviesInfo.endPosition.sec);
+
+            const updateData = {
+                id: playPage.currentHistory.id,
+                startPosition: startPosition,
+                endPosition: endPosition,
+            };
+
+            await updateHistory(updateData);
+            messageApi.success("片头片尾设置已保存");
+
+            // 同时保存到localStorage
+            saveTimingToLocalStorage(moviesInfo);
+        } catch (error) {
+            console.error("保存片头片尾设置失败:", error);
+            messageApi.error("保存设置失败");
+        }
     };
 
     return (
@@ -951,250 +1077,34 @@ const Play = (props) => {
                         <h2>片头片尾</h2>
                         <div className="timing-controls">
                             <Space size="large" wrap>
-                                <div className="timing-item">
-                                    <span className="timing-label">
-                                        片头跳过：
-                                    </span>
-                                    <Space.Compact>
-                                        <Input
-                                            style={{ width: 60 }}
-                                            value={moviesInfo.startPosition.min}
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 2);
-                                                const newMoviesInfo = {
-                                                    ...moviesInfo,
-                                                    startPosition: {
-                                                        ...moviesInfo.startPosition,
-                                                        min: value || "00",
-                                                    },
-                                                };
-                                                setMoviesInfo(newMoviesInfo);
-
-                                                // 实时保存到localStorage
-                                                const timingKey = `timing_${playMovieUq}`;
-                                                const timingData = {
-                                                    startPosition:
-                                                        newMoviesInfo.startPosition,
-                                                    endPosition:
-                                                        newMoviesInfo.endPosition,
-                                                    timestamp: Date.now(),
-                                                };
-                                                localStorage.setItem(
-                                                    timingKey,
-                                                    JSON.stringify(timingData)
-                                                );
-                                            }}
-                                            placeholder="分"
-                                            maxLength={2}
-                                        />
-                                        <span
-                                            style={{
-                                                padding: "0 8px",
-                                                lineHeight: "32px",
-                                            }}
-                                        >
-                                            分
-                                        </span>
-                                        <Input
-                                            style={{ width: 60 }}
-                                            value={moviesInfo.startPosition.sec}
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 2);
-                                                if (
-                                                    value === "" ||
-                                                    parseInt(value) <= 59
-                                                ) {
-                                                    const newMoviesInfo = {
-                                                        ...moviesInfo,
-                                                        startPosition: {
-                                                            ...moviesInfo.startPosition,
-                                                            sec: value || "00",
-                                                        },
-                                                    };
-                                                    setMoviesInfo(
-                                                        newMoviesInfo
-                                                    );
-
-                                                    // 实时保存到localStorage
-                                                    const timingKey = `timing_${playMovieUq}`;
-                                                    const timingData = {
-                                                        startPosition:
-                                                            newMoviesInfo.startPosition,
-                                                        endPosition:
-                                                            newMoviesInfo.endPosition,
-                                                        timestamp: Date.now(),
-                                                    };
-                                                    localStorage.setItem(
-                                                        timingKey,
-                                                        JSON.stringify(
-                                                            timingData
-                                                        )
-                                                    );
-                                                }
-                                            }}
-                                            placeholder="秒"
-                                            maxLength={2}
-                                        />
-                                        <span
-                                            style={{
-                                                padding: "0 8px",
-                                                lineHeight: "32px",
-                                            }}
-                                        >
-                                            秒
-                                        </span>
-                                    </Space.Compact>
-                                </div>
-                                <div className="timing-item">
-                                    <span className="timing-label">
-                                        片尾跳过：
-                                    </span>
-                                    <Space.Compact>
-                                        <Input
-                                            style={{ width: 60 }}
-                                            value={moviesInfo.endPosition.min}
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 2);
-                                                const newMoviesInfo = {
-                                                    ...moviesInfo,
-                                                    endPosition: {
-                                                        ...moviesInfo.endPosition,
-                                                        min: value || "00",
-                                                    },
-                                                };
-                                                setMoviesInfo(newMoviesInfo);
-
-                                                // 实时保存到localStorage
-                                                const timingKey = `timing_${playMovieUq}`;
-                                                const timingData = {
-                                                    startPosition:
-                                                        newMoviesInfo.startPosition,
-                                                    endPosition:
-                                                        newMoviesInfo.endPosition,
-                                                    timestamp: Date.now(),
-                                                };
-                                                localStorage.setItem(
-                                                    timingKey,
-                                                    JSON.stringify(timingData)
-                                                );
-                                            }}
-                                            placeholder="分"
-                                            maxLength={2}
-                                        />
-                                        <span
-                                            style={{
-                                                padding: "0 8px",
-                                                lineHeight: "32px",
-                                            }}
-                                        >
-                                            分
-                                        </span>
-                                        <Input
-                                            style={{ width: 60 }}
-                                            value={moviesInfo.endPosition.sec}
-                                            onChange={(e) => {
-                                                const value = e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 2);
-                                                if (
-                                                    value === "" ||
-                                                    parseInt(value) <= 59
-                                                ) {
-                                                    const newMoviesInfo = {
-                                                        ...moviesInfo,
-                                                        endPosition: {
-                                                            ...moviesInfo.endPosition,
-                                                            sec: value || "00",
-                                                        },
-                                                    };
-                                                    setMoviesInfo(
-                                                        newMoviesInfo
-                                                    );
-
-                                                    // 实时保存到localStorage
-                                                    const timingKey = `timing_${playMovieUq}`;
-                                                    const timingData = {
-                                                        startPosition:
-                                                            newMoviesInfo.startPosition,
-                                                        endPosition:
-                                                            newMoviesInfo.endPosition,
-                                                        timestamp: Date.now(),
-                                                    };
-                                                    localStorage.setItem(
-                                                        timingKey,
-                                                        JSON.stringify(
-                                                            timingData
-                                                        )
-                                                    );
-                                                }
-                                            }}
-                                            placeholder="秒"
-                                            maxLength={2}
-                                        />
-                                        <span
-                                            style={{
-                                                padding: "0 8px",
-                                                lineHeight: "32px",
-                                            }}
-                                        >
-                                            秒
-                                        </span>
-                                    </Space.Compact>
-                                </div>
+                                <TimingInput
+                                    label="片头跳过："
+                                    position={moviesInfo.startPosition}
+                                    onChange={(newPosition) => {
+                                        const newMoviesInfo = {
+                                            ...moviesInfo,
+                                            startPosition: newPosition,
+                                        };
+                                        setMoviesInfo(newMoviesInfo);
+                                        saveTimingToLocalStorage(newMoviesInfo);
+                                    }}
+                                />
+                                <TimingInput
+                                    label="片尾跳过："
+                                    position={moviesInfo.endPosition}
+                                    onChange={(newPosition) => {
+                                        const newMoviesInfo = {
+                                            ...moviesInfo,
+                                            endPosition: newPosition,
+                                        };
+                                        setMoviesInfo(newMoviesInfo);
+                                        saveTimingToLocalStorage(newMoviesInfo);
+                                    }}
+                                />
                                 <Button
                                     type="primary"
                                     size="small"
-                                    onClick={() => {
-                                        // 保存到localStorage
-                                        const timingKey = `timing_${playMovieUq}`;
-                                        const timingData = {
-                                            startPosition:
-                                                moviesInfo.startPosition,
-                                            endPosition: moviesInfo.endPosition,
-                                            timestamp: Date.now(),
-                                        };
-                                        localStorage.setItem(
-                                            timingKey,
-                                            JSON.stringify(timingData)
-                                        );
-
-                                        // 立即保存设置到历史记录
-                                        if (playPage.currentHistory) {
-                                            const startPosition =
-                                                parseInt(
-                                                    moviesInfo.startPosition.min
-                                                ) *
-                                                    60 +
-                                                parseInt(
-                                                    moviesInfo.startPosition.sec
-                                                );
-                                            const endPosition =
-                                                parseInt(
-                                                    moviesInfo.endPosition.min
-                                                ) *
-                                                    60 +
-                                                parseInt(
-                                                    moviesInfo.endPosition.sec
-                                                );
-
-                                            const updateData = {
-                                                id: playPage.currentHistory.id,
-                                                startPosition: startPosition,
-                                                endPosition: endPosition,
-                                            };
-                                            updateHistory(updateData);
-                                        }
-
-                                        message.success(
-                                            "片头片尾设置已保存到本地和历史记录"
-                                        );
-                                    }}
+                                    onClick={handleSaveTimingSettings}
                                 >
                                     保存设置
                                 </Button>

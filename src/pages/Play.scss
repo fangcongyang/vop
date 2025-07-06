@@ -311,8 +311,17 @@
     }
 
     .play-episodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(var(--episode-min-width, 100px), 1fr));
+      gap: 10px;
+      width: 100%;
       max-height: 120px;
       overflow-y: auto;
+
+      // 短剧模式下的CSS变量
+      --base-width: 70px;
+      --char-width: 10px;
+      --max-width: 120px;
 
       &::-webkit-scrollbar {
         width: 4px;
@@ -331,9 +340,15 @@
 
   .play-episodes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--episode-min-width, 80px), 1fr));
     gap: 10px;
     width: 100%;
+
+    // CSS变量定义：根据字数动态计算最小宽度
+    // 基础宽度 + 字数 * 每字宽度
+    --base-width: 60px;
+    --char-width: 12px;
+    --max-width: 150px;
   }
 
   .play-episode-btn {
