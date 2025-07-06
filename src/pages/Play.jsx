@@ -788,6 +788,7 @@ const Play = (props) => {
     }, [playInfo.movieInfo.onlineUrl]);
 
     const closePlayerAndInit = () => {
+        updateSelectAllHistory();
         resetPlayInfo();
         setPlayMode("local");
         playPage.isFirstPlay = true;
