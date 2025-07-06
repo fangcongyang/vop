@@ -630,6 +630,7 @@ const Play = (props) => {
                     return;
                 }
                 const historyItem = localHistoryList[0];
+                playPage.currentHistory = historyItem;
                 let playInfo = {
                     playState: "newPlay",
                     // iptv onlineMovie localMovie
@@ -965,7 +966,7 @@ const Play = (props) => {
                                 </span>
                                 <span
                                     className={
-                                        firstHistoryItem?.onlinePlay
+                                        firstHistoryItem?.online_play
                                             ? ""
                                             : "hidden"
                                     }

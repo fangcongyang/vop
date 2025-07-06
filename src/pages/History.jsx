@@ -4,12 +4,16 @@ import { selectAllHistory, deleteHistory, importHistory } from "@/api/history";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
 import ContextMenu from "@/components/ContextMenu";
+import { useMovieStore } from "@/store/useMovieStore";
 import utils from "@/utils";
 
 import "./Movie.scss";
 
 const History = (props) => {
     const [messageApi, contextHolder] = message.useMessage();
+    const toggleHistoryInfoList = useMovieStore(
+        (state) => state.toggleHistoryInfoList
+    );
     const [historyList, setHistoryList] = useState([]);
     const historyRef = useRef(null);
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
@@ -33,6 +37,7 @@ const History = (props) => {
 
     const initHistoryList = async () => {
         const res = await selectAllHistory();
+        toggleHistoryInfoList(res);
         setHistoryList(res);
     };
 
