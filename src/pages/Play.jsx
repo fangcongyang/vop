@@ -603,14 +603,11 @@ const Play = (props) => {
         dp.on("timeupdate", () => {
             if (dpConfig.isLive || !playInfo.movieInfo.siteKey) return;
 
-            const mi = getMoviesInfo();
-            const endPosition =
-                parseInt(mi.endPosition.min) * 60 +
-                parseInt(mi.endPosition.sec);
-            if (endPosition) {
+            const currentHistory = playPage.currentHistory;
+            if (currentHistory.end_position) {
                 const time =
                     dp.video.duration -
-                    endPosition -
+                    currentHistory.end_position -
                     dp.video.currentTime;
                 if (time <= 0.25) {
                     // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
@@ -899,6 +896,8 @@ const Play = (props) => {
                 parseInt(moviesInfo.endPosition.min) * 60 +
                 parseInt(moviesInfo.endPosition.sec);
 
+            playPage.currentHistory.start_position = startPosition;
+            playPage.currentHistory.end_position = endPosition;
             const updateData = {
                 id: playPage.currentHistory.id,
                 startPosition: startPosition,
