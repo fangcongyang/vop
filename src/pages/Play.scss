@@ -91,13 +91,13 @@
       }
 
       @include responseTo("desktop") {
-        height: calc(100% - 90px);
+        height: calc(100% - 40px);
       }
 
       &.short-video-mode {
         @include responseTo("desktop") {
           width: 40%;
-          height: calc(100% - 90px);
+          height: calc(100% - 40px);
           float: left;
           margin-right: 20px;
           border-radius: 8px;
@@ -115,7 +115,7 @@
         @include responseTo("tablet") {
           // 在平板设备上也禁用短剧模式
           width: 100%;
-          height: calc(100% - 90px);
+          height: calc(100% - 40px);
           float: none;
           margin-right: 0;
         }
@@ -129,7 +129,7 @@
       &.short-video-mode {
         @include responseTo("desktop") {
           width: 40%;
-          height: calc(100% - 90px);
+          height: calc(100% - 40px);
           float: left;
           margin-right: 20px;
           border-radius: 8px;
@@ -147,7 +147,7 @@
         @include responseTo("tablet") {
           // 在平板设备上也禁用短剧模式
           width: 100%;
-          height: calc(100% - 90px);
+          height: calc(100% - 40px);
           float: none;
           margin-right: 0;
         }

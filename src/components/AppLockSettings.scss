@@ -1,0 +1,274 @@
+@import "../Base.scss";
+
+.app-lock-settings-modal {
+  .ant-modal-content {
+    background: var(--color-secondary-bg);
+    border-radius: 12px;
+  }
+
+  .ant-modal-header {
+    background: var(--color-secondary-bg);
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 12px 12px 0 0;
+
+    .ant-modal-title {
+      color: var(--color-text);
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+
+  .ant-modal-close {
+    color: var(--color-text-secondary);
+
+    &:hover {
+      color: var(--color-text);
+    }
+  }
+}
+
+.app-lock-settings-container {
+  padding: 24px 0;
+
+  .setup-steps {
+    margin-bottom: 32px;
+
+    .ant-steps-item {
+      .ant-steps-item-title {
+        color: var(--color-text-secondary);
+        font-size: 14px;
+      }
+
+      &.ant-steps-item-active {
+        .ant-steps-item-title {
+          color: var(--color-primary);
+          font-weight: 500;
+        }
+
+        .ant-steps-item-icon {
+          background: var(--color-primary);
+          border-color: var(--color-primary);
+        }
+      }
+
+      &.ant-steps-item-finish {
+        .ant-steps-item-title {
+          color: var(--color-text);
+        }
+
+        .ant-steps-item-icon {
+          background: var(--color-primary);
+          border-color: var(--color-primary);
+        }
+      }
+    }
+  }
+
+  .step-header {
+    text-align: center;
+    margin-bottom: 32px;
+
+    h3 {
+      color: var(--color-text);
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+    }
+
+    p {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.5;
+    }
+  }
+
+  .password-step,
+  .security-step {
+    .ant-form {
+      .ant-form-item {
+        margin-bottom: 24px;
+
+        .ant-form-item-label {
+          label {
+            color: var(--color-text);
+            font-weight: 500;
+            font-size: 14px;
+          }
+        }
+      }
+
+      .ant-input,
+      .ant-input-password {
+        background: var(--color-primary-bg);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        border-radius: 8px;
+        font-size: 14px;
+
+        &:hover {
+          border-color: var(--color-primary);
+        }
+
+        &:focus,
+        &.ant-input-focused {
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px rgba(51, 94, 234, 0.2);
+        }
+
+        &::placeholder {
+          color: var(--color-text-placeholder);
+        }
+      }
+    }
+  }
+
+  .password-tips,
+  .security-tips {
+    background: var(--color-primary-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 24px 0;
+
+    h4 {
+      color: var(--color-text);
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--color-text-secondary);
+      font-size: 13px;
+      line-height: 1.6;
+
+      li {
+        margin-bottom: 4px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+
+  .question-group {
+    background: var(--color-body-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+
+    .ant-form-item {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .step-buttons {
+    width: 100%;
+    justify-content: center;
+    margin-top: 32px;
+
+    .ant-btn {
+      min-width: 100px;
+      height: 40px;
+      border-radius: 8px;
+      font-weight: 500;
+
+      &.ant-btn-primary {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+
+        &:hover {
+          background: var(--color-primary-hover);
+          border-color: var(--color-primary-hover);
+        }
+
+        &:disabled {
+          background: var(--color-primary-disabled);
+          border-color: var(--color-primary-disabled);
+        }
+      }
+
+      &:not(.ant-btn-primary) {
+        color: var(--color-text-secondary);
+        border-color: var(--color-border);
+        background: var(--color-secondary-bg);
+
+        &:hover {
+          color: var(--color-text);
+          border-color: var(--color-primary);
+        }
+      }
+    }
+  }
+}
+
+// 响应式设计
+@include responseTo("mobile") {
+  .app-lock-settings-modal {
+    .ant-modal {
+      margin: 16px;
+      max-width: calc(100vw - 32px);
+    }
+  }
+
+  .app-lock-settings-container {
+    padding: 16px 0;
+
+    .setup-steps {
+      margin-bottom: 24px;
+
+      .ant-steps-item-title {
+        font-size: 12px !important;
+      }
+    }
+
+    .step-header {
+      margin-bottom: 24px;
+
+      h3 {
+        font-size: 18px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+
+    .question-group {
+      padding: 16px;
+    }
+
+    .step-buttons {
+      margin-top: 24px;
+
+      .ant-btn {
+        min-width: 80px;
+        height: 36px;
+      }
+    }
+  }
+}
+
+// 暗色模式适配
+@media (prefers-color-scheme: dark) {
+  .app-lock-settings-container {
+    .password-tips,
+    .security-tips {
+      background: rgba(51, 94, 234, 0.1);
+      border-color: rgba(51, 94, 234, 0.3);
+    }
+
+    .question-group {
+      background: rgba(255, 255, 255, 0.02);
+    }
+  }
+}

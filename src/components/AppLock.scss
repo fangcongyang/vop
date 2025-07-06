@@ -1,0 +1,185 @@
+@import "../Base.scss";
+
+.app-lock-modal {
+  .ant-modal-content {
+    background: var(--color-secondary-bg);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .ant-modal-body {
+    padding: 0;
+  }
+}
+
+.app-lock-container {
+  padding: 32px 24px 24px;
+  text-align: center;
+
+  .lock-header {
+    margin-bottom: 32px;
+
+    .lock-icon {
+      font-size: 48px;
+      color: var(--color-primary);
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    h2 {
+      color: var(--color-text);
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+    }
+
+    p {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+
+  .lock-tabs {
+    .ant-tabs-nav {
+      margin-bottom: 24px;
+
+      .ant-tabs-tab {
+        color: var(--color-text-secondary);
+        
+        &.ant-tabs-tab-active {
+          color: var(--color-primary);
+        }
+
+        &.ant-tabs-tab-disabled {
+          color: var(--color-text-disabled);
+          cursor: not-allowed;
+        }
+      }
+
+      .ant-tabs-ink-bar {
+        background: var(--color-primary);
+      }
+    }
+
+    .ant-tabs-content {
+      text-align: left;
+    }
+  }
+
+  .unlock-form,
+  .recovery-form {
+    .ant-form-item {
+      margin-bottom: 20px;
+
+      .ant-form-item-label {
+        label {
+          color: var(--color-text);
+          font-weight: 500;
+        }
+      }
+    }
+
+    .ant-input,
+    .ant-input-password {
+      background: var(--color-primary-bg);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      border-radius: 8px;
+
+      &:hover {
+        border-color: var(--color-primary);
+      }
+
+      &:focus,
+      &.ant-input-focused {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(51, 94, 234, 0.2);
+      }
+
+      &::placeholder {
+        color: var(--color-text-placeholder);
+      }
+    }
+
+    .ant-btn {
+      border-radius: 8px;
+      font-weight: 500;
+      height: 44px;
+      font-size: 16px;
+
+      &.ant-btn-primary {
+        background: var(--color-primary);
+        border-color: var(--color-primary);
+
+        &:hover {
+          background: var(--color-primary-hover);
+          border-color: var(--color-primary-hover);
+        }
+
+        &:disabled {
+          background: var(--color-primary-disabled);
+          border-color: var(--color-primary-disabled);
+        }
+      }
+    }
+  }
+
+  .attempts-warning {
+    background: rgba(255, 77, 79, 0.1);
+    border: 1px solid rgba(255, 77, 79, 0.3);
+    color: #ff4d4f;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  .recovery-description {
+    background: var(--color-primary-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+}
+
+// 响应式设计
+@include responseTo("mobile") {
+  .app-lock-modal {
+    .ant-modal {
+      margin: 16px;
+      max-width: calc(100vw - 32px);
+    }
+  }
+
+  .app-lock-container {
+    padding: 24px 16px 16px;
+
+    .lock-header {
+      margin-bottom: 24px;
+
+      .lock-icon {
+        font-size: 40px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+    }
+  }
+}
+
+// 暗色模式适配
+@media (prefers-color-scheme: dark) {
+  .app-lock-container {
+    .attempts-warning {
+      background: rgba(255, 77, 79, 0.15);
+      border-color: rgba(255, 77, 79, 0.4);
+    }
+  }
+}

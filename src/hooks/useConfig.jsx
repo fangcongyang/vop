@@ -11,7 +11,7 @@ export const useConfig = (key, defaultValue, options = { }) => {
     // 同步到Store (State -> Store)
     const syncToStore = async (v, isSync) => {
         if (!isSync) return;
-        setTimeout(() => { 
+        setTimeout(() => {
             store.set(key, v);
             let eventKey = key.replace('/./g', '_').replace('/@/g', ':');
             store.notifyObservers(eventKey, storeObserver.name, v);

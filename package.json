@@ -27,6 +27,7 @@
     "antd": "^5.24.6",
     "axios": "^1.6.8",
     "cheerio": "1.0.0-rc.12",
+    "crypto-js": "^4.2.0",
     "dexie": "^3.2.7",
     "dplayerplus": "^0.0.7",
     "fast-xml-parser": "^4.3.6",

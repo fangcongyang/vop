@@ -10,6 +10,7 @@ import SettingButton from "@/components/SettingButton";
 import SettingsSelect from "@/components/SettingsSelect";
 import SettingsColorPicker from "@/components/SettingsColorPicker";
 import UpdateModal from "@/components/UpdateModal";
+import AppLockSettings from "@/components/AppLockSettings";
 import { closeAppOptionSelectData } from "@/static/settingsData";
 import { clearDB } from "@/db";
 import { useConfig } from "@/hooks";
@@ -71,6 +72,9 @@ const Settings = (props) => {
     const [dataUpload, setDataUpload] = useState(false);
     const [isCheckingUpdate, setIsCheckingUpdate] = useState(false); // 添加状态
     const [closeAppOption, setCloseAppOption] = useConfig("closeAppOption", "ask"); // 添加状态
+    const [appLockEnabled, setAppLockEnabled] = useConfig("appLockEnabled", false);
+    const [passwordHash] = useConfig("appLockPasswordHash", "");
+    const [appLockSettingsVisible, setAppLockSettingsVisible] = useState(false);
 
     // FFmpeg 下载相关状态
     const [ffmpegDownloadStatus, setFfmpegDownloadStatus] = useState("idle"); // idle, begin, progress, end, error
@@ -423,6 +427,30 @@ const Settings = (props) => {
                     callback={(color) => themeColorCallback(color)}
                 />
 
+                {/* 安全设置 */}
+                <h3>安全设置</h3>
+                <SettingsSwitch
+                    title="应用锁"
+                    initValue={appLockEnabled}
+                    fieldKey="appLockEnabled"
+                    description="启用后需要输入密码才能使用应用"
+                    callback={(switchValue) => {
+                        if (switchValue && !passwordHash) {
+                            setAppLockSettingsVisible(true);
+                        } else {
+                            setAppLockEnabled(switchValue);
+                        }
+                    }}
+                />
+                {appLockEnabled && (
+                    <SettingButton
+                        title="修改密码"
+                        description="修改应用锁密码和安全问题"
+                        placeholder="修改密码"
+                        callback={() => setAppLockSettingsVisible(true)}
+                    />
+                )}
+
                 {/* 其他 */}
                 <h3>其他</h3>
                 <SettingsSwitch
@@ -506,6 +534,14 @@ const Settings = (props) => {
                     onClose={() => setIsCheckingUpdate(false)}
                 />
             ) : null}
+            <AppLockSettings
+                visible={appLockSettingsVisible}
+                onClose={() => setAppLockSettingsVisible(false)}
+                onSuccess={() => {
+                    setAppLockSettingsVisible(false);
+                    setAppLockEnabled(true);
+                }}
+            />
         </div>
     );
 };

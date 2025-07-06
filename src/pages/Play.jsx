@@ -1152,7 +1152,13 @@ const Play = (props) => {
                                 gutter={10}
                                 tipMessage="暂无其他站点资源"
                                 initYzb={10}
-                                breakpoints={{
+                                breakpoints={shortVideoMode ? {
+                                    1400: { rowPerView: 2 },
+                                    1200: { rowPerView: 2 },
+                                    1000: { rowPerView: 2 },
+                                    800: { rowPerView: 1 },
+                                    500: { rowPerView: 1 },
+                                } : {
                                     1400: { rowPerView: 6 },
                                     1200: { rowPerView: 5 },
                                     1000: { rowPerView: 4 },

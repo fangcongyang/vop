@@ -8,6 +8,7 @@
   background-color: var(--color-body-bg);
   box-shadow: var(--l-bsc);
   color: var(--color-text);
+  user-select: none;
 
   &:hover {
     box-shadow: var(--l-bsc-hover);
@@ -137,5 +138,5 @@
       display: block;
     }
   }
-  
+
 }
