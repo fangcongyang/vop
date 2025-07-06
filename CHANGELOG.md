@@ -1,4 +1,13 @@
-## [0.1.4](https://github.com/fangcongyang/vop/compare/v0.1.3...v0.1.4) (2025-07-06)
+## [0.1.5](https://github.com/fangcongyang/vop/compare/v0.1.4...v0.1.5) (2025-07-06)
+
+
+### ✨ Features | 新功能
+
+* **star:** 添加收藏导入导出功能 ([](https://github.com/fangcongyang/vop/commit/fb85dab))
+
+
+
+## [0.1.4](https://github.com/fangcongyang/vop/compare/0.1.4...v0.1.4) (2025-07-06)
 
 
 ### ✨ Features | 新功能
