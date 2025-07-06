@@ -1,4 +1,20 @@
-## [0.1.3](https://github.com/fangcongyang/vop/compare/v0.1.2...v0.1.3) (2025-07-04)
+## [0.1.4](https://github.com/fangcongyang/vop/compare/v0.1.3...v0.1.4) (2025-07-06)
+
+
+### ✨ Features | 新功能
+
+* **安全:** 添加应用锁功能 ([](https://github.com/fangcongyang/vop/commit/a42215a))
+* **播放器:** 优化剧集网格动态宽度计算和片头片尾设置 ([](https://github.com/fangcongyang/vop/commit/8bacc7a))
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* **播放历史:** 修复在线播放状态判断并同步历史记录到store ([](https://github.com/fangcongyang/vop/commit/0c696e0))
+* 在关闭播放器时调用updateSelectAllHistory ([](https://github.com/fangcongyang/vop/commit/ee6b755))
+
+
+
+## [0.1.3](https://github.com/fangcongyang/vop/compare/0.1.3...v0.1.3) (2025-07-04)
 
 
 ### ⚡ Performance Improvements | 性能优化
