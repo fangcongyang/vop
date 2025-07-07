@@ -21,7 +21,7 @@ import Waterfall from "@/components/Waterfall";
 import MovieCard from "@/components/MovieCard";
 import { message, Button, Tooltip, Input, Space } from "antd";
 import QRCodeModal from "@/components/QRCodeModal";
-import { fmtMSS, clearTimer } from "@/utils/common";
+import { fmtMSS, clearTimer, formatSecondsToMinSec } from "@/utils/common";
 import { useGetState } from "@/hooks";
 import { useGlobalStore } from "@/store/useGlobalStore";
 import _ from "lodash";
@@ -254,32 +254,14 @@ const Play = (props) => {
                     const startPos = currentHistory.start_position;
                     setMoviesInfo({
                         ...moviesInfo,
-                        startPosition: {
-                            min: String(Math.floor(startPos / 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                            sec: String(Math.floor(startPos % 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                        },
+                        startPosition: formatSecondsToMinSec(startPos),
                     });
                 }
                 if (currentHistory.end_position) {
                     const endPos = currentHistory.end_position;
                     setMoviesInfo({
                         ...moviesInfo,
-                        endPosition: {
-                            min: String(Math.floor(endPos / 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                            sec: String(Math.floor(endPos % 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                        },
+                        endPosition: formatSecondsToMinSec(endPos),
                     });
                 }
             }
@@ -728,10 +710,23 @@ const Play = (props) => {
 
     useEffect(() => {
         getPlayer("", true);
-
+        updateSelectAllHistory();
+        const initUnlisten = async () => {
+            const unlisten = await listen(
+                GlobalEvent.PlayChangeEvent,
+                (payload) => {
+                    updatePlayInfoIndex(payload);
+                }
+            );
+            playChangeEventUnlistenFn.current = unlisten;
+        };
+        initUnlisten();
         return () => {
             // 使用useRef清理定时器
             clearTimer(historyTimerRef);
+            if (playChangeEventUnlistenFn.current) {
+                playChangeEventUnlistenFn.current();
+            }
         };
     }, []);
 
@@ -789,25 +784,6 @@ const Play = (props) => {
         }
     }, [smallPlayVisible]);
 
-    useEffect(() => {
-        updateSelectAllHistory();
-        const initUnlisten = async () => {
-            const unlisten = await listen(
-                GlobalEvent.PlayChangeEvent,
-                (payload) => {
-                    updatePlayInfoIndex(payload);
-                }
-            );
-            playChangeEventUnlistenFn.current = unlisten;
-        };
-        initUnlisten();
-        return () => {
-            if (playChangeEventUnlistenFn.current) {
-                playChangeEventUnlistenFn.current();
-            }
-        };
-    }, []);
-
     const onlinePlayKey = useMemo(() => {
         const currentPlayInfo = getPlayInfo();
         if (smallPlayVisible) {
@@ -822,10 +798,14 @@ const Play = (props) => {
         updateSelectAllHistory();
         resetPlayInfo();
         setPlayMode("local");
-        playPage.isFirstPlay = true;
-        playPage.movieList = [];
-        playPage.movieIndex = 0;
-        playPage.playing = false;
+        playPage = {
+            isFirstPlay: true,
+            movieList: [],
+            movieIndex: 0,
+            currentHistory: null,
+            playing: false,
+            ...playPage,
+        };
         setPlaying(false);
         setMovieList([]);
         getPlayer("", true);

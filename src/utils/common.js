@@ -21,3 +21,18 @@ export function clearTimer(timerRef) {
         timerRef.current = null;
     }
 }
+
+/**
+ * 将秒数转换为分钟和秒数的格式化对象
+ * @param {number} totalSeconds - 总秒数
+ * @returns {{min: string, sec: string}} 格式化后的分钟和秒数对象
+ * @description 将秒数转换为两位数字符串格式的分钟和秒数
+ */
+export function formatSecondsToMinSec(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    return {
+        min: String(minutes).padStart(2, "0"),
+        sec: String(seconds).padStart(2, "0")
+    };
+}

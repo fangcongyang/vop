@@ -11,6 +11,7 @@ import _ from "lodash";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { GlobalEvent } from "../../business/types";
 import { useGlobalStore } from "@/store/useGlobalStore";
+import { formatSecondsToMinSec } from "@/utils/common";
 import "./index.scss";
 
 let player;
@@ -156,32 +157,14 @@ const SmallPlay = () => {
                     const startPos = currentHistory.start_position;
                     setMoviesInfo({
                         ...moviesInfo,
-                        startPosition: {
-                            min: String(Math.floor(startPos / 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                            sec: String(Math.floor(startPos % 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                        },
+                        startPosition: formatSecondsToMinSec(startPos),
                     });
                 }
                 if (currentHistory.end_position) {
                     const endPos = currentHistory.end_position;
                     setMoviesInfo({
                         ...moviesInfo,
-                        endPosition: {
-                            min: String(Math.floor(endPos / 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                            sec: String(Math.floor(endPos % 60)).padStart(
-                                2,
-                                "0"
-                            ),
-                        },
+                        endPosition: formatSecondsToMinSec(endPos),
                     });
                 }
             }
