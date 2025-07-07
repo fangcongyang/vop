@@ -40,6 +40,19 @@ pub fn get_download_info_by_id(id: &str) -> Result<DownloadInfo, String> {
 pub fn save_download_info(download_infos: Vec<DownloadInfoSave>) -> Result<(), String> {
     let mut db = get_database_pool().map_err(|e| format!("获取数据库连接失败: {}", e))?;
     let now = utils::get_current_time_str();
+    
+    // 校验movie_name是否已存在
+    let movie_names: Vec<&String> = download_infos.iter().map(|info| &info.movie_name).collect();
+    let existing_movies: Vec<String> = download_info_dsl::download_info
+        .filter(download_info_dsl::movie_name.eq_any(&movie_names))
+        .select(download_info_dsl::movie_name)
+        .load::<String>(&mut db)
+        .map_err(|e| format!("查询电影名称失败: {}", e))?;
+    
+    if !existing_movies.is_empty() {
+        return Err(format!("电影 '{}' 已存在，请勿重复添加", existing_movies.join(", ")));
+    }
+    
     let download_info_list = download_infos
         .into_iter()
         .map(|download_info| DownloadInfo {

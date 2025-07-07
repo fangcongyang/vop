@@ -507,8 +507,8 @@ pub async fn merger(
     } else {
         exe_path = exe_path.join("ffmpeg");
     }
-    let mut cmd = Command::new(exe_path);
-    let output = cmd
+    let mut command = Command::new(exe_path);
+    command
         .args([
             "-y",
             "-f",
@@ -522,8 +522,13 @@ pub async fn merger(
             "-c",
             "copy",
             &mv_str,
-        ])
-        .output()?;
+        ]);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    let output = command.output()?;
     if output.status.success() {
         tokio::spawn(delete_m3u8_tmp_file(
             index_str,
