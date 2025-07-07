@@ -722,6 +722,7 @@ const Play = (props) => {
         };
         initUnlisten();
         return () => {
+            closePlayer();
             // 使用useRef清理定时器
             clearTimer(historyTimerRef);
             if (playChangeEventUnlistenFn.current) {

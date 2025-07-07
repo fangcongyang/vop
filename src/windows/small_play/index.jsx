@@ -11,7 +11,7 @@ import _ from "lodash";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { GlobalEvent } from "../../business/types";
 import { useGlobalStore } from "@/store/useGlobalStore";
-import { formatSecondsToMinSec } from "@/utils/common";
+import { formatSecondsToMinSec, clearTimer } from "@/utils/common";
 import "./index.scss";
 
 let player;
@@ -42,7 +42,7 @@ const SmallPlay = () => {
         isLive: false,
     });
 
-    const [playInfo, setPlayInfo] = useState({
+    const [playInfo, setPlayInfo, getPlayInfo] = useGetState({
         playMode: "local",
         playUrl: "",
         playType: "",
@@ -93,10 +93,7 @@ const SmallPlay = () => {
 
     const getUrls = async () => {
         if (!player || !player.dp) getPlayer();
-        if (historyTimerRef.current) {
-            clearInterval(historyTimerRef.current);
-            historyTimerRef.current = null;
-        }
+        clearTimer(historyTimerRef);
 
         if (playInfo.playType === "iptv") {
             // 是直播源，直接播放
@@ -206,13 +203,19 @@ const SmallPlay = () => {
                 if (getIsVipMovies(url)) {
                     messageApi.info("即将调用解析接口播放，请等待...");
                     movieParseUrlInfo.value.vipPlay = true;
-                    playInfo.movieInfo.onlineUrl =
-                        movieParseUrl.websiteParseUrl + url;
+                    setPlayInfo({
+                        ...playInfo,
+                        movieInfo: {
+                            ...playInfo.movieInfo,
+                            onlineUrl:
+                                movieParseUrl.websiteParseUrl + url,
+                        },
+                    });
                 } else {
                     const newPlayInfo = _.cloneDeep(playInfo);
                     newPlayInfo.movieInfo.onlineUrl = url;
                     newPlayInfo.playType = "iframePlay";
-                    togglePlayInfo(newPlayInfo);
+                    setPlayInfo(newPlayInfo);
                 }
                 player.destroy();
                 videoPlaying("online");
@@ -223,7 +226,6 @@ const SmallPlay = () => {
                     url: url,
                     type: player.dpConfig.video.type,
                 });
-                // bindOnceEvent();
                 // 计算片头跳过时间
                 const skipStartTime =
                     parseInt(moviesInfo.startPosition.min) * 60 +
@@ -279,11 +281,7 @@ const SmallPlay = () => {
     // 定时更新历史记录时间
     const timerEvent = () => {
         // 清理之前的定时器（如果存在）
-        if (historyTimerRef.current) {
-            clearInterval(historyTimerRef.current);
-            historyTimerRef.current = null;
-        }
-
+        clearTimer(historyTimerRef);
 
         // 使用React的方式创建定时器
         const localUpdateHistory = async () => {
@@ -348,8 +346,14 @@ const SmallPlay = () => {
                 index = index === channelGroupList.length - 1 ? 0 : index + 1;
             }
             const channel = channelGroupList[index];
-            playInfo.iptv.channelGroupId = channel.id;
-            playInfo.iptv.channelActive = channel.channel_active;
+            setPlayInfo({
+                ...playInfo,
+                iptv: {
+                    ...playInfo.iptv,
+                    channelGroupId: channel.id,
+                    channelActive: channel.channel_active,
+                },
+            });
         } else if (playInfo.playType === "localMovie") {
         } else {
             if (isReverse) {
@@ -385,16 +389,14 @@ const SmallPlay = () => {
             }
         });
         dp.on("timeupdate", () => {
-            if (dpConfig.isLive || !playInfo.movieInfo.siteKey) return;
+            const currentPlayInfo = getPlayInfo();
+            if (dpConfig.isLive || !currentPlayInfo.movieInfo.siteKey) return;
+            const currentHistory = playPage.currentHistory;
 
-            const mi = getMoviesInfo();
-            const endPosition =
-                parseInt(mi.endPosition.min) * 60 +
-                parseInt(mi.endPosition.sec);
-            if (endPosition) {
+            if (currentHistory.end_position) {
                 const time =
                     dp.video.duration -
-                    endPosition -
+                    currentHistory.end_position -
                     dp.video.currentTime;
                 if (time <= 0.25) {
                     // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
@@ -433,17 +435,6 @@ const SmallPlay = () => {
 
     useEffect(() => {
         getPlayer("", true);
-
-        return () => {
-            // 使用useRef清理定时器
-            if (historyTimerRef.current) {
-                clearInterval(historyTimerRef.current);
-                historyTimerRef.current = null;
-            }
-        };
-    }, []);
-
-    useEffect(() => {
         const initUnlisten = async () => {
             const unlisten = await listen(
                 GlobalEvent.SmallPlayEvent,
@@ -455,9 +446,15 @@ const SmallPlay = () => {
             eventUnlistenFn.current = unlisten;
         };
         initUnlisten();
+
         return () => {
             if (eventUnlistenFn.current) {
                 eventUnlistenFn.current();
+            }
+            // 使用useRef清理定时器
+            if (historyTimerRef.current) {
+                clearInterval(historyTimerRef.current);
+                historyTimerRef.current = null;
             }
         };
     }, []);
@@ -496,11 +493,16 @@ const SmallPlay = () => {
     }, [playInfo.movieInfo.onlineUrl]);
 
     const closePlayerAndInit = () => {
+        clearTimer(historyTimerRef);
         setPlayMode("local");
-        playPage.isFirstPlay = true;
-        playPage.movieList = [];
-        playPage.movieIndex = 0;
-        playPage.playing = false;
+        playPage = {
+            isFirstPlay: true,
+            movieList: [],
+            movieIndex: 0,
+            currentHistory: null,
+            playing: false,
+            ...playPage,
+        };
         getPlayer("", true);
     };
 

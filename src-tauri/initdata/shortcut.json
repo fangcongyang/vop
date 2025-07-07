@@ -70,5 +70,13 @@
     "shortcut": "CmdOrCtrl+pagedown",
     "globalShortcut": "Alt+CommandOrControl+pagedown",
     "isPersonalUse": false
+  },
+  {
+    "id": "lock",
+    "name": "lock",
+    "desc": "锁定",
+    "shortcut": "CmdOrCtrl+alt+l",
+    "globalShortcut": "Alt+CommandOrControl+alt+l",
+    "isPersonalUse": false
   }
 ]

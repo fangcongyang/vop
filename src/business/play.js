@@ -121,6 +121,12 @@ export class MoviesPlayer {
             }, 300)
         );
         this.listeners.push(listener);
+
+        listener = await listen(
+            "lock",
+            window.location.reload()
+        );
+        this.listeners.push(listener);
     }
 
     setPlayerType(playerType) {
