@@ -117,12 +117,12 @@ const Download = (props) => {
           )}
           {record.status !== "downloadEnd" && (
             <>
-              <a onClick={() => retryEvent(record)}>重试</a>
               <a onClick={() => movieMerger(record)}>合并</a>
             </>
           )}
           {record.status === "downloadFail" && (
             <>
+              <a onClick={() => retryEvent(record)}>重试</a>
               <a onClick={() => movieMerger(record)}>强制合并</a>
             </>
           )}
