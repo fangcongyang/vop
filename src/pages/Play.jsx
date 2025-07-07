@@ -21,7 +21,7 @@ import Waterfall from "@/components/Waterfall";
 import MovieCard from "@/components/MovieCard";
 import { message, Button, Tooltip, Input, Space } from "antd";
 import QRCodeModal from "@/components/QRCodeModal";
-import { fmtMSS } from "@/utils/common";
+import { fmtMSS, clearTimer } from "@/utils/common";
 import { useGetState } from "@/hooks";
 import { useGlobalStore } from "@/store/useGlobalStore";
 import _ from "lodash";
@@ -183,10 +183,7 @@ const Play = (props) => {
 
     const getUrls = async () => {
         if (!player || !player.dp) getPlayer();
-        if (historyTimerRef.current) {
-            clearInterval(historyTimerRef.current);
-            historyTimerRef.current = null;
-        }
+        clearTimer(historyTimerRef);
 
         if (playInfo.playType === "iptv") {
             // 是直播源，直接播放
@@ -410,10 +407,7 @@ const Play = (props) => {
     // 定时更新历史记录时间
     const timerEvent = () => {
         // 清理之前的定时器（如果存在）
-        if (historyTimerRef.current) {
-            clearInterval(historyTimerRef.current);
-            historyTimerRef.current = null;
-        }
+        clearTimer(historyTimerRef);
 
         // 使用React的方式创建定时器
         const localUpdateHistory = async () => {
@@ -717,9 +711,7 @@ const Play = (props) => {
                         player.setHighlightByName(startPosition, "片头");
                     }
                     if (endPosition) {
-                        let time =
-                            player.dp.video.duration -
-                            endPosition;
+                        let time = player.dp.video.duration - endPosition;
                         player.setHighlightByName(time, "片尾");
                     }
                     player.durationchange();
@@ -739,10 +731,7 @@ const Play = (props) => {
 
         return () => {
             // 使用useRef清理定时器
-            if (historyTimerRef.current) {
-                clearInterval(historyTimerRef.current);
-                historyTimerRef.current = null;
-            }
+            clearTimer(historyTimerRef);
         };
     }, []);
 
@@ -829,6 +818,7 @@ const Play = (props) => {
     }, [playInfo.movieInfo.onlineUrl]);
 
     const closePlayerAndInit = () => {
+        clearTimer(historyTimerRef);
         updateSelectAllHistory();
         resetPlayInfo();
         setPlayMode("local");

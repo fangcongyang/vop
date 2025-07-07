@@ -9,3 +9,15 @@ export function generateUUID() {
         return v.toString(16);
     });
 }
+
+/**
+ * 清理定时器的公共方法
+ * @param {React.MutableRefObject} timerRef - 定时器的ref对象
+ * @description 安全地清理定时器，避免内存泄漏
+ */
+export function clearTimer(timerRef) {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+    }
+}
