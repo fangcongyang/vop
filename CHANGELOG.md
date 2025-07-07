@@ -1,3 +1,14 @@
+## [0.1.6](https://github.com/fangcongyang/vop/compare/v0.1.5...v0.1.6) (2025-07-07)
+
+
+### ✨ Features | 新功能
+
+* **hotkey:** 添加全局快捷键支持并优化代码结构 ([](https://github.com/fangcongyang/vop/commit/ccd9d27))
+* **utils:** 添加秒数转分钟秒数的格式化函数 ([](https://github.com/fangcongyang/vop/commit/0e4bec9))
+* **utils:** 添加清理定时器的公共方法 ([](https://github.com/fangcongyang/vop/commit/2fc9a13))
+
+
+
 ## [0.1.5](https://github.com/fangcongyang/vop/compare/0.1.5...v0.1.5) (2025-07-06)
 
 
