@@ -51,19 +51,14 @@ pub struct DownloadRequest {
 pub async fn init() {
     // 在Windows上初始化Winsock
     #[cfg(windows)]
-    WINSOCK_INIT.call_once(|| {
-        unsafe {
-            let mut wsa_data: winapi::um::winsock2::WSADATA = std::mem::zeroed();
-            let result = winapi::um::winsock2::WSAStartup(
-                MAKEWORD(2, 2),
-                &mut wsa_data,
-            );
-            if result != 0 {
-                error!("WSAStartup failed with error: {}", result);
-                return;
-            } else {
-                info!("Winsock initialized successfully");
-            }
+    WINSOCK_INIT.call_once(|| unsafe {
+        let mut wsa_data: winapi::um::winsock2::WSADATA = std::mem::zeroed();
+        let result = winapi::um::winsock2::WSAStartup(MAKEWORD(2, 2), &mut wsa_data);
+        if result != 0 {
+            error!("WSAStartup failed with error: {}", result);
+            return;
+        } else {
+            info!("Winsock initialized successfully");
         }
     });
 
@@ -141,7 +136,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
 }
 
 pub mod cmd {
-    use crate::{download::{file_download::service}, orm::download_info::types::DownloadInfo};
+    use crate::{download::file_download::service, orm::download_info::types::DownloadInfo};
 
     use tauri::command;
 
@@ -157,7 +152,11 @@ pub mod cmd {
 }
 
 pub mod service {
-    use crate::{conf::get_string, download::{m3u8_download::merger, types::DownloadInfoContext}, orm::download_info::types::DownloadInfo};
+    use crate::{
+        conf::get_string,
+        download::{m3u8_download::merger, types::DownloadInfoContext},
+        orm::download_info::types::DownloadInfo,
+    };
 
     use super::{DownloadTaskInfo, DOWNLOAD_QUEUE};
 
@@ -168,8 +167,9 @@ pub mod service {
 
     pub async fn movie_merger(mut download: DownloadInfo) -> Result<DownloadInfo, String> {
         let mut download_task_info = download_info_to_download_task_info(download.clone());
-        let mut download_info_context: DownloadInfoContext = DownloadInfoContext::new(&mut download_task_info)
-            .map_err(|e| format!("创建视频下载对象失败: {}", e))?;
+        let mut download_info_context: DownloadInfoContext =
+            DownloadInfoContext::new(&mut download_task_info)
+                .map_err(|e| format!("创建视频下载对象失败: {}", e))?;
         let result = merger(&mut download_info_context).await;
         match result {
             Ok(_) => {

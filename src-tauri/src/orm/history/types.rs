@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(
     Debug, Serialize, Deserialize, Clone, Queryable, Selectable, QueryableByName, Insertable,

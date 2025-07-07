@@ -6,6 +6,17 @@ use tauri_plugin_store::StoreExt;
 
 use crate::{utils, APP};
 
+#[allow(non_snake_case)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Shortcut {
+    pub id: String,
+    pub name: String,
+    pub desc: String,
+    pub shortcut: String,
+    pub globalShortcut: String,
+    pub isPersonalUse: bool,
+}
+
 fn get_path(app: &tauri::AppHandle) -> PathBuf {
     let config_path = app.path().resolve("", BaseDirectory::AppConfig).unwrap();
     config_path.join("vop.json")
@@ -83,10 +94,20 @@ pub fn init_config_value() {
         })
 }
 
+pub fn restore_default_shortcuts() {
+    let init_config_value_str = utils::read_init_data_file("shortcut.json");
+    let init_config_value: Value = serde_json::from_str(&init_config_value_str).unwrap();
+    set("shortcutList", init_config_value);
+}
+
 pub mod cmd {
     use tauri_plugin_store::StoreExt;
 
-    use crate::APP;
+    use crate::{
+        app::hotkey,
+        conf::{get, set, Shortcut},
+        APP,
+    };
 
     use super::get_path;
 
@@ -95,5 +116,26 @@ pub mod cmd {
         let app = APP.get().unwrap();
         let store = app.get_store(get_path(app)).unwrap();
         store.reload().unwrap();
+    }
+
+    #[tauri::command]
+    pub fn restore_default_shortcuts() {
+        super::restore_default_shortcuts();
+        let mut shortcuts: Vec<Shortcut> = vec![];
+        if let Some(serde_json::Value::Bool(enable_global_shortcut)) = get("enableGlobalShortcut") {
+            // 初始化全局快捷键
+            if enable_global_shortcut {
+                get("shortcutList")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .for_each(|item| {
+                        let shortcut = serde_json::from_value::<Shortcut>(item.clone()).unwrap();
+                        shortcuts.push(hotkey::hotkey_desktop::register_shortcut(shortcut));
+                    });
+                set("shortcutList", shortcuts);
+            }
+        }
     }
 }

@@ -1,24 +1,24 @@
-use std::time::Duration;
-use std::io::Read;
-use std::process::{Command, Child};
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::io::Read;
+use std::process::{Child, Command};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use futures::TryStreamExt;
 use log::info;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::{Map, Value};
+use std::net::{TcpListener, UdpSocket};
+use std::path::PathBuf;
 use tauri::http::header::USER_AGENT;
 use tauri::http::HeaderMap;
-use tauri::Manager;
 use tauri::Emitter;
+use tauri::Manager;
 use tauri_plugin_http::reqwest;
 use tokio::{io::AsyncWriteExt, sync::watch, time::interval};
-use serde::{Deserialize, Serialize};
 use url::Url;
 use zip::ZipArchive;
-use std::path::PathBuf;
-use std::net::{TcpListener, UdpSocket};
 
 use crate::utils::choose_user_agent;
 use crate::utils::{self, create_request_builder};
@@ -40,7 +40,11 @@ pub fn open_devtools(app_handle: tauri::AppHandle) {
 }
 
 #[tauri::command]
-pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_window: bool, short_video_mode: bool) -> Result<(), String> {
+pub async fn create_top_small_play_window(
+    app_handle: tauri::AppHandle,
+    create_window: bool,
+    short_video_mode: bool,
+) -> Result<(), String> {
     use crate::conf::get;
     if !create_window {
         if let Some(top_small_play_window) = app_handle.get_webview_window("topSmallPlay") {
@@ -52,7 +56,9 @@ pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_w
                 }
             }
         } else {
-            log::info!("Small play window not found when trying to close - window may already be closed");
+            log::info!(
+                "Small play window not found when trying to close - window may already be closed"
+            );
         }
         return Ok(());
     }
@@ -65,8 +71,11 @@ pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_w
         return Ok(());
     }
 
-    let mut webview_window =
-        tauri::WebviewWindowBuilder::new(&app_handle, "topSmallPlay", tauri::WebviewUrl::App("index.html".into()));
+    let mut webview_window = tauri::WebviewWindowBuilder::new(
+        &app_handle,
+        "topSmallPlay",
+        tauri::WebviewUrl::App("index.html".into()),
+    );
     #[cfg(not(target_os = "android"))]
     {
         let monitor = app_handle.primary_monitor().unwrap().unwrap();
@@ -85,7 +94,7 @@ pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_w
             .inner_size(window_size.0, window_size.1)
             .position(
                 screen_width - window_size.0 - 20.0,
-                screen_height - window_size.1 - 60.0
+                screen_height - window_size.1 - 60.0,
             )
             .always_on_top(true)
             .fullscreen(false)
@@ -123,7 +132,6 @@ pub async fn create_top_small_play_window(app_handle: tauri::AppHandle, create_w
     }
     Ok(())
 }
-
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct DownloadTaskInfo {
@@ -271,7 +279,9 @@ pub async fn download_file_task_async(
                 let file_name = file_in_zip.name();
 
                 // 查找ffmpeg.exe文件（可能在子目录中）
-                if file_name.ends_with("ffmpeg.exe") || file_name.ends_with(&download_task_info.file_path) {
+                if file_name.ends_with("ffmpeg.exe")
+                    || file_name.ends_with(&download_task_info.file_path)
+                {
                     info!("Found target exe file in zip: {}", file_name);
 
                     let mut exe_content = Vec::new();
@@ -286,7 +296,11 @@ pub async fn download_file_task_async(
             }
 
             if !exe_found {
-                return Err(format!("Could not find {} in the downloaded zip file", download_task_info.file_path).into());
+                return Err(format!(
+                    "Could not find {} in the downloaded zip file",
+                    download_task_info.file_path
+                )
+                .into());
             }
 
             // 删除临时zip文件
@@ -475,7 +489,7 @@ fn is_port_available(port: u16) -> bool {
             // 立即释放监听器
             drop(listener);
             true
-        },
+        }
         Err(_) => false,
     }
 }
@@ -485,9 +499,9 @@ fn is_port_occupied(port: u16) -> bool {
     // 尝试连接到端口，如果连接成功说明端口被占用
     match std::net::TcpStream::connect_timeout(
         &format!("127.0.0.1:{}", port).parse().unwrap(),
-        std::time::Duration::from_millis(100)
+        std::time::Duration::from_millis(100),
     ) {
-        Ok(_) => true,  // 连接成功，端口被占用
+        Ok(_) => true,   // 连接成功，端口被占用
         Err(_) => false, // 连接失败，端口未被占用
     }
 }
@@ -624,15 +638,13 @@ pub async fn stop_miniserve_service(port: u16) -> Result<MiniserveServiceResult,
         // 如果端口仍被占用，尝试通过端口查找并停止特定进程
         let kill_result = if cfg!(target_os = "windows") {
             // 在Windows上，使用netstat查找占用端口的进程ID，然后停止该进程
-            let netstat_output = Command::new("netstat")
-                .args(["-ano"])
-                .output();
-            
+            let netstat_output = Command::new("netstat").args(["-ano"]).output();
+
             match netstat_output {
                 Ok(output) => {
                     let output_str = String::from_utf8_lossy(&output.stdout);
                     let port_str = format!(":{}", port);
-                    
+
                     // 查找占用指定端口的进程ID
                     for line in output_str.lines() {
                         if line.contains(&port_str) && line.contains("LISTENING") {
@@ -642,7 +654,8 @@ pub async fn stop_miniserve_service(port: u16) -> Result<MiniserveServiceResult,
                                     // 使用PID停止特定进程
                                     return match Command::new("taskkill")
                                         .args(["/PID", pid_str, "/F"])
-                                        .output() {
+                                        .output()
+                                    {
                                         Ok(_) => {
                                             tokio::time::sleep(Duration::from_millis(500)).await;
                                             if is_port_available(port) {
@@ -654,7 +667,8 @@ pub async fn stop_miniserve_service(port: u16) -> Result<MiniserveServiceResult,
                                             } else {
                                                 Ok(MiniserveServiceResult {
                                                     success: false,
-                                                    message: "无法停止miniserve服务，端口仍被占用".to_string(),
+                                                    message: "无法停止miniserve服务，端口仍被占用"
+                                                        .to_string(),
                                                     port: Some(port),
                                                 })
                                             }
@@ -663,16 +677,19 @@ pub async fn stop_miniserve_service(port: u16) -> Result<MiniserveServiceResult,
                                             success: false,
                                             message: format!("停止进程失败: {}", e),
                                             port: Some(port),
-                                        })
+                                        }),
                                     };
                                 }
                             }
                             break;
                         }
                     }
-                    Err(std::io::Error::new(std::io::ErrorKind::NotFound, "未找到占用端口的进程"))
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "未找到占用端口的进程",
+                    ))
                 }
-                Err(e) => Err(e)
+                Err(e) => Err(e),
             }
         } else {
             // 在Linux/macOS上，使用lsof查找占用端口的进程
@@ -682,11 +699,12 @@ pub async fn stop_miniserve_service(port: u16) -> Result<MiniserveServiceResult,
                 .and_then(|output| {
                     let pid_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
                     if !pid_str.is_empty() {
-                        Command::new("kill")
-                            .args(["-9", &pid_str])
-                            .output()
+                        Command::new("kill").args(["-9", &pid_str]).output()
                     } else {
-                        Err(std::io::Error::new(std::io::ErrorKind::NotFound, "未找到占用端口的进程"))
+                        Err(std::io::Error::new(
+                            std::io::ErrorKind::NotFound,
+                            "未找到占用端口的进程",
+                        ))
                     }
                 })
         };
@@ -739,7 +757,10 @@ pub struct GithubLatestReleaseInfo {
 }
 
 #[tauri::command]
-pub async fn github_repos_info_version(owner: String, repo: String) -> Option<GithubLatestReleaseInfo> {
+pub async fn github_repos_info_version(
+    owner: String,
+    repo: String,
+) -> Option<GithubLatestReleaseInfo> {
     let url = format!(
         "https://api.github.com/repos/{}/{}/releases/latest",
         owner, repo
@@ -765,7 +786,7 @@ pub async fn github_repos_info_version(owner: String, repo: String) -> Option<Gi
                 let data: Map<String, Value> = dd.unwrap();
                 if let Some(v) = data.get("tag_name") {
                     match v {
-                        Value::String(tag_name) => Some(GithubLatestReleaseInfo{
+                        Value::String(tag_name) => Some(GithubLatestReleaseInfo {
                             tag_name: Some(tag_name.to_owned()),
                             body: Some(data.get("body").unwrap().to_owned().to_string()),
                         }),
@@ -787,17 +808,13 @@ pub fn get_local_ip() -> Result<String, String> {
     // 尝试连接到一个外部地址来获取本机IP
     // 这里使用Google的DNS服务器8.8.8.8:80
     match UdpSocket::bind("0.0.0.0:0") {
-        Ok(socket) => {
-            match socket.connect("8.8.8.8:80") {
-                Ok(_) => {
-                    match socket.local_addr() {
-                        Ok(addr) => Ok(addr.ip().to_string()),
-                        Err(e) => Err(format!("获取本地地址失败: {}", e))
-                    }
-                }
-                Err(e) => Err(format!("连接失败: {}", e))
-            }
-        }
-        Err(e) => Err(format!("创建socket失败: {}", e))
+        Ok(socket) => match socket.connect("8.8.8.8:80") {
+            Ok(_) => match socket.local_addr() {
+                Ok(addr) => Ok(addr.ip().to_string()),
+                Err(e) => Err(format!("获取本地地址失败: {}", e)),
+            },
+            Err(e) => Err(format!("连接失败: {}", e)),
+        },
+        Err(e) => Err(format!("创建socket失败: {}", e)),
     }
 }

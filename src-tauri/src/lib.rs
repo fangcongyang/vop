@@ -6,14 +6,15 @@ use once_cell::sync::OnceCell;
 use serde_json::{json, Value};
 use tauri::{App, AppHandle, WebviewWindow, Wry};
 
+mod app;
 mod cache;
 mod conf;
 mod download;
-mod utils;
-mod app;
-mod schema;
 mod orm;
+mod schema;
+mod utils;
 
+use crate::app::hotkey;
 use download::file_download;
 use tauri_plugin_log::{Target, TargetKind};
 use url::Url;
@@ -26,6 +27,7 @@ pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
@@ -74,6 +76,33 @@ pub fn run() {
 
             // 3. 在后台线程中初始化数据库和其他服务，避免阻塞窗口显示
             let app_handle_for_async = app_handle.clone();
+
+            #[cfg(desktop)]
+            {
+                use crate::conf::set;
+                use crate::conf::Shortcut;
+                app.handle()
+                    .plugin(tauri_plugin_global_shortcut::Builder::new().build())?;
+
+                let mut shortcuts: Vec<Shortcut> = vec![];
+                if let Some(serde_json::Value::Bool(enable_global_shortcut)) = get("enableGlobalShortcut") {
+
+                    // 初始化全局快捷键
+                    if enable_global_shortcut {
+                        get("shortcutList")
+                            .unwrap()
+                            .as_array()
+                            .unwrap()
+                            .iter()
+                            .for_each(|item| {
+                                let shortcut =
+                                    serde_json::from_value::<Shortcut>(item.clone()).unwrap();
+                                shortcuts.push(hotkey::hotkey_desktop::register_shortcut(shortcut));
+                            });
+                        set("shortcutList", shortcuts);
+                    }
+                }
+            }
             std::thread::spawn(move || {
                 let start_time = std::time::Instant::now();
                 info!("Starting background initialization...");
@@ -83,20 +112,28 @@ pub fn run() {
                 if let Err(e) = init_database(&app_handle_for_async) {
                     log::error!("Database initialization failed: {}", e);
                 } else {
-                    info!("Database initialization completed in {:?}", db_start.elapsed());
+                    info!(
+                        "Database initialization completed in {:?}",
+                        db_start.elapsed()
+                    );
                 }
 
                 info!("Starting WebSocket download server...");
 
                 // 使用 Tauri 的异步运行时来启动 WebSocket 服务器
                 let app_handle_clone = app_handle_for_async.clone();
-                app_handle_clone.run_on_main_thread(move || {
-                    tauri::async_runtime::spawn(async move {
-                        file_download::init().await;
-                    });
-                }).expect("Failed to run on main thread");
+                app_handle_clone
+                    .run_on_main_thread(move || {
+                        tauri::async_runtime::spawn(async move {
+                            file_download::init().await;
+                        });
+                    })
+                    .expect("Failed to run on main thread");
 
-                info!("Background initialization thread completed in {:?}", start_time.elapsed());
+                info!(
+                    "Background initialization thread completed in {:?}",
+                    start_time.elapsed()
+                );
             });
 
             Ok(())
@@ -107,6 +144,9 @@ pub fn run() {
             cache::cmd::cache_data,
             cache::cmd::get_cache_data,
             conf::cmd::reload_store,
+            conf::cmd::restore_default_shortcuts,
+            hotkey::cmd::register_shortcut_by_frontend,
+            hotkey::cmd::unregister_shortcut_by_frontend,
             file_download::cmd::retry_download,
             file_download::cmd::movie_merger,
             app::cmds::open_devtools,
@@ -178,7 +218,6 @@ fn create_window(app: &App<Wry>) -> anyhow::Result<WebviewWindow<Wry>, Box<dyn s
         }
     }
 }
-
 
 fn init_database(app: &AppHandle) -> anyhow::Result<()> {
     use diesel::RunQueryDsl;

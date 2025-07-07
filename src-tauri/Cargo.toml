@@ -1,6 +1,6 @@
 [package]
 name = "vop"
-version = "0.1.5"
+version = "0.1.6"
 description = "A Online Play Video App"
 authors = ["you"]
 edition = "2021"
@@ -58,6 +58,7 @@ tauri-plugin-vop = { path = "../tauri-plugin-vop" }
 custom-protocol = ["tauri/custom-protocol"]
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-global-shortcut = "2"
 tauri-plugin-updater = "2.9.0"
 
 [target.'cfg(windows)'.dependencies]

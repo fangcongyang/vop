@@ -1,13 +1,13 @@
 use diesel::r2d2::{ConnectionManager, CustomizeConnection, Pool, PooledConnection};
+use diesel::RunQueryDsl;
 use diesel::SqliteConnection;
-use tauri::{AppHandle, Manager};
 use std::sync::Arc;
 use std::time::Duration;
+use tauri::{AppHandle, Manager};
 use tokio::sync::OnceCell;
-use diesel::RunQueryDsl;
 
-pub mod history;
 pub mod download_info;
+pub mod history;
 pub mod star;
 
 static DB_POOL: OnceCell<Arc<Pool<ConnectionManager<SqliteConnection>>>> = OnceCell::const_new();
@@ -48,7 +48,7 @@ pub async fn init_database_pool(conn_url: &String) -> anyhow::Result<()> {
         .max_size(100)
         .min_idle(Some(20))
         .max_lifetime(Some(Duration::from_secs(60 * 60)))
-        .test_on_check_out(true)  // 添加连接测试
+        .test_on_check_out(true) // 添加连接测试
         .connection_customizer(Box::new(SqliteConnectionCustomizer))
         .build(manager)
         .expect("Failed to create pool.");
@@ -62,13 +62,11 @@ pub async fn init_database_pool(conn_url: &String) -> anyhow::Result<()> {
 }
 
 // 获取全局数据库连接池的函数
-pub fn get_database_pool(
-) -> anyhow::Result<PooledConnection<ConnectionManager<SqliteConnection>>> {
-    let pool = DB_POOL
-        .get()
-        .ok_or_else(|| {
-            anyhow::anyhow!("Database pool not initialized. Call init_database_pool first.")
-        })?;
+pub fn get_database_pool() -> anyhow::Result<PooledConnection<ConnectionManager<SqliteConnection>>>
+{
+    let pool = DB_POOL.get().ok_or_else(|| {
+        anyhow::anyhow!("Database pool not initialized. Call init_database_pool first.")
+    })?;
 
     // 设置获取连接的超时时间
     pool.get_timeout(Duration::from_secs(5))

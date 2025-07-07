@@ -2,20 +2,17 @@ use crate::orm::history::service::{get_history_by_site_key_and_ids, select_all_h
 use crate::orm::history::types::{History, HistoryUpdate, HistoryVo};
 use crate::orm::{get_database_pool, history::types::HistorySave};
 use crate::schema::history::dsl as history_dsl;
-use diesel::RunQueryDsl;
-use diesel::ExpressionMethods;
-use diesel::insert_into;
 use crate::utils::{self, parse_json};
+use diesel::insert_into;
+use diesel::ExpressionMethods;
+use diesel::RunQueryDsl;
 
 #[tauri::command]
-pub fn get_current_history_or_save(
-    data: HistorySave,
-) -> Result<History, String> {
+pub fn get_current_history_or_save(data: HistorySave) -> Result<History, String> {
     if let Ok(history) = get_history_by_site_key_and_ids(&data.site_key, &data.ids) {
         return Ok(history);
     }
-    let mut db = get_database_pool()
-        .map_err(|e| format!("获取数据库连接失败: {}", e))?;
+    let mut db = get_database_pool().map_err(|e| format!("获取数据库连接失败: {}", e))?;
 
     let now = utils::get_current_time_str();
     let id_local = utils::uuid();
@@ -48,10 +45,7 @@ pub fn get_current_history_or_save(
 }
 
 #[tauri::command]
-pub fn get_current_history(
-    site_key: &str,
-    ids: &str,
-) -> Option<History> {
+pub fn get_current_history(site_key: &str, ids: &str) -> Option<History> {
     if let Ok(history) = get_history_by_site_key_and_ids(site_key, ids) {
         return Some(history);
     }
@@ -59,8 +53,7 @@ pub fn get_current_history(
 }
 
 #[tauri::command]
-pub fn select_all_history(
-) -> Result<Vec<HistoryVo>, String> {
+pub fn select_all_history() -> Result<Vec<HistoryVo>, String> {
     let history = select_all_historys()?;
     let mut history_vo = vec![];
     for h in history {
@@ -86,11 +79,8 @@ pub fn select_all_history(
 }
 
 #[tauri::command]
-pub fn update_history(
-    data: HistoryUpdate,
-) -> Result<usize, String> {
-    let mut db = get_database_pool()
-        .map_err(|e| format!("获取数据库连接失败: {}", e))?;
+pub fn update_history(data: HistoryUpdate) -> Result<usize, String> {
+    let mut db = get_database_pool().map_err(|e| format!("获取数据库连接失败: {}", e))?;
 
     let now = utils::get_current_time_str();
     let rows_affected = diesel::update(history_dsl::history)
@@ -111,11 +101,8 @@ pub fn update_history(
 }
 
 #[tauri::command]
-pub fn delete_history(
-    id: &str,
-) -> Result<usize, String> {
-    let mut db = get_database_pool()
-        .map_err(|e| format!("获取数据库连接失败: {}", e))?;
+pub fn delete_history(id: &str) -> Result<usize, String> {
+    let mut db = get_database_pool().map_err(|e| format!("获取数据库连接失败: {}", e))?;
 
     let rows_affected = diesel::delete(history_dsl::history)
         .filter(history_dsl::id.eq(id))
@@ -125,21 +112,22 @@ pub fn delete_history(
 }
 
 #[tauri::command]
-pub fn import_history(
-    file_path: &str,
-) -> Result<usize, String> {
-    let mut db = get_database_pool()
-        .map_err(|e| format!("获取数据库连接失败: {}", e))?;
+pub fn import_history(file_path: &str) -> Result<usize, String> {
+    let mut db = get_database_pool().map_err(|e| format!("获取数据库连接失败: {}", e))?;
 
-    let file_content = std::fs::read_to_string(file_path)
-        .map_err(|e| format!("读取文件内容失败: {}", e))?;
-    let history_vo: Vec<HistoryVo> = serde_json::from_str(&file_content)
-        .map_err(|e| format!("解析JSON失败: {}", e))?;
+    let file_content =
+        std::fs::read_to_string(file_path).map_err(|e| format!("读取文件内容失败: {}", e))?;
+    let history_vo: Vec<HistoryVo> =
+        serde_json::from_str(&file_content).map_err(|e| format!("解析JSON失败: {}", e))?;
     let history = select_all_historys()?;
     let mut history_vo_new = vec![];
     let now = utils::get_current_time_str();
     for h in history_vo {
-        if history.iter().find(|x| x.site_key == h.site_key && x.ids == h.ids).is_none() {
+        if history
+            .iter()
+            .find(|x| x.site_key == h.site_key && x.ids == h.ids)
+            .is_none()
+        {
             history_vo_new.push(History {
                 id: h.id,
                 history_name: h.history_name,

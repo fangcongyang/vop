@@ -1,56 +1,74 @@
 [
   {
-    "id": 0,
-    "name": "playAndPause",
+    "id": "playOrPause",
+    "name": "playOrPause",
     "desc": "播放或暂停",
-    "key": "space"
+    "shortcut": "CmdOrCtrl+space",
+    "globalShortcut": "Alt+CommandOrControl+space",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
+    "id": "forward",
     "name": "forward",
     "desc": "快进",
-    "key": "right"
+    "shortcut": "CmdOrCtrl+right",
+    "globalShortcut": "Alt+CommandOrControl+right",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
-    "name": "back",
+    "id": "backward",
+    "name": "backward",
     "desc": "快退",
-    "key": "left"
+    "shortcut": "CmdOrCtrl+left",
+    "globalShortcut": "Alt+CommandOrControl+left",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
+    "id": "volumeUp",
     "name": "volumeUp",
     "desc": "音量调高",
-    "key": "up"
+    "shortcut": "CmdOrCtrl+up",
+    "globalShortcut": "Alt+CommandOrControl+up",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
+    "id": "volumeDown",
     "name": "volumeDown",
     "desc": "音量调低",
-    "key": "down"
+    "shortcut": "CmdOrCtrl+down",
+    "globalShortcut": "Alt+CommandOrControl+down",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
+    "id": "next",
     "name": "next",
     "desc": "下一集",
-    "key": "alt+right"
+    "shortcut": "Alt+right",
+    "globalShortcut": "CmdOrCtrl+alt+right",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
+    "id": "prev",
     "name": "prev",
     "desc": "上一集",
-    "key": "alt+left"
+    "shortcut": "Alt+left",
+    "globalShortcut": "CmdOrCtrl+alt+left",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
+    "id": "playbackRateUp",
     "name": "playbackRateUp",
     "desc": "播放倍速加快",
-    "key": "pageup"
+    "shortcut": "CmdOrCtrl+pageup",
+    "globalShortcut": "Alt+CommandOrControl+pageup",
+    "isPersonalUse": false
   },
   {
-    "id": 0,
+    "id": "playbackRateDown",
     "name": "playbackRateDown",
     "desc": "播放倍速减慢",
-    "key": "pagedown"
+    "shortcut": "CmdOrCtrl+pagedown",
+    "globalShortcut": "Alt+CommandOrControl+pagedown",
+    "isPersonalUse": false
   }
 ]

@@ -1,9 +1,9 @@
+use log::error;
 use std::{
     env,
     fs::{self, read_to_string, File},
     path::{Path, PathBuf},
 };
-use log::error;
 
 use anyhow::Result;
 use chrono::Local;
@@ -39,8 +39,8 @@ pub fn app_install_root() -> PathBuf {
 
 pub fn read_init_data_file(data_name: &str) -> String {
     let mut path = app_install_root();
-    path.pop();
     path = path.join("initData").join(data_name);
+    log::info!("read init data file: {:?}", path);
     if !exists(&path) {
         return "[]".to_string();
     }

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { ask } from '@tauri-apps/plugin-dialog';
+import { ask } from "@tauri-apps/plugin-dialog";
 import { message } from "antd";
 import { useGlobalStore } from "@/store/useGlobalStore";
 import { getSystemConfByKey, initDB, uploadData } from "@/db";
@@ -37,33 +37,34 @@ const Settings = (props) => {
         "excludeRootClasses",
         false
     );
-    const [rootClassFilter, setRootClassFilter] = useConfig(
-        "rootClassFilter",
-        ["电影", "电影片", "电视剧", "连续剧", "综艺", "动漫"]
-    );
+    const [rootClassFilter, setRootClassFilter] = useConfig("rootClassFilter", [
+        "电影",
+        "电影片",
+        "电视剧",
+        "连续剧",
+        "综艺",
+        "动漫",
+    ]);
     const [excludeR18Classes, setExcludeR18Classes] = useConfig(
         "excludeR18Classes",
         false
     );
-    const [r18ClassFilter, setR18ClassFilter] = useConfig(
-        "r18ClassFilter",
-        [
-            "伦理",
-            "论理",
-            "倫理",
-            "福利",
-            "激情",
-            "理论",
-            "写真",
-            "情色",
-            "美女",
-            "街拍",
-            "赤足",
-            "性感",
-            "里番",
-            "VIP",
-        ]
-    );
+    const [r18ClassFilter, setR18ClassFilter] = useConfig("r18ClassFilter", [
+        "伦理",
+        "论理",
+        "倫理",
+        "福利",
+        "激情",
+        "理论",
+        "写真",
+        "情色",
+        "美女",
+        "街拍",
+        "赤足",
+        "性感",
+        "里番",
+        "VIP",
+    ]);
     const [downloadSavePath, setDownloadSavePath] = useConfig(
         "downloadSavePath",
         ""
@@ -76,8 +77,14 @@ const Settings = (props) => {
     const [clientUniqueId, setClientUniqueId] = useState("");
     const [dataUpload, setDataUpload] = useState(false);
     const [isCheckingUpdate, setIsCheckingUpdate] = useState(false); // 添加状态
-    const [closeAppOption, setCloseAppOption] = useConfig("closeAppOption", "ask"); // 添加状态
-    const [appLockEnabled, setAppLockEnabled] = useConfig("appLockEnabled", false);
+    const [closeAppOption, setCloseAppOption] = useConfig(
+        "closeAppOption",
+        "ask"
+    ); // 添加状态
+    const [appLockEnabled, setAppLockEnabled] = useConfig(
+        "appLockEnabled",
+        false
+    );
     const [passwordHash] = useConfig("appLockPasswordHash", "");
     const [appLockSettingsVisible, setAppLockSettingsVisible] = useState(false);
 
@@ -88,22 +95,45 @@ const Settings = (props) => {
     const [ffmpegVersion, setFfmpegVersion] = useConfig("ffmpegVersion", "");
 
     // Miniserve 下载相关状态
-    const [miniserveDownloadStatus, setMiniserveDownloadStatus] = useState("idle"); // idle, begin, progress, end, error
-    const [miniserveDownloadProgress, setMiniserveDownloadProgress] = useState(0);
+    const [miniserveDownloadStatus, setMiniserveDownloadStatus] =
+        useState("idle"); // idle, begin, progress, end, error
+    const [miniserveDownloadProgress, setMiniserveDownloadProgress] =
+        useState(0);
     const [miniserveDownloadSpeed, setMiniserveDownloadSpeed] = useState(0);
-    const [miniserveVersion, setMiniserveVersion] = useConfig("miniserveVersion", "");
+    const [miniserveVersion, setMiniserveVersion] = useConfig(
+        "miniserveVersion",
+        ""
+    );
 
     // Miniserve 服务相关状态
-    const [miniservePort, setMiniservePort] = useConfig("miniservePort", "8080");
-    const [miniserveServiceStatus, setMiniserveServiceStatus] = useState("stopped"); // stopped, starting, running, error
+    const [miniservePort, setMiniservePort] = useConfig(
+        "miniservePort",
+        "8080"
+    );
+    const [miniserveServiceStatus, setMiniserveServiceStatus] =
+        useState("stopped"); // stopped, starting, running, error
     const [miniserveCommandId, setMiniserveCommandId] = useState(null);
     const [qrCodeVisible, setQrCodeVisible] = useState(false);
     const [localIp, setLocalIp] = useState("localhost");
 
+    // 快捷键
+    const [enableGlobalShortcut, setEnableGlobalShortcut] = useConfig(
+        "enableGlobalShortcut",
+        true
+    );
+    const shortcutInputTimeout = useRef(null);
+    const [shortcutList, setShortcutList] = useConfig("shortcutList", []);
+    const [shortcutInput, setShortcutInput] = useState({
+        id: "",
+        type: "",
+        recording: false,
+    });
+    const recordedShortcut = useRef([]);
+
     // 获取本机IP地址
     const getLocalIpAddress = async () => {
         try {
-            const ip = await invoke('get_local_ip');
+            const ip = await invoke("get_local_ip");
             setLocalIp(ip);
         } catch (error) {
             console.error("获取本机IP失败:", error);
@@ -115,16 +145,18 @@ const Settings = (props) => {
     const checkExistingMiniserveProcess = async () => {
         try {
             const portNum = parseInt(miniservePort || "8080");
-            const result = await invoke('check_miniserve_service_status', {
-                port: portNum
+            const result = await invoke("check_miniserve_service_status", {
+                port: portNum,
             });
 
             if (result.success) {
-                const shouldKill = await ask("检测到端口 8080 被占用，可能有残留的 miniserve 进程。\n是否要清理这些进程？");
+                const shouldKill = await ask(
+                    "检测到端口 8080 被占用，可能有残留的 miniserve 进程。\n是否要清理这些进程？"
+                );
 
                 if (shouldKill) {
-                    const killResult = await invoke('stop_miniserve_service', {
-                        port: portNum
+                    const killResult = await invoke("stop_miniserve_service", {
+                        port: portNum,
                     });
                     if (killResult.success) {
                         messageApi.success("已清理残留的 miniserve 进程");
@@ -169,7 +201,7 @@ const Settings = (props) => {
         clearDB().then(() => {
             if (osType.startsWith("web")) return;
             relaunch();
-        })
+        });
     };
 
     const syncSite = () => {
@@ -225,7 +257,7 @@ const Settings = (props) => {
 
     const dataUploadCallback = (dataUpload) => {
         setDataUpload(dataUpload);
-        uploadData(dataUpload)
+        uploadData(dataUpload);
     };
 
     const darkModeCallback = (darkMode) => {
@@ -240,39 +272,209 @@ const Settings = (props) => {
         applyTheme(darkMode, color);
     };
     const openDevTools = () => {
-      invoke("open_devtools");
+        invoke("open_devtools");
+    };
+
+    const recordedShortcutComputed = () => {
+        let shortcut = [];
+        recordedShortcut.current.map((e) => {
+            if (e.keyCode >= 65 && e.keyCode <= 90) {
+                // A-Z
+                shortcut.push(e.code.replace("Key", ""));
+            } else if (e.key === "Meta") {
+                // ⌘ Command on macOS
+                shortcut.push("Command");
+            } else if (["Alt", "Control", "Shift"].includes(e.key)) {
+                shortcut.push(e.key);
+            } else if (e.keyCode >= 48 && e.keyCode <= 57) {
+                // 0-9
+                shortcut.push(e.code.replace("Digit", ""));
+            } else if (e.keyCode >= 112 && e.keyCode <= 123) {
+                // F1-F12
+                shortcut.push(e.code);
+            } else if (
+                [
+                    "ArrowRight",
+                    "ArrowLeft",
+                    "ArrowUp",
+                    "ArrowDown",
+                    " ",
+                ].includes(e.key)
+            ) {
+                // Arrows
+                shortcut.push(e.code.replace("Arrow", ""));
+            } else if (validShortcutCodes.includes(e.key)) {
+                shortcut.push(e.key);
+            }
+        });
+        const sortTable = {
+            Control: 1,
+            Shift: 2,
+            Alt: 3,
+            Command: 4,
+        };
+        shortcut = shortcut.sort((a, b) => {
+            if (!sortTable[a] || !sortTable[b]) return 0;
+            if (sortTable[a] - sortTable[b] <= -1) {
+                return -1;
+            } else if (sortTable[a] - sortTable[b] >= 1) {
+                return 1;
+            } else {
+                return 0;
+            }
+        });
+        return shortcut.join("+");
+    };
+
+    const clickOutside = () => {
+        exitRecordShortcut();
+    };
+
+    const exitRecordShortcut = () => {
+        if (shortcutInput.recording === false) return;
+        setShortcutInput({ id: "", type: "", recording: false });
+        recordedShortcut.current = [];
+    };
+
+    const handleShortcutKeydown = (e) => {
+        if (shortcutInput.recording === false) return;
+        e.preventDefault();
+        if (recordedShortcut.current.find((s) => s.keyCode === e.keyCode))
+            return;
+        if (shortcutInputTimeout.current) {
+            clearTimeout(shortcutInputTimeout.current);
+        }
+        recordedShortcut.current.push(e);
+        if (
+            (e.keyCode >= 65 && e.keyCode <= 90) || // A-Z
+            (e.keyCode >= 48 && e.keyCode <= 57) || // 0-9
+            (e.keyCode >= 112 && e.keyCode <= 123) || // F1-F12
+            ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown", " "].includes(
+                e.key
+            ) || // Arrows
+            validShortcutCodes.includes(e.key)
+        ) {
+            shortcutInputTimeout.current = setTimeout(() => {
+                saveShortcut();
+            }, 500);
+        }
+    };
+
+    const saveShortcut = async () => {
+        const { id, type } = shortcutInput;
+        const shortcut = recordedShortcutComputed();
+        const containsElement =
+            shortcutList.filter((s) => {
+                return s.shortcut === shortcut;
+            }).length > 0;
+        if (containsElement) {
+            storeData.showToast("快捷键已存在");
+            shortcutInputTimeout.current = undefined;
+            setShortcutInput({ id: "", type: "", recording: false });
+            recordedShortcut.current = [];
+            return;
+        }
+        let oldShortcut = _.cloneDeep(shortcutList.find((s) => s.id === id));
+        await invoke("unregister_shortcut_by_frontend", {
+            shortcut: oldShortcut,
+        });
+        oldShortcut[type] = shortcut;
+        let shortcuts = shortcutList.map((s) => {
+            if (s.id !== id) return s;
+            return oldShortcut;
+        });
+        let s = await invoke("register_shortcut_by_frontend", {
+            shortcut: oldShortcut,
+        });
+        oldShortcut.isPersonalUse = s.isPersonalUse;
+        setShortcutList(shortcuts);
+        storeData.showToast("快捷键已保存");
+        shortcutInputTimeout.current = undefined;
+        setShortcutInput({ id: "", type: "", recording: false });
+        recordedShortcut.current = [];
+    };
+
+    const getGlobalShortcutClass = (shortcut, isGlobalShortcut = false) => {
+        let classNameArr = [];
+        classNameArr.push("keyboard-input");
+        if (
+            shortcutInput.id === shortcut.id &&
+            ((!isGlobalShortcut && shortcutInput.type === "shortcut") ||
+                (isGlobalShortcut && shortcutInput.type === "globalShortcut"))
+        ) {
+            classNameArr.push("active");
+        }
+        if (isGlobalShortcut && shortcut.isPersonalUse) {
+            classNameArr.push("error");
+        }
+        return classNameArr.join(" ");
+    };
+
+    const readyToRecordShortcut = (id, type) => {
+        if (type === "globalShortcut" && enableGlobalShortcut === false) {
+            return;
+        }
+        setShortcutInput({ id, type, recording: true });
+        recordedShortcut.current = [];
+    };
+
+    const formatShortcut = (shortcut) => {
+        shortcut = shortcut
+            .replace("+", " + ")
+            .replace("Up", "↑")
+            .replace("Down", "↓")
+            .replace("Right", "→")
+            .replace("Left", "←");
+        shortcut = shortcut.replace("Space", "空格");
+        const osDetailType = useGlobalStore.getState().osDetailType;
+        if (osDetailType === "ios") {
+            return shortcut
+                .replace("CommandOrControl", "⌘")
+                .replace("Command", "⌘")
+                .replace("Alt", "⌥")
+                .replace("Control", "⌃")
+                .replace("Shift", "⇧");
+        }
+        return shortcut.replace("CommandOrControl", "Ctrl");
+    };
+
+    const onRestoreDefaultShortcuts = async () => {
+        await invoke("restore_default_shortcuts", {});
+        window.location.reload();
     };
 
     // FFmpeg 下载配置
     const FFMPEG = {
         downloadInfo: {
-            "windows": {
+            windows: {
                 url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
-                path: "ffmpeg.exe"
+                path: "ffmpeg.exe",
             },
-            "linux": {
+            linux: {
                 url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz",
-                path: "ffmpeg"
+                path: "ffmpeg",
             },
-            "macos": {
+            macos: {
                 url: "https://evermeet.cx/ffmpeg/getrelease/zip",
-                path: "ffmpeg"
-            }
-        }
+                path: "ffmpeg",
+            },
+        },
     };
 
     // 动态获取 Miniserve 最新版本下载URL
     const getMiniserveDownloadUrl = async (osDetailType) => {
         try {
             // 获取最新版本信息
-            const response = await fetch('https://api.github.com/repos/svenstaro/miniserve/releases/latest');
+            const response = await fetch(
+                "https://api.github.com/repos/svenstaro/miniserve/releases/latest"
+            );
             const releaseData = await response.json();
 
             // 根据操作系统匹配文件名模式
             const filePatterns = {
-                "windows": /miniserve.*x86_64.*pc-windows-msvc\.exe$/,
-                "linux": /miniserve.*x86_64.*unknown-linux-gnu$/,
-                "macos": /miniserve.*x86_64.*apple-darwin$/
+                windows: /miniserve.*x86_64.*pc-windows-msvc\.exe$/,
+                linux: /miniserve.*x86_64.*unknown-linux-gnu$/,
+                macos: /miniserve.*x86_64.*apple-darwin$/,
             };
 
             const pattern = filePatterns[osDetailType];
@@ -281,20 +483,25 @@ const Settings = (props) => {
             }
 
             // 在assets中查找匹配的文件
-            const asset = releaseData.assets.find(asset => pattern.test(asset.name));
+            const asset = releaseData.assets.find((asset) =>
+                pattern.test(asset.name)
+            );
             if (!asset) {
                 throw new Error(`未找到适合 ${osDetailType} 的下载文件`);
             }
 
-            console.log(`找到匹配文件: ${asset.name}, 下载URL: ${asset.browser_download_url}`);
+            console.log(
+                `找到匹配文件: ${asset.name}, 下载URL: ${asset.browser_download_url}`
+            );
             return asset.browser_download_url;
         } catch (error) {
-            console.error('获取miniserve最新版本失败:', error);
+            console.error("获取miniserve最新版本失败:", error);
             // 降级到固定版本
             const fallbackUrls = {
-                "windows": "https://github.com/svenstaro/miniserve/releases/download/v0.31.0/miniserve-0.31.0-x86_64-pc-windows-msvc.exe",
-                "linux": "https://github.com/svenstaro/miniserve/releases/download/v0.31.0/miniserve-0.31.0-x86_64-unknown-linux-gnu",
-                "macos": "https://github.com/svenstaro/miniserve/releases/download/v0.31.0/miniserve-0.31.0-x86_64-apple-darwin"
+                windows:
+                    "https://github.com/svenstaro/miniserve/releases/download/v0.31.0/miniserve-0.31.0-x86_64-pc-windows-msvc.exe",
+                linux: "https://github.com/svenstaro/miniserve/releases/download/v0.31.0/miniserve-0.31.0-x86_64-unknown-linux-gnu",
+                macos: "https://github.com/svenstaro/miniserve/releases/download/v0.31.0/miniserve-0.31.0-x86_64-apple-darwin",
             };
             return fallbackUrls[osDetailType];
         }
@@ -303,16 +510,16 @@ const Settings = (props) => {
     // Miniserve 下载配置
     const MINISERVE = {
         downloadInfo: {
-            "windows": {
-                path: "miniserve.exe"
+            windows: {
+                path: "miniserve.exe",
             },
-            "linux": {
-                path: "miniserve"
+            linux: {
+                path: "miniserve",
             },
-            "macos": {
-                path: "miniserve"
-            }
-        }
+            macos: {
+                path: "miniserve",
+            },
+        },
     };
 
     // FFmpeg 下载功能
@@ -350,7 +557,9 @@ const Settings = (props) => {
             console.error("不支持的操作系统类型:", osDetailType);
             setFfmpegDownloadStatus("error");
             // 可以考虑显示更详细的错误信息给用户
-            messageApi.warning(`当前系统类型 "${osDetailType}" 暂不支持自动下载 FFmpeg，请手动下载安装。`);
+            messageApi.warning(
+                `当前系统类型 "${osDetailType}" 暂不支持自动下载 FFmpeg，请手动下载安装。`
+            );
         }
     };
 
@@ -360,7 +569,9 @@ const Settings = (props) => {
             case "begin":
                 return "准备下载...";
             case "progress":
-                return `下载中 ${ffmpegDownloadProgress.toFixed(1)}% (${ffmpegDownloadSpeed.toFixed(1)} MB/s)`;
+                return `下载中 ${ffmpegDownloadProgress.toFixed(
+                    1
+                )}% (${ffmpegDownloadSpeed.toFixed(1)} MB/s)`;
             case "end":
                 return "下载完成";
             case "error":
@@ -400,7 +611,9 @@ const Settings = (props) => {
                     setMiniserveVersion("latest");
                     // 下载完成后提示用户可以启动服务
                     setTimeout(async () => {
-                        const shouldStart = await ask("Miniserve 下载完成！是否立即启动文件服务？");
+                        const shouldStart = await ask(
+                            "Miniserve 下载完成！是否立即启动文件服务？"
+                        );
                         if (shouldStart) {
                             startMiniserveService();
                         }
@@ -415,12 +628,16 @@ const Settings = (props) => {
             } catch (error) {
                 console.error("获取Miniserve下载URL失败:", error);
                 setMiniserveDownloadStatus("error");
-                messageApi.error("获取最新版本信息失败，请检查网络连接后重试。");
+                messageApi.error(
+                    "获取最新版本信息失败，请检查网络连接后重试。"
+                );
             }
         } else {
             console.error("不支持的操作系统类型:", osDetailType);
             setMiniserveDownloadStatus("error");
-            messageApi.warning(`当前系统类型 "${osDetailType}" 暂不支持自动下载 Miniserve，请手动下载安装。`);
+            messageApi.warning(
+                `当前系统类型 "${osDetailType}" 暂不支持自动下载 Miniserve，请手动下载安装。`
+            );
         }
     };
 
@@ -430,13 +647,17 @@ const Settings = (props) => {
             case "begin":
                 return "准备下载...";
             case "progress":
-                return `下载中 ${miniserveDownloadProgress.toFixed(1)}% (${miniserveDownloadSpeed.toFixed(1)} MB/s)`;
+                return `下载中 ${miniserveDownloadProgress.toFixed(
+                    1
+                )}% (${miniserveDownloadSpeed.toFixed(1)} MB/s)`;
             case "end":
                 return "下载完成";
             case "error":
                 return "下载失败，点击重试";
             default:
-                return miniserveVersion ? "重新下载 Miniserve" : "下载 Miniserve";
+                return miniserveVersion
+                    ? "重新下载 Miniserve"
+                    : "下载 Miniserve";
         }
     };
 
@@ -469,20 +690,21 @@ const Settings = (props) => {
             await checkExistingMiniserveProcess();
             setMiniserveServiceStatus("starting");
 
-            const result = await invoke('start_miniserve_service', {
+            const result = await invoke("start_miniserve_service", {
                 port: portNum,
-                directory: downloadSavePath
+                directory: downloadSavePath,
             });
 
             if (result.success) {
                 setMiniserveServiceStatus("running");
                 setMiniserveCommandId(portNum); // 使用端口号作为标识
-                messageApi.success(`Miniserve 服务已启动！访问地址: http://localhost:${portValue}`);
+                messageApi.success(
+                    `Miniserve 服务已启动！访问地址: http://localhost:${portValue}`
+                );
             } else {
                 setMiniserveServiceStatus("error");
                 messageApi.error("启动 Miniserve 服务失败: " + result.message);
             }
-
         } catch (error) {
             console.error("启动 Miniserve 服务失败:", error);
             setMiniserveServiceStatus("error");
@@ -498,8 +720,8 @@ const Settings = (props) => {
             const portValue = miniservePort || "8080";
             const port = parseInt(portValue, 10);
 
-            const result = await invoke('stop_miniserve_service', {
-                port: port
+            const result = await invoke("stop_miniserve_service", {
+                port: port,
             });
 
             if (result.success) {
@@ -510,13 +732,14 @@ const Settings = (props) => {
                 setMiniserveServiceStatus("error");
                 messageApi.error("停止 Miniserve 服务失败: " + result.message);
             }
-
         } catch (error) {
             console.error("停止 Miniserve 服务失败:", error);
             // 即使停止失败，也重置状态
             setMiniserveServiceStatus("stopped");
             setMiniserveCommandId(null);
-            messageApi.warning("停止 Miniserve 服务失败，但已重置状态: " + error.message);
+            messageApi.warning(
+                "停止 Miniserve 服务失败，但已重置状态: " + error.message
+            );
         }
     };
 
@@ -536,7 +759,6 @@ const Settings = (props) => {
         }
     };
 
-
     return (
         <div
             className={
@@ -544,6 +766,7 @@ const Settings = (props) => {
                     ? "settingsPage " + props.className
                     : "settingsPage"
             }
+            onClick={clickOutside}
         >
             {contextHolder}
             <div className="container">
@@ -638,14 +861,19 @@ const Settings = (props) => {
                             <div className="left">
                                 <div className="title">FFmpeg 工具</div>
                                 <div className="description">
-                                    {ffmpegVersion ? `已安装版本: ${ffmpegVersion}` : "用于视频处理的必要工具"}
+                                    {ffmpegVersion
+                                        ? `已安装版本: ${ffmpegVersion}`
+                                        : "用于视频处理的必要工具"}
                                 </div>
                             </div>
                             <div className="right">
                                 <button
                                     className="button"
                                     onClick={downloadFfmpeg}
-                                    disabled={ffmpegDownloadStatus === "begin" || ffmpegDownloadStatus === "progress"}
+                                    disabled={
+                                        ffmpegDownloadStatus === "begin" ||
+                                        ffmpegDownloadStatus === "progress"
+                                    }
                                 >
                                     {getFfmpegButtonText()}
                                 </button>
@@ -655,14 +883,19 @@ const Settings = (props) => {
                             <div className="left">
                                 <div className="title">Miniserve 工具</div>
                                 <div className="description">
-                                    {miniserveVersion ? `已安装版本: ${miniserveVersion}` : "用于本地文件服务的轻量级工具"}
+                                    {miniserveVersion
+                                        ? `已安装版本: ${miniserveVersion}`
+                                        : "用于本地文件服务的轻量级工具"}
                                 </div>
                             </div>
                             <div className="right">
                                 <button
                                     className="button"
                                     onClick={downloadMiniserve}
-                                    disabled={miniserveDownloadStatus === "begin" || miniserveDownloadStatus === "progress"}
+                                    disabled={
+                                        miniserveDownloadStatus === "begin" ||
+                                        miniserveDownloadStatus === "progress"
+                                    }
                                 >
                                     {getMiniserveButtonText()}
                                 </button>
@@ -685,8 +918,13 @@ const Settings = (props) => {
                                             type="number"
                                             min={1024}
                                             max={65535}
-                                            onChange={(e) => setMiniservePort(e.target.value)}
-                                            disabled={miniserveServiceStatus === "running"}
+                                            onChange={(e) =>
+                                                setMiniservePort(e.target.value)
+                                            }
+                                            disabled={
+                                                miniserveServiceStatus ===
+                                                "running"
+                                            }
                                         />
                                     </div>
                                 </div>
@@ -694,25 +932,38 @@ const Settings = (props) => {
                                     <div className="left">
                                         <div className="title">文件服务</div>
                                         <div className="description">
-                                            {miniserveServiceStatus === "running"
+                                            {miniserveServiceStatus ===
+                                            "running"
                                                 ? `服务运行中 - http://${localIp}:${miniservePort}`
                                                 : "启动本地文件服务器"}
                                         </div>
                                     </div>
                                     <div className="right">
-                                        {miniserveServiceStatus === "running" && (
+                                        {miniserveServiceStatus ===
+                                            "running" && (
                                             <>
                                                 <button
                                                     className="button"
-                                                    onClick={() => window.open(`http://${localIp}:${miniservePort}`, '_blank')}
-                                                    style={{ marginRight: '8px' }}
+                                                    onClick={() =>
+                                                        window.open(
+                                                            `http://${localIp}:${miniservePort}`,
+                                                            "_blank"
+                                                        )
+                                                    }
+                                                    style={{
+                                                        marginRight: "8px",
+                                                    }}
                                                 >
                                                     打开浏览器
                                                 </button>
                                                 <button
                                                     className="button"
-                                                    onClick={() => setQrCodeVisible(true)}
-                                                    style={{ marginRight: '8px' }}
+                                                    onClick={() =>
+                                                        setQrCodeVisible(true)
+                                                    }
+                                                    style={{
+                                                        marginRight: "8px",
+                                                    }}
                                                 >
                                                     生成二维码
                                                 </button>
@@ -720,8 +971,18 @@ const Settings = (props) => {
                                         )}
                                         <button
                                             className="button"
-                                            onClick={miniserveServiceStatus === "running" ? stopMiniserveService : startMiniserveService}
-                                            disabled={miniserveServiceStatus === "starting" || miniserveServiceStatus === "stopping"}
+                                            onClick={
+                                                miniserveServiceStatus ===
+                                                "running"
+                                                    ? stopMiniserveService
+                                                    : startMiniserveService
+                                            }
+                                            disabled={
+                                                miniserveServiceStatus ===
+                                                    "starting" ||
+                                                miniserveServiceStatus ===
+                                                    "stopping"
+                                            }
                                         >
                                             {getMiniserveServiceButtonText()}
                                         </button>
@@ -764,11 +1025,7 @@ const Settings = (props) => {
                         min={0}
                         max={65535}
                         disabled={proxyProtocol === "noProxy"}
-                        onChange={(e) =>
-                            setProxyPort(
-                                e.target.valueAsNumber
-                            )
-                        }
+                        onChange={(e) => setProxyPort(e.target.valueAsNumber)}
                     />
                     <button className="button" onClick={sendProxyConfig}>
                         更新代理
@@ -780,9 +1037,7 @@ const Settings = (props) => {
                     title="暗色模式"
                     initValue={darkMode}
                     fieldKey="darkMode"
-                    callback={(switchValue) =>
-                        darkModeCallback(switchValue)
-                    }
+                    callback={(switchValue) => darkModeCallback(switchValue)}
                 />
                 <SettingsColorPicker
                     title="主题色"
@@ -822,9 +1077,7 @@ const Settings = (props) => {
                     title="数据上传"
                     initValue={dataUpload}
                     fieldKey="dataUpload"
-                    callback={(switchValue) =>
-                        dataUploadCallback(switchValue)
-                    }
+                    callback={(switchValue) => dataUploadCallback(switchValue)}
                 />
                 <SettingButton
                     title="唯一标识符"
@@ -845,12 +1098,14 @@ const Settings = (props) => {
                     callback={() => syncSite()}
                 />
                 <div className="item">
-                  <div className="left">
-                    <div className="title">打开开发者工具</div>
-                  </div>
-                  <div className="right">
-                    <button className="button" onClick={openDevTools}>开发者工具</button>
-                  </div>
+                    <div className="left">
+                        <div className="title">打开开发者工具</div>
+                    </div>
+                    <div className="right">
+                        <button className="button" onClick={openDevTools}>
+                            开发者工具
+                        </button>
+                    </div>
                 </div>
                 {osType == "desktop" && (
                     <>
@@ -861,17 +1116,101 @@ const Settings = (props) => {
                             callback={(value) => setCloseAppOption(value)}
                         />
                         <div className="item">
-                          <div className="left">
-                            <div className="title">检测更新</div>
-                          </div>
-                          <div className="right">
-                            <button className="button" onClick={() => setIsCheckingUpdate(true)}>
-                              更新
-                            </button>
-                          </div>
+                            <div className="left">
+                                <div className="title">检测更新</div>
+                            </div>
+                            <div className="right">
+                                <button
+                                    className="button"
+                                    onClick={() => setIsCheckingUpdate(true)}
+                                >
+                                    更新
+                                </button>
+                            </div>
                         </div>
                     </>
                 )}
+                <h3>快捷键</h3>
+                <SettingsSwitch
+                    inputId="enable-enable-global-shortcut"
+                    title="启用全局快捷键"
+                    fieldKey="enableGlobalShortcut"
+                    initValue={enableGlobalShortcut}
+                    callback={(value) => {
+                        setEnableGlobalShortcut(value);
+                    }}
+                />
+                <div
+                    id="shortcut-table"
+                    className={!enableGlobalShortcut ? "global-disabled" : ""}
+                    tabIndex={0}
+                    onKeyDown={handleShortcutKeydown}
+                >
+                    <div className="row row-head">
+                        <div className="col col-function">
+                            功能
+                        </div>
+                        <div className="col">快捷键</div>
+                        <div className="col">
+                            全局快捷键
+                        </div>
+                    </div>
+                    {shortcutList?.map((shortcut) => {
+                        return (
+                            <div key={shortcut.id} className="row">
+                                <div className="col col-function">
+                                    {shortcut.desc}
+                                </div>
+                                <div className="col">
+                                    <div
+                                        className={getGlobalShortcutClass(
+                                            shortcut
+                                        )}
+                                        onClick={() =>
+                                            readyToRecordShortcut(
+                                                shortcut.id,
+                                                "shortcut"
+                                            )
+                                        }
+                                    >
+                                        {formatShortcut(shortcut.shortcut)}
+                                    </div>
+                                </div>
+                                <div className="col">
+                                    <div
+                                        className={getGlobalShortcutClass(
+                                            shortcut,
+                                            true
+                                        )}
+                                        onClick={() =>
+                                            readyToRecordShortcut(
+                                                shortcut.id,
+                                                "globalShortcut"
+                                            )
+                                        }
+                                    >
+                                        {formatShortcut(
+                                            shortcut.globalShortcut
+                                        )}
+                                    </div>
+                                    {shortcut.isPersonalUse ? (
+                                        <span className="personalUseTip">
+                                            热键被占用
+                                        </span>
+                                    ) : (
+                                        ""
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    <button
+                        className="restore-default-shortcut"
+                        onClick={onRestoreDefaultShortcuts}
+                    >
+                        恢复默认快捷键
+                    </button>
+                </div>
                 <SettingButton
                     title="软件重置"
                     description="如果新安装用户, 无法显示资源, 请点击软件重置. 如非必要, 切勿点击. 会清空用户数据, 恢复默认设置. "

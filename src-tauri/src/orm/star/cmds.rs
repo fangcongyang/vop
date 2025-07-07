@@ -64,21 +64,22 @@ pub fn delete_star(id: &str) -> Result<usize, String> {
 }
 
 #[tauri::command]
-pub fn import_star(
-    file_path: &str
-) -> Result<usize, String> {
-    let mut db = get_database_pool()
-        .map_err(|e| format!("获取数据库连接失败: {}", e))?;
+pub fn import_star(file_path: &str) -> Result<usize, String> {
+    let mut db = get_database_pool().map_err(|e| format!("获取数据库连接失败: {}", e))?;
 
-    let file_content = std::fs::read_to_string(file_path)
-        .map_err(|e| format!("读取文件内容失败: {}", e))?;
-    let star: Vec<Star> = serde_json::from_str(&file_content)
-        .map_err(|e| format!("解析JSON失败: {}", e))?;
+    let file_content =
+        std::fs::read_to_string(file_path).map_err(|e| format!("读取文件内容失败: {}", e))?;
+    let star: Vec<Star> =
+        serde_json::from_str(&file_content).map_err(|e| format!("解析JSON失败: {}", e))?;
     let old_stars = get_all_stars()?;
     let mut star_new = vec![];
     let now = utils::get_current_time_str();
     for h in star {
-        if old_stars.iter().find(|x| x.site_key == h.site_key && x.ids == h.ids).is_none() {
+        if old_stars
+            .iter()
+            .find(|x| x.site_key == h.site_key && x.ids == h.ids)
+            .is_none()
+        {
             star_new.push(Star {
                 id: utils::uuid(),
                 star_name: h.star_name,

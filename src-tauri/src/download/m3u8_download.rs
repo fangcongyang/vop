@@ -26,7 +26,10 @@ use tokio::{
 };
 use tungstenite::WebSocket;
 
-use crate::{orm::download_info::{service::update_download_by_id, types::DownloadInfoUpdate}, utils};
+use crate::{
+    orm::download_info::{service::update_download_by_id, types::DownloadInfoUpdate},
+    utils,
+};
 
 use super::{
     file_download::DownloadTaskInfo,
@@ -257,10 +260,8 @@ async fn download_slice(
     ) = mpsc::channel(100);
 
     // 创建进度发送 channel
-    let (progress_tx, mut progress_rx): (
-        mpsc::Sender<i32>,
-        mpsc::Receiver<i32>,
-    ) = mpsc::channel(10);
+    let (progress_tx, mut progress_rx): (mpsc::Sender<i32>, mpsc::Receiver<i32>) =
+        mpsc::channel(10);
 
     // 创建进度发送定时器
     let download_count_clone = download_count.clone();

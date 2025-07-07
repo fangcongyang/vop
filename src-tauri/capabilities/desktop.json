@@ -10,6 +10,7 @@
     "topSmallPlay"
   ],
   "permissions": [
-    "updater:default"
+    "updater:default",
+    "global-shortcut:default"
   ]
 }
