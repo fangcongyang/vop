@@ -614,7 +614,117 @@ pub async fn start_miniserve_service(
     }
 }
 
+// 辅助函数：从netstat输出中查找miniserve进程PID
+fn find_miniserve_pid_from_netstat(output_str: &str, port: u16) -> Option<u32> {
+    let port_patterns = [
+        format!("127.0.0.1:{} ", port),  // IPv4 localhost
+        format!("0.0.0.0:{} ", port),    // IPv4 all interfaces
+        format!("[::]:{} ", port),       // IPv6 all interfaces
+        format!("[::1]:{} ", port),      // IPv6 localhost
+    ];
+
+    for line in output_str.lines() {
+        if !line.contains("LISTENING") {
+            continue;
+        }
+
+        let matches_port = port_patterns.iter().any(|pattern| line.contains(pattern));
+        if !matches_port {
+            continue;
+        }
+
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if let Some(pid_str) = parts.last() {
+            if let Ok(pid) = pid_str.parse::<u32>() {
+                if is_miniserve_process(pid) {
+                    return Some(pid);
+                }
+            }
+        }
+    }
+    None
+}
+
+// 辅助函数：验证进程是否为miniserve
+fn is_miniserve_process(pid: u32) -> bool {
+    let process_name_result = Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {}", pid), "/FO", "CSV", "/NH"])
+        .output();
+
+    match process_name_result {
+        Ok(name_output) => {
+            let name_str = String::from_utf8_lossy(&name_output.stdout).to_lowercase();
+            name_str.contains("miniserve") || name_str.contains("miniserve.exe")
+        }
+        Err(_) => {
+            println!("警告: 无法验证PID {} 的进程名称，将尝试停止", pid);
+            true
+        }
+    }
+}
+
+// 辅助函数：优雅地终止进程
+async fn kill_process_gracefully(pid: u32, port: u16) -> Result<MiniserveServiceResult, std::io::Error> {
+    let pid_str = pid.to_string();
+
+    // 先尝试优雅关闭
+    let _gentle_kill = Command::new("taskkill")
+        .args(["/PID", &pid_str])
+        .output();
+
+    tokio::time::sleep(Duration::from_millis(1000)).await;
+
+    if is_port_available(port) {
+        return Ok(create_success_result(port, "miniserve服务已优雅停止"));
+    }
+
+    // 优雅关闭失败，使用强制终止
+    match Command::new("taskkill")
+        .args(["/PID", &pid_str, "/F"])
+        .output()
+    {
+        Ok(_) => {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            Ok(create_service_result(
+                is_port_available(port),
+                port,
+                "miniserve服务已强制停止",
+                "无法停止miniserve服务，端口仍被占用"
+            ))
+        }
+        Err(e) => Ok(create_error_result(port, &format!("强制停止进程失败: {}", e))),
+    }
+}
+
+// 辅助函数：创建服务结果
+fn create_service_result(success: bool, port: u16, success_msg: &str, error_msg: &str) -> MiniserveServiceResult {
+    MiniserveServiceResult {
+        success,
+        message: if success { success_msg.to_string() } else { error_msg.to_string() },
+        port: Some(port),
+    }
+}
+
+// 辅助函数：创建成功结果
+fn create_success_result(port: u16, message: &str) -> MiniserveServiceResult {
+    MiniserveServiceResult {
+        success: true,
+        message: message.to_string(),
+        port: Some(port),
+    }
+}
+
+// 辅助函数：创建错误结果
+fn create_error_result(port: u16, message: &str) -> MiniserveServiceResult {
+    MiniserveServiceResult {
+        success: false,
+        message: message.to_string(),
+        port: Some(port),
+    }
+}
+
 // 停止所有miniserve服务
+#[tauri::command]
 pub async fn stop_all_miniserve_services() -> Result<(), String> {
 
     // 停止所有进程
@@ -661,50 +771,15 @@ pub async fn stop_miniserve_service(port: u16) -> Result<MiniserveServiceResult,
             match netstat_output {
                 Ok(output) => {
                     let output_str = String::from_utf8_lossy(&output.stdout);
-                    let port_str = format!(":{}", port);
 
-                    // 查找占用指定端口的进程ID
-                    for line in output_str.lines() {
-                        if line.contains(&port_str) && line.contains("LISTENING") {
-                            let parts: Vec<&str> = line.split_whitespace().collect();
-                            if let Some(pid_str) = parts.last() {
-                                if let Ok(_pid) = pid_str.parse::<u32>() {
-                                    // 使用PID停止特定进程
-                                    return match Command::new("taskkill")
-                                        .args(["/PID", pid_str, "/F"])
-                                        .output()
-                                    {
-                                        Ok(_) => {
-                                            tokio::time::sleep(Duration::from_millis(500)).await;
-                                            if is_port_available(port) {
-                                                Ok(MiniserveServiceResult {
-                                                    success: true,
-                                                    message: "miniserve服务已强制停止".to_string(),
-                                                    port: Some(port),
-                                                })
-                                            } else {
-                                                Ok(MiniserveServiceResult {
-                                                    success: false,
-                                                    message: "无法停止miniserve服务，端口仍被占用"
-                                                        .to_string(),
-                                                    port: Some(port),
-                                                })
-                                            }
-                                        }
-                                        Err(e) => Ok(MiniserveServiceResult {
-                                            success: false,
-                                            message: format!("停止进程失败: {}", e),
-                                            port: Some(port),
-                                        }),
-                                    };
-                                }
-                            }
-                            break;
-                        }
+                    // 查找并处理占用端口的miniserve进程
+                    if let Some(pid) = find_miniserve_pid_from_netstat(&output_str, port) {
+                        return kill_process_gracefully(pid, port).await.map_err(|e| e.to_string());
                     }
+
                     Err(std::io::Error::new(
                         std::io::ErrorKind::NotFound,
-                        "未找到占用端口的进程",
+                        "未找到占用端口的miniserve进程",
                     ))
                 }
                 Err(e) => Err(e),
@@ -730,25 +805,9 @@ pub async fn stop_miniserve_service(port: u16) -> Result<MiniserveServiceResult,
         match kill_result {
             Ok(_) => {
                 tokio::time::sleep(Duration::from_millis(500)).await;
-                if is_port_available(port) {
-                    Ok(MiniserveServiceResult {
-                        success: true,
-                        message: "miniserve服务已强制停止".to_string(),
-                        port: Some(port),
-                    })
-                } else {
-                    Ok(MiniserveServiceResult {
-                        success: false,
-                        message: "无法停止miniserve服务，端口仍被占用".to_string(),
-                        port: Some(port),
-                    })
-                }
+                Ok(create_service_result(is_port_available(port), port, "miniserve服务已强制停止", "无法停止miniserve服务，端口仍被占用"))
             }
-            Err(e) => Ok(MiniserveServiceResult {
-                success: false,
-                message: format!("停止miniserve服务失败: {}", e),
-                port: Some(port),
-            }),
+            Err(e) => Ok(create_error_result(port, &format!("停止miniserve服务失败: {}", e))),
         }
     }
 }
