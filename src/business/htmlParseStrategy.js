@@ -127,15 +127,27 @@ class SiteClassXmlParser extends HtmlParseStrategy {
                     i._flag = ext.length === 1 ? ext[0] + "-" + index : index ? "ZY支持-" + index : "ZY支持";
                     index++;
                 }
+                const urlList = i._t.split("#").filter(e => {
+                    if (!e) return false;
+                    if (e.startsWith("http")) return true;
+                    const parts = e.split("$");
+                    return parts[1] && parts[1].startsWith("http");
+                });
                 fullList.push({
                     flag: i._flag,
-                    list: i._t.split("#").filter(e => e && (e.startsWith("http") || (e.split("$")[1] && e.split("$")[1].startsWith("http"))))
+                    list: urlList
                 });
             }
         } else {
+            const urlList = dd._t.replace(/\$+/g, "$").split("#").filter(e => {
+                if (!e) return false;
+                if (e.startsWith("http")) return true;
+                const parts = e.split("$");
+                return parts[1] && parts[1].startsWith("http");
+            });
             fullList.push({
                 flag: dd._flag,
-                list: dd._t.replace(/\$+/g, "$").split("#").filter(e => e && (e.startsWith("http") || (e.split("$")[1] && e.split("$")[1].startsWith("http")))),
+                list: urlList
             });
         }
         fullList.forEach(item => {
@@ -173,8 +185,16 @@ class SiteClassXmlParser extends HtmlParseStrategy {
         const videoList = jsondata.list.video;
         const dd = videoList.dl.dd;
         const type = Object.prototype.toString.call(dd);
-        const downloadUrls = (type === "[object Array]" ? dd : [dd])
-            .map(i => i._t.replace(/\$+/g, "$").split("#").map(e => encodeURI(e.includes("$") ? e.split("$")[1] : e)).join("\n"))
+        const ddArray = type === "[object Array]" ? dd : [dd];
+        const downloadUrls = ddArray
+            .map(i => {
+                const urls = i._t.replace(/\$+/g, "$").split("#")
+                    .map(e => {
+                        const url = e.includes("$") ? e.split("$")[1] : e;
+                        return encodeURI(url);
+                    });
+                return urls.join("\n");
+            })
             .join("\n");
         if (downloadUrls) {
             resolve({ downloadUrls, info: "加入下载队列成功!" });
