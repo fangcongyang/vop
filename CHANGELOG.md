@@ -1,4 +1,8 @@
-## [0.1.9](https://github.com/fangcongyang/vop/compare/0.1.8...0.1.9) (2025-07-12)
+# [0.2.0](https://github.com/fangcongyang/vop/compare/v0.1.9...v0.2.0) (2025-07-12)
+
+
+
+## [0.1.9](https://github.com/fangcongyang/vop/compare/0.1.9...v0.1.9) (2025-07-12)
 
 
 ### 🐛 Bug Fixes | Bug 修复
