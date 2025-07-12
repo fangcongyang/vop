@@ -1,4 +1,15 @@
-## [0.1.6](https://github.com/fangcongyang/vop/compare/v0.1.5...v0.1.6) (2025-07-07)
+## [0.1.7](https://github.com/fangcongyang/vop/compare/v0.1.6...v0.1.7) (2025-07-12)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* **Download:** 修复重试按钮在下载失败时才显示的问题 ([](https://github.com/fangcongyang/vop/commit/452db0d))
+* **m3u8下载:** 修复Windows下ffmpeg命令窗口显示问题 ([](https://github.com/fangcongyang/vop/commit/7821cd2))
+* **play:** 修复播放器清理和锁定功能 ([](https://github.com/fangcongyang/vop/commit/e50fdc2))
+
+
+
+## [0.1.6](https://github.com/fangcongyang/vop/compare/0.1.6...v0.1.6) (2025-07-07)
 
 
 ### ✨ Features | 新功能
