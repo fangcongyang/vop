@@ -122,7 +122,7 @@ class SiteClassXmlParser extends HtmlParseStrategy {
         if (type === "[object Array]") {
             for (const i of dd) {
                 i._t = i._t.replace(/\$+/g, "$");
-                const ext = Array.from(new Set(...i._t.split("#").map(e => e.includes("$") ? e.split("$")[1].match(/\.\w+?$/) : e.match(/\.\w+?$/)))).map(e => e.slice(1));
+                const ext = Array.from(new Set(i._t.split("#").map(e => e.includes("$") ? e.split("$")[1].match(/\.\w+?$/) : e.match(/\.\w+?$/)).filter(Boolean))).map(e => e.slice(1));
                 if (ext.length && ext.length <= supportedFormats.length && ext.every(e => supportedFormats.includes(e))) {
                     i._flag = ext.length === 1 ? ext[0] + "-" + index : index ? "ZY支持-" + index : "ZY支持";
                     index++;
