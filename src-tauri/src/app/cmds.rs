@@ -547,8 +547,8 @@ pub async fn start_miniserve_service(
         });
     }
 
-    // 停止已存在的服务
-    let _ = stop_miniserve_service(port).await;
+    // 停止所有已存在的服务
+    let _ = stop_all_miniserve_services().await;
 
     // 启动miniserve服务
     let mut command = Command::new(&exe_path);
@@ -612,6 +612,24 @@ pub async fn start_miniserve_service(
             port: Some(port),
         }),
     }
+}
+
+// 停止所有miniserve服务
+pub async fn stop_all_miniserve_services() -> Result<(), String> {
+
+    // 停止所有进程
+    {
+        let mut processes = MINISERVE_PROCESSES.lock().unwrap();
+        for (_, mut child) in processes.drain() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+
+    // 等待一段时间确保进程完全停止
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    Ok(())
 }
 
 #[tauri::command]

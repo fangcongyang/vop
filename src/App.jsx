@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { ask } from "@tauri-apps/plugin-dialog";
 import { exit } from "@tauri-apps/plugin-process";
+import { invoke } from "@tauri-apps/api/core";
 import { applyTheme, antdThemeConfig } from "./theme";
 import { store } from "@/utils/store";
 import { ConfigProvider } from "antd";
@@ -24,6 +25,7 @@ function App() {
   const [appLockEnabled] = useConfig("appLockEnabled", false);
   const [passwordHash] = useConfig("appLockPasswordHash", "");
   const [closeAppOption] = useConfig("closeAppOption", "ask");
+  const [miniservePort] = useConfig("miniservePort", "8080");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
   const initGlobal = useGlobalStore((s) => s.initGlobal)
@@ -37,9 +39,9 @@ function App() {
         // 直接从store同步获取最新配置，避免useConfig的延时问题
         const currentAppLockEnabled = await store.get("appLockEnabled") ?? false;
         const currentPasswordHash = await store.get("appLockPasswordHash") ?? "";
-        
+
         setConfigLoaded(true);
-        
+
         if (!currentAppLockEnabled) {
           setIsUnlocked(true);
         } else {
@@ -55,7 +57,7 @@ function App() {
         setConfigLoaded(true);
       }
     };
-    
+
     checkLockStatus();
   }, []);
 
@@ -63,18 +65,37 @@ function App() {
     initGlobal();
   }, []);
 
+  // 清理miniserve服务的函数
+  const cleanupMiniserveService = async () => {
+    try {
+      // 停止配置的miniserve服务端口
+      const portNum = parseInt(miniservePort || "8080");
+      try {
+        await invoke("stop_miniserve_service", { port: portNum });
+      } catch (error) {
+        // 忽略停止错误
+        console.log(`停止端口 ${portNum} 的服务时出错:`, error);
+      }
+    } catch (error) {
+      console.error("清理 miniserve 服务失败:", error);
+    }
+  };
+
   // 处理窗口关闭事件
   useEffect(() => {
     if (osType === "desktop") {
       getCurrentWindow()
         .onCloseRequested(async (event) => {
           event.preventDefault();
+
           if (closeAppOption === "ask") {
             const ok = await ask("是否退出程序？", {
               kind: "error",
               title: "退出",
             });
             if (ok) {
+                // 在窗口关闭前清理miniserve服务
+                await cleanupMiniserveService();
               exit(0);
             }
           } else if (closeAppOption === "close") {
@@ -98,7 +119,7 @@ function App() {
         }
       }
     };
-  }, [closeAppOption, osType]);
+  }, [closeAppOption, osType, miniservePort]);
 
   useEffect(() => {
     // 初始化主题设置
@@ -124,13 +145,13 @@ function App() {
   if (!configLoaded) {
     return (
       <ConfigProvider theme={antdTheme}>
-        <div style={{ 
-           width: '100vw', 
-           height: '100vh', 
-           backgroundColor: 'var(--color-bg-container)', 
-           display: 'flex', 
+        <div style={{
+           width: '100vw',
+           height: '100vh',
+           backgroundColor: 'var(--color-bg-container)',
+           display: 'flex',
            flexDirection: 'column',
-           alignItems: 'center', 
+           alignItems: 'center',
            justifyContent: 'center',
            gap: '20px'
          }}>

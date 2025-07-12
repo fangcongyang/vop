@@ -112,7 +112,6 @@ const Settings = (props) => {
     );
     const [miniserveServiceStatus, setMiniserveServiceStatus] =
         useState("stopped"); // stopped, starting, running, error
-    const [miniserveCommandId, setMiniserveCommandId] = useState(null);
     const [qrCodeVisible, setQrCodeVisible] = useState(false);
     const [localIp, setLocalIp] = useState("localhost");
 
@@ -181,12 +180,6 @@ const Settings = (props) => {
         // 获取本机IP地址
         getLocalIpAddress();
 
-        // 组件卸载时清理miniserve服务
-        return () => {
-            if (miniserveCommandId && miniserveServiceStatus === "running") {
-                stopMiniserveService();
-            }
-        };
     }, []);
 
     const linkOpen = (url) => {
@@ -697,7 +690,6 @@ const Settings = (props) => {
 
             if (result.success) {
                 setMiniserveServiceStatus("running");
-                setMiniserveCommandId(portNum); // 使用端口号作为标识
                 messageApi.success(
                     `Miniserve 服务已启动！访问地址: http://localhost:${portValue}`
                 );
@@ -726,7 +718,6 @@ const Settings = (props) => {
 
             if (result.success) {
                 setMiniserveServiceStatus("stopped");
-                setMiniserveCommandId(null);
                 messageApi.success("Miniserve 服务已停止");
             } else {
                 setMiniserveServiceStatus("error");
@@ -736,7 +727,6 @@ const Settings = (props) => {
             console.error("停止 Miniserve 服务失败:", error);
             // 即使停止失败，也重置状态
             setMiniserveServiceStatus("stopped");
-            setMiniserveCommandId(null);
             messageApi.warning(
                 "停止 Miniserve 服务失败，但已重置状态: " + error.message
             );
