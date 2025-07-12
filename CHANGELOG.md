@@ -1,4 +1,22 @@
-## [0.1.7](https://github.com/fangcongyang/vop/compare/v0.1.6...v0.1.7) (2025-07-12)
+## [0.1.9](https://github.com/fangcongyang/vop/compare/0.1.8...0.1.9) (2025-07-12)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* **htmlParseStrategy:** 优化URL列表过滤逻辑 ([](https://github.com/fangcongyang/vop/commit/8688480))
+
+
+
+## [0.1.8](https://github.com/fangcongyang/vop/compare/0.1.7...0.1.8) (2025-07-12)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* **htmlParseStrategy:** 修复文件扩展名提取逻辑中的错误 ([](https://github.com/fangcongyang/vop/commit/af345c0))
+
+
+
+## [0.1.7](https://github.com/fangcongyang/vop/compare/v0.1.6...0.1.7) (2025-07-12)
 
 
 ### 🐛 Bug Fixes | Bug 修复
