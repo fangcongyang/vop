@@ -124,7 +124,10 @@ export class MoviesPlayer {
 
         listener = await listen(
             "lock",
-            window.location.reload()
+            () => {
+                console.log(123)
+                window.location.reload();
+            }
         );
         this.listeners.push(listener);
     }

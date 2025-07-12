@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window"
+import { ask } from "@tauri-apps/plugin-dialog";
+import { exit } from "@tauri-apps/plugin-process";
 import { applyTheme, antdThemeConfig } from "./theme";
 import { store } from "@/utils/store";
 import { ConfigProvider } from "antd";
@@ -21,9 +23,12 @@ function App() {
   const [darkMode] = useConfig("darkMode", false);
   const [appLockEnabled] = useConfig("appLockEnabled", false);
   const [passwordHash] = useConfig("appLockPasswordHash", "");
+  const [closeAppOption] = useConfig("closeAppOption", "ask");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [configLoaded, setConfigLoaded] = useState(false);
   const initGlobal = useGlobalStore((s) => s.initGlobal)
+  const osType = useGlobalStore((state) => state.osType);
+  const exitUnlistenFn = useRef(null);
 
   useEffect(() => {
     // 等待配置加载完成后再检查应用锁状态
@@ -57,6 +62,43 @@ function App() {
   useEffect(() => {
     initGlobal();
   }, []);
+
+  // 处理窗口关闭事件
+  useEffect(() => {
+    if (osType === "desktop") {
+      getCurrentWindow()
+        .onCloseRequested(async (event) => {
+          event.preventDefault();
+          if (closeAppOption === "ask") {
+            const ok = await ask("是否退出程序？", {
+              kind: "error",
+              title: "退出",
+            });
+            if (ok) {
+              exit(0);
+            }
+          } else if (closeAppOption === "close") {
+            exit(0);
+          } else {
+            await getCurrentWindow().minimize();
+          }
+        })
+        .then((unlisten) => {
+          if (exitUnlistenFn.current) {
+            exitUnlistenFn.current();
+          }
+          exitUnlistenFn.current = unlisten;
+        });
+    }
+    return () => {
+      if (osType === "desktop") {
+        if (exitUnlistenFn.current) {
+          exitUnlistenFn.current();
+          exitUnlistenFn.current = null;
+        }
+      }
+    };
+  }, [closeAppOption, osType]);
 
   useEffect(() => {
     // 初始化主题设置

@@ -1,8 +1,4 @@
 import { useEffect, useRef } from "react";
-import { ask } from "@tauri-apps/plugin-dialog";
-import { exit } from "@tauri-apps/plugin-process";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useConfig } from "@/hooks";
 import { useGlobalStore } from "@/store/useGlobalStore";
 import WinTool from "@/components/WinTool";
 import Navbar from "@/components/Navbar";
@@ -29,8 +25,6 @@ function Main() {
   const updateDownloadInfoProcess = useMovieStore((state) => state.updateDownloadInfoProcess);
   const osType = useGlobalStore((state) => state.osType);
   const main = useRef(null);
-  const exitUnlistenFn = useRef(null);
-  const [closeAppOption] = useConfig("closeAppOption", "ask"); // 添加状态
 
   const initDownloadWebsocket = () => {
     for (var i = 0; i < downloadWebsocketNum; i++) {
@@ -57,42 +51,7 @@ function Main() {
     };
   }, []);
 
-  // 监听配置更新
-  useEffect(() => {
-    if (osType === "desktop") {
-      getCurrentWindow()
-        .onCloseRequested(async (event) => {
-          event.preventDefault();
-          if (closeAppOption === "ask") {
-            const ok = await ask("是否退出程序？", {
-              kind: "error",
-              title: "退出",
-            });
-            if (ok) {
-              exit(0);
-            }
-          } else if (closeAppOption === "close") {
-            exit(0);
-          } else {
-            await getCurrentWindow().minimize();
-          }
-        })
-        .then((unlisten) => {
-          if (exitUnlistenFn.current) {
-            exitUnlistenFn.current();
-          }
-          exitUnlistenFn.current = unlisten;
-        });
-    }
-    return () => {
-      if (osType === "desktop") {
-        if (exitUnlistenFn.current) {
-          exitUnlistenFn.current();
-          exitUnlistenFn.current = null;
-        }
-      }
-    };
-  }, [closeAppOption]);
+
 
   return (
     <div className="main-body">
