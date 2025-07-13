@@ -40,23 +40,42 @@ import { useMovieStore } from "@/store/useMovieStore";
 
 // 时间输入组件
 const TimingInput = ({ label, position, onChange }) => {
+    const [localMin, setLocalMin] = useState(position.min);
+    const [localSec, setLocalSec] = useState(position.sec);
+
+    // 当外部position变化时，更新本地状态
+    useEffect(() => {
+        setLocalMin(position.min);
+        setLocalSec(position.sec);
+    }, [position.min, position.sec]);
+
     const handleMinChange = (e) => {
         const value = e.target.value.replace(/\D/g, "").slice(0, 2);
-        onChange({
-            ...position,
-            min: value || "00",
-        });
+        setLocalMin(value);
     };
 
     const handleSecChange = (e) => {
-        let value = e.target.value.replace(/\D/g, "").slice(0, 2);
+        const value = e.target.value.replace(/\D/g, "").slice(0, 2);
+        setLocalSec(value);
+    };
+
+    const handleMinBlur = () => {
+        onChange({
+            ...position,
+            min: localMin,
+        });
+    };
+
+    const handleSecBlur = () => {
+        let value = localSec;
         // 如果输入的值大于59，自动调整为59
         if (value !== "" && parseInt(value) > 59) {
             value = "59";
+            setLocalSec(value);
         }
         onChange({
             ...position,
-            sec: value || "00",
+            sec: value,
         });
     };
 
@@ -66,16 +85,18 @@ const TimingInput = ({ label, position, onChange }) => {
             <Space.Compact>
                 <Input
                     style={{ width: 60 }}
-                    value={position.min}
+                    value={localMin}
                     onChange={handleMinChange}
+                    onBlur={handleMinBlur}
                     placeholder="分"
                     maxLength={2}
                 />
                 <span style={{ padding: "0 8px", lineHeight: "32px" }}>分</span>
                 <Input
                     style={{ width: 60 }}
-                    value={position.sec}
+                    value={localSec}
                     onChange={handleSecChange}
+                    onBlur={handleSecBlur}
                     placeholder="秒"
                     maxLength={2}
                 />
