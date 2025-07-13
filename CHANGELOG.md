@@ -1,4 +1,13 @@
-# [0.2.0](https://github.com/fangcongyang/vop/compare/v0.1.9...v0.2.0) (2025-07-12)
+## [0.2.1](https://github.com/fangcongyang/vop/compare/v0.2.0...v0.2.1) (2025-07-13)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* 修复秒数输入限制并更新版本号至0.2.1 ([](https://github.com/fangcongyang/vop/commit/9e52075))
+
+
+
+# [0.2.0](https://github.com/fangcongyang/vop/compare/0.2.0...v0.2.0) (2025-07-12)
 
 
 
