@@ -49,13 +49,15 @@ const TimingInput = ({ label, position, onChange }) => {
     };
 
     const handleSecChange = (e) => {
-        const value = e.target.value.replace(/\D/g, "").slice(0, 2);
-        if (value === "" || parseInt(value) <= 59) {
-            onChange({
-                ...position,
-                sec: value || "00",
-            });
+        let value = e.target.value.replace(/\D/g, "").slice(0, 2);
+        // 如果输入的值大于59，自动调整为59
+        if (value !== "" && parseInt(value) > 59) {
+            value = "59";
         }
+        onChange({
+            ...position,
+            sec: value || "00",
+        });
     };
 
     return (
