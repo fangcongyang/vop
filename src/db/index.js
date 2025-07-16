@@ -3,6 +3,7 @@ import { AxiosHttpStrategy } from "@/utils/httpStrategy";
 import { unionWith, isEqual } from "lodash";
 import { generateUUID } from "@/utils/common";
 import { message } from "@tauri-apps/plugin-dialog";
+import movieApi from "@/api/movies";
 
 class MopDatabase extends Dexie {
     site;
@@ -83,13 +84,15 @@ export async function getSiteByKey(site_key) {
 
 export async function getSiteClassList(site_key) {
     let classList = await db.siteClassList.where("site_key").equals(site_key).toArray();
+
     if (classList.length === 0) {
         const site = await getSiteByKey(site_key);
         try {
             const res = await movieApi.getSiteClass(site);
             const allClass = [{ class_id: -1, class_name: "最新" }, ...res.classList];
             classList = await cacheSiteClassList(site.site_key, allClass);
-        } catch {
+        } catch (err) {
+            console.error(`site_key: ${site_key} get class error: ${err}`);
             classList = [];
         }
     }
