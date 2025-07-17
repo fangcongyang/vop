@@ -1,4 +1,15 @@
-## [0.2.1](https://github.com/fangcongyang/vop/compare/v0.2.0...v0.2.1) (2025-07-13)
+## [0.2.2](https://github.com/fangcongyang/vop/compare/v0.2.1...v0.2.2) (2025-07-17)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* 使用get方法从siteMap获取站点名称以避免undefined错误 ([](https://github.com/fangcongyang/vop/commit/d4599bb))
+* 修复站点名称显示问题并更新版本号至0.2.2 ([](https://github.com/fangcongyang/vop/commit/f48c823))
+* **db:** 修复获取站点分类列表时的错误处理 ([](https://github.com/fangcongyang/vop/commit/c5c4b66))
+
+
+
+## [0.2.1](https://github.com/fangcongyang/vop/compare/0.2.1...v0.2.1) (2025-07-13)
 
 
 ### 🐛 Bug Fixes | Bug 修复
