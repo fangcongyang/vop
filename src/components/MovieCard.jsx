@@ -38,7 +38,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
         switch (viewMode) {
             case "history":
             case "star":
-                return siteMap? siteMap.get(item.site_key)?.site_name: "";
+                return siteMap? siteMap[item.site_key]?.site_name: "";
             case "search":
                 return item.site.site_name;
             default:
