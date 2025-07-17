@@ -75,7 +75,7 @@ const Detail = (props) => {
         );
         if (recommendations) {
             for (const element of recommendations) {
-                const currentSite = await getSiteByKey(detailInfo.siteKey);
+                const currentSite = await getSiteByKey(movieDetailInfo.siteKey);
                 const detailRes = await movieApi.searchFirstDetail(
                     currentSite,
                     element
@@ -101,7 +101,7 @@ const Detail = (props) => {
     // 设置剧集网格的动态宽度CSS变量
     const updateEpisodeGridWidth = () => {
         if (!info.videoList || info.videoList.length === 0) return;
-        
+
         // 计算所有剧集名称的最大字数
         const maxCharCount = Math.max(
             ...info.videoList.map((item, index) => {
@@ -109,15 +109,15 @@ const Detail = (props) => {
                 return calculateEpisodeWidth(episodeName);
             })
         );
-        
+
         // 设置计算参数
         const baseWidth = 60;
         const charWidth = 12;
         const maxWidth = 150;
-        
+
         // 计算动态宽度：基础宽度 + 字数 * 每字宽度
         const calculatedWidth = Math.min(baseWidth + maxCharCount * charWidth, maxWidth);
-        
+
         // 设置CSS变量
         const episodeGrid = document.querySelector('.episodes-grid');
         if (episodeGrid) {
@@ -134,7 +134,7 @@ const Detail = (props) => {
         const star = {
             star_name: info.name,
             ids: info.id.toString(),
-            site_key: detailInfo.siteKey,
+            site_key: movieDetailInfo.siteKey,
             movie_type: info.type,
             year: `${info.year || new Date().getFullYear()}年`,
             note: info.note,
@@ -148,6 +148,7 @@ const Detail = (props) => {
     };
 
     const playEvent = (index) => {
+        console.log(info, movieDetailInfo);
         const playInfo = {
             playState: "newPlay",
             playType: "onlineMovie",
@@ -155,8 +156,8 @@ const Detail = (props) => {
             name: info.name,
             iptv: { channelGroupId: 0, channelActive: "" },
             download: { downloadId: 0 },
-            movie: {
-                siteKey: detailInfo.siteKey,
+            movieInfo: {
+                siteKey: movieDetailInfo.siteKey,
                 ids: info.id.toString(),
                 index,
                 videoFlag: "",

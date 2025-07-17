@@ -218,7 +218,7 @@ export class MoviesPlayer {
 }
 
 export const getUrlType = (url) => {
-    const match = url.match(/\.(m3u8|flv|mp4)(\?|$)/m);
+    const match = url?.match(/\.(m3u8|flv|mp4)(\?|$)/m);
     return match ? match[1] : null;
 };
 
