@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useGlobalStore } from "@/store/useGlobalStore";
-import { getSiteList, deleteSite, saveSite } from "@/db";
+import { getSiteList, deleteSite, saveSite } from "@/api/site";
 import { Table, Space, Button, Tag } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import SiteModal from "./components/SiteModal";

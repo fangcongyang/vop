@@ -4,7 +4,7 @@ import { type, OsType as OsDetailType } from "@tauri-apps/plugin-os";
 import { getVersion } from "@tauri-apps/api/app";
 import utils from "@/utils";
 
-import { getSiteList } from "@/db";
+import { getSiteList } from "@/api/site";
 
 type OsType = "desktop" | "mobile" | "web" | "webMobile";
 
@@ -99,7 +99,7 @@ export const useGlobalStore = create<GlobalState>()(
             initGlobal: async () => {
                 set({ loading: true, error: null });
                 try {
-                    const siteList = await getSiteList();
+                    const siteList = await getSiteList({});
                     if (!siteList) {
                         throw new Error("Failed to fetch site list");
                     }

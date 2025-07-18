@@ -9,6 +9,7 @@ use tokio::sync::OnceCell;
 pub mod download_info;
 pub mod history;
 pub mod star;
+pub mod site;
 
 static DB_POOL: OnceCell<Arc<Pool<ConnectionManager<SqliteConnection>>>> = OnceCell::const_new();
 

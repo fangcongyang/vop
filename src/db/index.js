@@ -3,7 +3,7 @@ import { AxiosHttpStrategy } from "@/utils/httpStrategy";
 import { unionWith, isEqual } from "lodash";
 import { generateUUID } from "@/utils/common";
 import { message } from "@tauri-apps/plugin-dialog";
-import movieApi from "@/api/movies";
+import { getSiteList } from "@/api/site";
 
 class MopDatabase extends Dexie {
     site;
@@ -68,85 +68,6 @@ export async function initDB(forceUpdate = false) {
         uploadData(dataUpload.conf_value)
     }
     return await db.site.toArray();
-}
-
-export async function getSiteList() {
-    return await db.site.toArray();
-}
-
-export async function deleteSite(siteId) {
-    await db.site.delete(siteId);
-}
-
-export async function getSiteByKey(site_key) {
-    return await db.site.where("site_key").equals(site_key).first();
-}
-
-export async function getSiteClassList(site_key) {
-    let classList = await db.siteClassList.where("site_key").equals(site_key).toArray();
-
-    if (classList.length === 0) {
-        const site = await getSiteByKey(site_key);
-        try {
-            const res = await movieApi.getSiteClass(site);
-            const allClass = [{ class_id: -1, class_name: "最新" }, ...res.classList];
-            classList = await cacheSiteClassList(site.site_key, allClass);
-        } catch (err) {
-            console.error(`site_key: ${site_key} get class error: ${err}`);
-            classList = [];
-        }
-    }
-    return classList;
-
-}
-
-export async function saveSite(site) {
-    let siteInfo = {
-        id: site.id,
-        site_key: site.siteKey,
-        site_name: site.siteName,
-        api: site.api,
-        site_group: site.siteGroup,
-        parse_mode: site.parseMode,
-    };
-    if (siteInfo.id) {
-        await db.site.update(siteInfo.id, siteInfo);
-    } else {
-        await db.site
-            .orderBy("position")
-            .reverse()
-            .first()
-            .then((item) => {
-                if (item) {
-                    siteInfo.position = item.position + 10;
-                } else {
-                    siteInfo.position = 10;
-                }
-            });
-        siteInfo.is_active = "1";
-        siteInfo.status = "可用";
-        (siteInfo.is_reverse_order = "1"), await db.site.add(siteInfo);
-    }
-}
-
-export async function cacheSiteClassList(site_key, classList) {
-    classList.forEach((element) => {
-        element["site_key"] = site_key;
-    });
-    await db.siteClassList.bulkPut(classList);
-    return classList;
-}
-
-
-export async function starMovie(star) {
-    let oldStar = await db.star
-        .where("ids")
-        .equals(star.ids)
-        .and((item) => item.site_key == star.site_key)
-        .first();
-    if (!oldStar) {
-        await db.star.add(star);
-    }
 }
 
 export async function getSystemConfByKey(confCode) {

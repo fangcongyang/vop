@@ -92,7 +92,7 @@ diesel::table! {
 
 diesel::table! {
     site (id) {
-        id -> Nullable<Integer>,
+        id -> Text,
         site_key -> Text,
         site_name -> Text,
         api -> Text,
@@ -101,6 +101,19 @@ diesel::table! {
         status -> Text,
         position -> Nullable<Double>,
         is_reverse_order -> Text,
-        parse_mode -> Nullable<Text>
+        parse_mode -> Nullable<Text>,
+        create_time -> Text,
+        update_time -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
+    site_class (id) {
+        id -> Text,
+        class_id -> Text,
+        site_key -> Text,
+        class_name -> Text,
+        create_time -> Text,
+        update_time -> Nullable<Text>,
     }
 }

@@ -172,6 +172,13 @@ pub fn run() {
             orm::star::cmds::delete_star,
             orm::star::cmds::select_all_star,
             orm::star::cmds::import_star,
+            orm::site::cmds::get_all_sites,
+            orm::site::cmds::insert_site,
+            orm::site::cmds::update_site,
+            orm::site::cmds::delete_site,
+            orm::site::cmds::get_site_by_key,
+            orm::site::cmds::select_site_class_list,
+            orm::site::cmds::cache_site_class_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

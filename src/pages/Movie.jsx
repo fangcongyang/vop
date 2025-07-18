@@ -4,7 +4,7 @@ import Waterfall from "@/components/Waterfall";
 import SearchAutoComplete from "@/components/SearchAutoComplete";
 import movieApi from "@/api/movies";
 import { cacheData, getCacheData } from "@/business/cache";
-import { getSiteClassList } from "@/db";
+import { getSiteClassList } from "@/api/site";
 import { uniqBy } from "lodash";
 import { message, Button } from "antd";
 import { LoadingOutlined, UpOutlined, DownOutlined } from "@ant-design/icons";

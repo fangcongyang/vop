@@ -4,7 +4,7 @@ import { useGlobalStore } from "@/store/useGlobalStore";
 import { useMovieStore } from "@/store/useMovieStore";
 import MovieCard from "@/components/MovieCard";
 import Waterfall from "@/components/Waterfall";
-import { getSiteByKey } from "@/db";
+import { getSiteByKey } from "@/api/site";
 import { starMovie } from "@/api/star";
 import movieApi from "@/api/movies";
 import doubanApi from "@/api/douban";
@@ -148,7 +148,6 @@ const Detail = (props) => {
     };
 
     const playEvent = (index) => {
-        console.log(info, movieDetailInfo);
         const playInfo = {
             playState: "newPlay",
             playType: "onlineMovie",

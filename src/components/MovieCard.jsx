@@ -1,7 +1,7 @@
 import { useGlobalStore } from "@/store/useGlobalStore";
 import LazyImage from "@/components/LazyImage";
 import doubanApi from "@/api/douban";
-import { getSiteByKey } from "@/db";
+import { getSiteByKey } from "@/api/site";
 import { saveDownloadInfo } from "@/api/downloadInfo";
 import { starMovie } from "@/api/star";
 import { message } from "antd";
