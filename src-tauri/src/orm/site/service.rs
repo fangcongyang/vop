@@ -19,6 +19,7 @@ pub fn get_site_by_key(site_key: &str) -> Result<Option<Site>, String> {
 pub fn get_all_sites() -> Result<Vec<Site>, String> {
     let mut db = get_database_pool().map_err(|e| format!("获取数据库连接失败: {}", e))?;
     let sites = site_dsl::site
+        .order(site_dsl::position.desc())
         .load::<Site>(&mut db)
         .map_err(|e| format!("获取站点列表失败: {}", e))?;
     Ok(sites)
