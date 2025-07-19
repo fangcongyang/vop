@@ -38,7 +38,7 @@ export interface PlayInfo {
 
 export interface GlobalState {
     siteList: any[];
-    siteMap: Map<string, any>;
+    siteMap: Record<string, any>;
     pageActive: "movie" | "history" | "setting" | "play";
     loading: boolean;
     error: string | null;
@@ -66,7 +66,7 @@ export const useGlobalStore = create<GlobalState>()(
         (set) => ({
             isInit: false,
             siteList: [],
-            siteMap: new Map(),
+            siteMap: {},
             currentSite: null,
             pageActive: "movie",
             loading: false,
@@ -116,11 +116,17 @@ export const useGlobalStore = create<GlobalState>()(
                     set((state) => {
                         const shouldUpdateCurrentSite =
                             !state.currentSite ||
-                            !siteList.some((site: any) => site.site_key === state.currentSite?.site_key);
+                            !siteList.some(
+                                (site: any) =>
+                                    site.site_key ===
+                                    state.currentSite?.site_key
+                            );
                         return {
                             siteList,
                             siteMap,
-                            currentSite: shouldUpdateCurrentSite ? siteList[0] : state.currentSite,
+                            currentSite: shouldUpdateCurrentSite
+                                ? siteList[0]
+                                : state.currentSite,
                             loading: false,
                             osType: getOsType(osDetailType),
                             osDetailType,
@@ -136,11 +142,11 @@ export const useGlobalStore = create<GlobalState>()(
             },
             toggleSiteList: (siteList: any[]) => {
                 const siteMap = siteList.reduce(
-                    (acc: Map<string, any>, site: any) => {
-                        acc.set(site.site_key, site);
+                    (acc: Record<string, any>, site: any) => {
+                        acc[site.site_key] = site;
                         return acc;
                     },
-                    new Map()
+                    {}
                 );
                 set({ siteList, siteMap });
             },

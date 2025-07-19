@@ -87,7 +87,7 @@ const Site = (props) => {
   ];
 
   const onDeleteSite = async (site) => {
-    deleteSite(site.id).then(() => {
+    deleteSite({id: site.id}).then(() => {
       init();
     });
   };
