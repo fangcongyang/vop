@@ -499,10 +499,28 @@ fn is_port_occupied(port: u16) -> bool {
     // 尝试连接到端口，如果连接成功说明端口被占用
     match std::net::TcpStream::connect_timeout(
         &format!("127.0.0.1:{}", port).parse().unwrap(),
-        std::time::Duration::from_millis(100),
+        std::time::Duration::from_millis(1000), // 增加连接超时时间到1秒
     ) {
         Ok(_) => true,   // 连接成功，端口被占用
         Err(_) => false, // 连接失败，端口未被占用
+    }
+}
+
+// 检查miniserve服务是否真正可用
+async fn is_miniserve_service_ready(port: u16) -> bool {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(2000))
+        .build()
+        .unwrap_or_default();
+    
+    let url = format!("http://127.0.0.1:{}", port);
+    
+    match client.get(&url).send().await {
+        Ok(response) => {
+            // 检查响应状态码，200表示服务正常
+            response.status().is_success()
+        }
+        Err(_) => false,
     }
 }
 
@@ -573,16 +591,30 @@ pub async fn start_miniserve_service(
                 processes.insert(port, child);
             }
 
-            // 等待服务启动并进行多次检查
+            // 等待服务启动并进行多次检查 - 使用渐进式检测策略
             let mut attempts = 0;
-            let max_attempts = 10;
+            let max_attempts = 30; // 最多检测30次
             let mut service_started = false;
 
             while attempts < max_attempts {
-                tokio::time::sleep(Duration::from_millis(200)).await;
+                // 渐进式等待时间：前10次快速检测(300ms)，后续逐渐增加间隔
+                let wait_time = if attempts < 10 {
+                    300
+                } else if attempts < 20 {
+                    500
+                } else {
+                    1000
+                };
+                
+                tokio::time::sleep(Duration::from_millis(wait_time)).await;
+                
+                // 先检查端口是否被占用
                 if is_port_occupied(port) {
-                    service_started = true;
-                    break;
+                    // 端口被占用后，再检查HTTP服务是否真正可用
+                    if is_miniserve_service_ready(port).await {
+                        service_started = true;
+                        break;
+                    }
                 }
                 attempts += 1;
             }
@@ -594,14 +626,23 @@ pub async fn start_miniserve_service(
                     port: Some(port),
                 })
             } else {
-                // 如果端口仍然可用，说明服务启动失败，清理进程记录
+                // 检测超时，提供更详细的错误信息
+                let port_occupied = is_port_occupied(port);
+                let error_message = if port_occupied {
+                    format!("miniserve服务启动超时：端口{}已被占用但HTTP服务未响应，可能需要更长时间启动或存在其他问题", port)
+                } else {
+                    format!("miniserve服务启动失败：端口{}未被占用，请检查目录路径是否正确或miniserve可执行文件是否存在", port)
+                };
+                
+                // 清理进程记录
                 {
                     let mut processes = MINISERVE_PROCESSES.lock().unwrap();
                     processes.remove(&port);
                 }
+                
                 Ok(MiniserveServiceResult {
                     success: false,
-                    message: "miniserve服务启动失败，请检查目录路径是否正确".to_string(),
+                    message: error_message,
                     port: Some(port),
                 })
             }
