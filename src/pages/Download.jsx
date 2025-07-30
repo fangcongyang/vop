@@ -20,7 +20,7 @@ const Download = (props) => {
   const togglePlayInfo = useGlobalStore((state) => state.togglePlayInfo);
   const downloadInfoList = useMovieStore((state) => state.downloadInfoList);
   const toggleDownloadInfoList = useMovieStore((state) => state.toggleDownloadInfoList);
-  const updateDownloadInfoProcess = useGlobalStore((state) => state.updateDownloadInfoProcess);
+  const updateDownloadInfoProcess = useMovieStore((state) => state.updateDownloadInfoProcess);
   const [downloadSavePath] = useConfig("downloadSavePath", "");
 
   useEffect(() => {
@@ -110,6 +110,7 @@ const Download = (props) => {
       title: "操作",
       dataIndex: "operation",
       key: "operation",
+      width: "240px",
       render: (_, record) => (
         <Space size="middle">
           {record.download_status === "downloadSuccess" && (
@@ -120,7 +121,7 @@ const Download = (props) => {
               <a onClick={() => movieMerger(record)}>合并</a>
             </>
           )}
-          {record.status === "downloadFail" && (
+          {record.download_status === "downloadFail" && (
             <>
               <a onClick={() => retryEvent(record)}>重试</a>
               <a onClick={() => movieMerger(record)}>强制合并</a>

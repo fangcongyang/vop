@@ -84,7 +84,7 @@ impl M3u8Download {
                     result = merger(&mut self.download_info_context).await;
                 }
                 DownloadOperation::UnsupportedOperation => {
-                    result = Err(Box::from("不支持的操作"));
+                    result = Err(Box::from(format!("{}不支持的操作", self.download_info_context.status)));
                 }
                 DownloadOperation::DownloadEnd => break,
             }
@@ -262,16 +262,20 @@ async fn download_slice(
     // 创建进度发送 channel
     let (progress_tx, mut progress_rx): (mpsc::Sender<i32>, mpsc::Receiver<i32>) =
         mpsc::channel(10);
+    let mut progress_tx = Some(progress_tx);
 
     // 创建进度发送定时器
     let download_count_clone = download_count.clone();
-    let progress_tx_clone = progress_tx.clone();
+    let progress_tx_clone = progress_tx.as_ref().unwrap().clone();
     let progress_task = tokio::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(1));
         loop {
             interval.tick().await;
             let current_count = download_count_clone.load(Ordering::Relaxed);
-            let _ = progress_tx_clone.send(current_count).await;
+            // 如果发送失败，说明接收端已关闭，退出循环
+            if progress_tx_clone.send(current_count).await.is_err() {
+                break;
+            }
         }
     });
 
@@ -286,7 +290,12 @@ async fn download_slice(
         tokio::spawn(async move {
             #[allow(unused_variables)]
             let p = &semaphore.acquire().await;
-            let resp_data = reqwest::get(detail.url.as_str()).await;
+            // 创建带10秒超时的HTTP客户端
+            let client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(10))
+                .build()
+                .unwrap();
+            let resp_data = client.get(detail.url.as_str()).send().await;
             let mut data = Vec::new();
             let mut success = true;
             match resp_data {
@@ -364,41 +373,69 @@ async fn download_slice(
                             download_source_info.download_info_list.push(res);
                         }
                     }
-                    _none => break, // 所有文件下载完成
+                    _none => {
+                        // 所有文件下载完成，立即停止进度发送任务
+                        info!("所有文件下载完成，正在停止进度发送任务");
+                        progress_task.abort();
+                        if let Some(tx) = progress_tx.take() {
+                            drop(tx);
+                        }
+                        break;
+                    }
                 }
             }
             // 处理定时进度发送
             progress_count = progress_rx.recv() => {
-                if let Some(count) = progress_count {
-                    // 在这里记录成功下载的文件到文件中
-                    if !success_files.is_empty() {
-                        let batch_content = success_files
-                            .iter()
-                            .map(|name| format!("{}\r\n", name))
-                            .collect::<String>();
-                        let _ = json_success_file.write(batch_content.as_bytes()).await?;
-                        success_files.clear(); // 清空已处理的文件名
-                    }
+                match progress_count {
+                    Some(count) => {
+                        // 在这里记录成功下载的文件到文件中
+                        if !success_files.is_empty() {
+                            let batch_content = success_files
+                                .iter()
+                                .map(|name| format!("{}", name))
+                                .collect::<String>();
+                            let _ = json_success_file.write(batch_content.as_bytes()).await?;
+                            success_files.clear(); // 清空已处理的文件名
+                        }
 
-                    let download_info_update = DownloadInfoUpdate {
-                        id: download_info_context.id.clone(),
-                        download_count: Some(count),
-                        ..Default::default()
-                    };
-                    let _ = update_download_by_id(download_info_update);
-                    let _ = socket.send(tungstenite::Message::text(serde_json::to_string(&json!({
-                        "id": download_info_context.id,
-                        "download_count": count,
-                        "mes_type": "progress",
-                    }))?));
+                        let download_info_update = DownloadInfoUpdate {
+                            id: download_info_context.id.clone(),
+                            download_count: Some(count),
+                            ..Default::default()
+                        };
+                        let _ = update_download_by_id(download_info_update);
+                        let _ = socket.send(tungstenite::Message::text(serde_json::to_string(&json!({
+                            "id": download_info_context.id,
+                            "download_count": count,
+                            "mes_type": "progress",
+                        }))?));
+                    }
+                    _none => {
+                         // 进度发送通道已关闭，退出循环
+                         info!("进度发送通道已关闭，退出主循环");
+                         break;
+                     }
                 }
             }
         }
     }
 
-    // 停止进度发送任务
+    // 停止进度发送任务（如果还在运行）
     progress_task.abort();
-    drop(progress_tx);
+    // 安全地drop progress_tx（如果还没有被drop）
+    if let Some(tx) = progress_tx.take() {
+        drop(tx);
+    }
+
+    // 确保所有剩余的成功文件都被写入
+    if !success_files.is_empty() {
+        let batch_content = success_files
+            .iter()
+            .map(|name| format!("{}\n", name))
+            .collect::<String>();
+        let _ = json_success_file.write(batch_content.as_bytes()).await?;
+        info!("写入剩余的{}个成功文件记录", success_files.len());
+    }
 
     let v = serde_json::to_string_pretty(&download_source_info)?;
     let mut json_file = OpenOptions::new()

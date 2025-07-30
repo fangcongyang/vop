@@ -92,7 +92,7 @@ const MovieCard = ({ key, item, layoutHandle, site, viewMode = "default", showSi
     const downloadEvent = async (e) => {
         e.stopPropagation();
         try {
-            const siteInfo = await getSiteByKey(getSiteKey());
+            const siteInfo = await getSiteByKey({siteKey: getSiteKey()});
             const res = await moviesApi.download(siteInfo, getMovieId(), null);
             const downloadInfos = res.downloadUrls.map((url) => ({
                 movie_name: util.trimAll(url.name),
