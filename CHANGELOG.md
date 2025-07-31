@@ -1,4 +1,22 @@
-## [0.2.2](https://github.com/fangcongyang/vop/compare/v0.2.1...v0.2.2) (2025-07-17)
+## [0.2.3](https://github.com/fangcongyang/vop/compare/v0.2.2...v0.2.3) (2025-07-31)
+
+
+### ✨ Features | 新功能
+
+* **站点管理:** 实现站点管理后端功能并迁移前端调用 ([](https://github.com/fangcongyang/vop/commit/9696ce4))
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* **下载:** 修复下载进度更新和状态管理问题 ([](https://github.com/fangcongyang/vop/commit/83a5409))
+* 修复变量引用错误并添加可选链操作符 ([](https://github.com/fangcongyang/vop/commit/86b21ec))
+* 移除下载任务信息中的电影名称空格 ([](https://github.com/fangcongyang/vop/commit/5557e40))
+* **api:** 修复站点分类列表获取及排序问题 ([](https://github.com/fangcongyang/vop/commit/272427a))
+* **app:** 改进miniserve服务启动检测逻辑 ([](https://github.com/fangcongyang/vop/commit/4d4631a))
+
+
+
+## [0.2.2](https://github.com/fangcongyang/vop/compare/0.2.2...v0.2.2) (2025-07-17)
 
 
 ### 🐛 Bug Fixes | Bug 修复
