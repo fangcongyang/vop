@@ -15,8 +15,6 @@ use std::{
     thread,
     time::Duration,
 };
-use tauri::http::StatusCode;
-use tauri_plugin_http::reqwest;
 use tokio::io::AsyncBufReadExt;
 use tokio::{
     fs::{remove_dir_all, remove_file, File, OpenOptions},
@@ -33,12 +31,12 @@ use crate::{
 
 use super::{
     file_download::DownloadTaskInfo,
-    m3u8_encrypt_key::{KeyType, M3u8EncryptKey},
+    m3u8_encrypt_key::M3u8EncryptKey,
     types::{
         parse_operation_name, DownloadInfoContext, DownloadInfoDetail, DownloadInfoQueueDetail,
         DownloadInfoResponse, DownloadOperation, DownloadSourceInfo,
     },
-    util::download_request,
+    util::{download_request, download_ts},
 };
 
 pub struct M3u8Download {
@@ -84,7 +82,10 @@ impl M3u8Download {
                     result = merger(&mut self.download_info_context).await;
                 }
                 DownloadOperation::UnsupportedOperation => {
-                    result = Err(Box::from(format!("{}不支持的操作", self.download_info_context.status)));
+                    result = Err(Box::from(format!(
+                        "{}不支持的操作",
+                        self.download_info_context.status
+                    )));
                 }
                 DownloadOperation::DownloadEnd => break,
             }
@@ -93,10 +94,11 @@ impl M3u8Download {
             let rs_sucess = result.is_ok();
             if rs_sucess {
                 let rl = result.unwrap();
-                let r = serde_json::to_string(&rl).unwrap();
-                let m = socket.send(tungstenite::Message::text(r));
-                if m.is_err() {
-                    info!("发送消息失败");
+                if let Ok(r) = serde_json::to_string(&rl) {
+                    let m = socket.send(tungstenite::Message::text(r));
+                    if m.is_err() {
+                        info!("发送消息失败");
+                    }
                 }
                 operation = parse_operation_name(&rl.status[..]);
                 if operation == DownloadOperation::DownloadSlice {
@@ -160,9 +162,10 @@ async fn parse_source(
         let file_name_str = utils::get_path_name(&file_name);
         let json_success_path = &download_info_context.json_success_path;
         if utils::exists(&PathBuf::from(json_success_path)) {
-            let success_v = &std::fs::read_to_string(json_success_path).unwrap();
-            if success_v.contains(&file_name_str) {
-                continue;
+            if let Ok(success_v) = &std::fs::read_to_string(json_success_path) {
+                if success_v.contains(&file_name_str) {
+                    continue;
+                }
             }
         }
         let base_download_url = &download_info_context.url;
@@ -290,39 +293,11 @@ async fn download_slice(
         tokio::spawn(async move {
             #[allow(unused_variables)]
             let p = &semaphore.acquire().await;
-            // 创建带10秒超时的HTTP客户端
-            let client = reqwest::Client::builder()
-                .timeout(Duration::from_secs(10))
-                .build()
-                .unwrap();
-            let resp_data = client.get(detail.url.as_str()).send().await;
             let mut data = Vec::new();
-            let mut success = true;
-            match resp_data {
-                Ok(rp) => {
-                    if rp.status() == StatusCode::OK {
-                        data = rp.bytes().await.unwrap_or("".into()).to_vec();
-
-                        if data.is_empty() {
-                            success = false;
-                        } else {
-                            if !matches!(&detail.m3u8_encrypt_key.ty, KeyType::None) {
-                                match detail.m3u8_encrypt_key.decode(&mut data) {
-                                    Ok(Some(data1)) => {
-                                        data = data1;
-                                    }
-                                    Ok(_none) => success = false,
-                                    Err(_) => success = false,
-                                };
-                            }
-                        }
-                    } else {
-                        success = false;
-                    }
-                }
-                Err(_e) => {
-                    success = false;
-                }
+            let mut success = false;
+            if let Ok((s, d)) = download_ts(detail.url.as_str(), &detail.m3u8_encrypt_key).await {
+                success = s;
+                data = d;
             }
 
             tx1.send(DownloadInfoDetail {
@@ -496,7 +471,9 @@ pub fn read_data_to_queue(
 
 pub async fn downloaded_file_save(p: DownloadInfoDetail) -> anyhow::Result<(), tokio::io::Error> {
     let mut file = File::create(&p.file_name).await?;
-    file.write_all(&p.data.clone().unwrap_or("".into())).await?;
+    if let Some(data) = p.data {
+        file.write_all(&data).await?;
+    }
     Ok(())
 }
 
@@ -545,21 +522,20 @@ pub async fn merger(
         exe_path = exe_path.join("ffmpeg");
     }
     let mut command = Command::new(exe_path);
-    command
-        .args([
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            &index_str,
-            "-bsf:a",
-            "aac_adtstoasc",
-            "-c",
-            "copy",
-            &mv_str,
-        ]);
+    command.args([
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        &index_str,
+        "-bsf:a",
+        "aac_adtstoasc",
+        "-c",
+        "copy",
+        &mv_str,
+    ]);
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
