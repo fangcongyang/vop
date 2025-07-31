@@ -184,7 +184,7 @@ pub mod service {
     pub fn download_info_to_download_task_info(download_info: DownloadInfo) -> DownloadTaskInfo {
         DownloadTaskInfo {
             id: download_info.id,
-            movie_name: download_info.movie_name,
+            movie_name: download_info.movie_name.chars().filter(|c| !c.is_whitespace()).collect(),
             url: download_info.url,
             sub_title_name: download_info.sub_title_name,
             status: download_info.status,
